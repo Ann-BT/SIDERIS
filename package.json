@@ -1,0 +1,27 @@
+{
+  "name": "sideris",
+  "version": "2.0.0",
+  "description": "Real-time web attack detection and behavioral analysis system",
+  "private": true,
+  "scripts": {
+    "ingest": "node src/ingest/server.js",
+    "detect": "node src/detector/worker.js",
+    "guard": "node src/guard/guard.js",
+    "dashboard": "node src/dashboard/server.js",
+    "proxy": "node src/proxy/server.js",
+    "storage": "node src/storage/writer.js",
+    "start-all": "node scripts/start-all.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "http-proxy-middleware": "^3.0.5",
+    "ioredis": "^5.10.1",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1"
+  }
+}

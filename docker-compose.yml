@@ -1,0 +1,61 @@
+# ──────────────────────────────────────────────────────────
+# docker-compose.yml
+# SIDERIS 2.0 — Infrastructure Services
+#
+# Starts: Redis + PostgreSQL + OWASP Juice Shop
+#
+# Run with:  docker compose up -d
+# Stop with: docker compose down
+# Nuke data: docker compose down -v
+# ──────────────────────────────────────────────────────────
+
+services:
+
+  # ── Redis — event stream + session state ───────────────
+  redis:
+    image: redis:7-alpine
+    container_name: sideris-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── PostgreSQL — persistent SOC storage ────────────────
+  postgres:
+    image: mirror.gcr.io/library/postgres:16
+    container_name: sideris-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: sideris
+      POSTGRES_PASSWORD: sideris
+      POSTGRES_DB: sideris
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sideris -d sideris"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── OWASP Juice Shop — target application ──────────────
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: sideris-juice
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
