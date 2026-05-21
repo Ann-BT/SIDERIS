@@ -146,6 +146,11 @@ async function applyGuard(sessionId, decision) {
     if (!isHardBlock(decision.action)) {
       await redis.expire(guardKey, SESSION_TTL);
     }
+
+    // Increment the dashboard metrics counter for this action type.
+    // guard.js (pub/sub path) only covers block/challenge via Lua;
+    // rate_limit actions are set exclusively here, so we must count them.
+    await redis.incr(`sideris:metrics:guard:${directive}`);
   }
 }
 

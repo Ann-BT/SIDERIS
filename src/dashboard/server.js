@@ -28,6 +28,25 @@ app.use((req, res, next) => {
   next();
 });
 
+// Format a timestamp as Apache Combined Log Format datetime string
+// e.g. 18/Jun/2025:10:30:45 +0000
+function formatCLF(tsMs) {
+  const d = new Date(tsMs);
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getUTCDate())}/${mo[d.getUTCMonth()]}/${d.getUTCFullYear()}:${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} +0000`;
+}
+
+// Build one Combined Log Format line from event data fields
+function toCLF(ts, data, ingestIp) {
+  const ip      = data.ip      || ingestIp || '-';
+  const method  = data.method  || '-';
+  const path    = data.endpoint|| '-';
+  const status  = data.status  || '-';
+  const ua      = data.userAgent ? `"${data.userAgent}"` : '"-"';
+  return `${ip} - - [${formatCLF(ts)}] "${method} ${path} HTTP/1.1" ${status} - "-" ${ua}`;
+}
+
 // Helper function to scan keys efficiently with hard limits
 async function scanKeys(pattern, maxCount = 50) {
   return new Promise((resolve, reject) => {
@@ -98,12 +117,12 @@ app.get('/sessions', async (req, res) => {
     for (const i of validIndices) {
       const data = results[i][1];
       const reasonsRaw = enrichResults[enrichIdx][1] || [];
-      const guardData  = enrichResults[enrichIdx + 1][1] || {};
+      const guardData = enrichResults[enrichIdx + 1][1] || {};
       enrichIdx += 2;
 
       // Parse category_counts
       let categoryCounts = { authentication: 0, injection: 0, fuzzing: 0, bot: 0, dos: 0, session_abuse: 0 };
-      try { categoryCounts = JSON.parse(data.category_counts || '{}'); } catch {}
+      try { categoryCounts = JSON.parse(data.category_counts || '{}'); } catch { }
       // Ensure all 6 keys exist
       for (const cat of ['authentication', 'injection', 'fuzzing', 'bot', 'dos', 'session_abuse']) {
         if (!categoryCounts[cat]) categoryCounts[cat] = 0;
@@ -111,7 +130,7 @@ app.get('/sessions', async (req, res) => {
 
       // Parse url_counts
       let urlCounts = {};
-      try { urlCounts = JSON.parse(data.url_counts || '{}'); } catch {}
+      try { urlCounts = JSON.parse(data.url_counts || '{}'); } catch { }
 
       // Parse risk_reasons JSON strings
       const riskReasons = reasonsRaw.map(r => {
@@ -132,43 +151,43 @@ app.get('/sessions', async (req, res) => {
       const blockType = guardData.block_type || null;
 
       sessions.push({
-        session_id:           data.session_id,
-        ip_address:           data.ip_address || null,
-        user_agent:           data.user_agent || null,
-        session_score:        sessionScore,
-        risk_score:           sessionScore,         // backward compat
-        event_count:          parseInt(data.event_count || '0', 10),
-        verdict:              data.verdict || 'allow',
+        session_id: data.session_id,
+        ip_address: data.ip_address || null,
+        user_agent: data.user_agent || null,
+        session_score: sessionScore,
+        risk_score: sessionScore,         // backward compat
+        event_count: parseInt(data.event_count || '0', 10),
+        verdict: data.verdict || 'allow',
         level,
-        last_seen:            parseInt(data.last_seen || Date.now().toString(), 10),
+        last_seen: parseInt(data.last_seen || Date.now().toString(), 10),
 
         // Category breakdown
-        category_counts:      categoryCounts,
+        category_counts: categoryCounts,
 
         // Per-type breakdown
-        url_counts:           urlCounts,
+        url_counts: urlCounts,
 
         // Auth tracking
-        login_attempts:       parseInt(data.login_attempts || '0', 10),
-        failed_login_count:   parseInt(data.failed_login_count || '0', 10),
+        login_attempts: parseInt(data.login_attempts || '0', 10),
+        failed_login_count: parseInt(data.failed_login_count || '0', 10),
         unique_username_count: JSON.parse(data.unique_usernames || '[]').length,
 
         // Guard status
-        is_blocked:           isBlocked,
-        guard_action:         guardAction,
-        block_type:           blockType,
+        is_blocked: isBlocked,
+        guard_action: guardAction,
+        block_type: blockType,
 
         // Detection flags
-        scanner_detected:     data.scanner_detected === '1',
-        scan_detected:        data.scan_detected === '1',
-        exploit_detected:     data.exploit_detected === '1',
-        count_404:            parseInt(data.count_404 || '0', 10),
+        scanner_detected: data.scanner_detected === '1',
+        scan_detected: data.scan_detected === '1',
+        exploit_detected: data.exploit_detected === '1',
+        count_404: parseInt(data.count_404 || '0', 10),
 
         // Behavior timeline (last 50 risk reasons)
-        risk_reasons:         riskReasons,
+        risk_reasons: riskReasons,
 
         // Bonuses applied
-        bonus_applied:        JSON.parse(data.bonus_applied || '[]'),
+        bonus_applied: JSON.parse(data.bonus_applied || '[]'),
       });
     }
 
@@ -196,18 +215,18 @@ app.get('/guards', async (req, res) => {
     const results = await pipeline.exec();
 
     const guards = results.map((result, i) => {
-       const keyParts = keys[i].split(':');
-       const session_id = keyParts.slice(2).join(':'); // handle colons in ID
-       const data = result[1];
-       if (!data || !data.action) return null;
-       return {
-         session_id,
-         action:      data.action,
-         block_type:  data.block_type || null,
-         risk_score:  parseInt(data.risk_score || '0', 10),
-         reason:      data.reason || null,
-         updated_at:  parseInt(data.updated_at || '0', 10),
-       };
+      const keyParts = keys[i].split(':');
+      const session_id = keyParts.slice(2).join(':'); // handle colons in ID
+      const data = result[1];
+      if (!data || !data.action) return null;
+      return {
+        session_id,
+        action: data.action,
+        block_type: data.block_type || null,
+        risk_score: parseInt(data.risk_score || '0', 10),
+        reason: data.reason || null,
+        updated_at: parseInt(data.updated_at || '0', 10),
+      };
     }).filter(g => g !== null);
 
     // Sort heavily penalized actions first (block > challenge)
@@ -283,13 +302,13 @@ app.post('/unblock/:sessionId', async (req, res) => {
 
     // Write audit log
     const auditEntry = JSON.stringify({
-      action:      'unblock',
-      session_id:  sessionId,
-      previous:    guardData.action,
-      block_type:  guardData.block_type || null,
-      reason:      reason || 'SOC manual unblock',
-      timestamp:   Date.now(),
-      time:        new Date().toISOString(),
+      action: 'unblock',
+      session_id: sessionId,
+      previous: guardData.action,
+      block_type: guardData.block_type || null,
+      reason: reason || 'SOC manual unblock',
+      timestamp: Date.now(),
+      time: new Date().toISOString(),
     });
     await redis.lpush('sideris:audit:log', auditEntry);
     await redis.ltrim('sideris:audit:log', 0, 499); // keep last 500
@@ -297,10 +316,10 @@ app.post('/unblock/:sessionId', async (req, res) => {
     console.log(`[SOC] UNBLOCK: session=${sessionId} previous_action=${guardData.action} reason=${reason || 'manual'}`);
 
     res.json({
-      success:    true,
+      success: true,
       session_id: sessionId,
-      previous:   guardData.action,
-      message:    'Session unblocked successfully',
+      previous: guardData.action,
+      message: 'Session unblocked successfully',
     });
   } catch (err) {
     console.error('[dashboard] /unblock error:', err.message);
@@ -326,10 +345,10 @@ app.post('/block/:sessionId', async (req, res) => {
 
     // Set hard block (no TTL — persists until SOC unblocks)
     await redis.hset(guardKey,
-      'action',     'block',
+      'action', 'block',
       'block_type', 'hard',
       'risk_score', '0',
-      'reason',     reason || 'SOC manual block',
+      'reason', reason || 'SOC manual block',
       'updated_at', String(Date.now())
     );
     // No EXPIRE — hard block persists
@@ -339,11 +358,11 @@ app.post('/block/:sessionId', async (req, res) => {
 
     // Write audit log
     const auditEntry = JSON.stringify({
-      action:      'manual_block',
-      session_id:  sessionId,
-      reason:      reason || 'SOC manual block',
-      timestamp:   Date.now(),
-      time:        new Date().toISOString(),
+      action: 'manual_block',
+      session_id: sessionId,
+      reason: reason || 'SOC manual block',
+      timestamp: Date.now(),
+      time: new Date().toISOString(),
     });
     await redis.lpush('sideris:audit:log', auditEntry);
     await redis.ltrim('sideris:audit:log', 0, 499);
@@ -351,9 +370,9 @@ app.post('/block/:sessionId', async (req, res) => {
     console.log(`[SOC] BLOCK: session=${sessionId} reason=${reason || 'manual'}`);
 
     res.json({
-      success:    true,
+      success: true,
       session_id: sessionId,
-      message:    'Session blocked successfully',
+      message: 'Session blocked successfully',
     });
   } catch (err) {
     console.error('[dashboard] /block error:', err.message);
@@ -362,8 +381,127 @@ app.post('/block/:sessionId', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
+// GET /logs — live access log stream
+//
+// Reads latest entries from the sideris:events Redis stream.
+// Level is derived from HTTP status code.
+// ══════════════════════════════════════════════════════════
+app.get('/logs', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+
+    // XREVRANGE returns newest-first; we fetch then reverse for oldest→newest display
+    const entries = await redis.xrevrange('sideris:events', '+', '-', 'COUNT', limit);
+
+    const logs = entries.reverse().map(([streamId, fields]) => {
+      const obj = {};
+      for (let i = 0; i < fields.length; i += 2) obj[fields[i]] = fields[i + 1];
+
+      let payload = {};
+      try { payload = JSON.parse(obj.payload || '{}'); } catch { }
+
+      // Only show backend access logs, skip agent beacon events
+      const source = payload.source || obj.source || '';
+      if (source !== 'backend') return null;
+
+      const data = payload.data || {};
+      const status = data.status || 0;
+      const method = data.method || obj.event_type || 'EVENT';
+      const endpoint = data.endpoint || '/';
+      const duration = data.duration != null ? `${data.duration}ms` : '';
+      const ip = data.ip || payload.ingest_ip || '?';
+      const sessionId = payload.session_id || obj.session_id || '';
+      const sid = sessionId.slice(0, 12);
+
+
+      let level = 'INFO';
+      if (status >= 500) level = 'ERROR';
+      else if (status === 403) level = 'CRITICAL';
+      else if (status >= 400) level = 'WARN';
+
+      const ts = parseInt(streamId.split('-')[0], 10) || payload.ingest_time || Date.now();
+      const message = (data.method && data.endpoint)
+        ? toCLF(ts, data, payload.ingest_ip)
+        : `${obj.event_type || 'event'} from ${ip}${sid ? ` sess:${sid}…` : ''}`;
+
+      return { ts, timestamp: new Date(ts).toISOString(), level, service: source, message };
+    }).filter(Boolean);
+
+    res.json(logs);
+  } catch (err) {
+    console.error('[dashboard] /logs error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// GET /session-logs/:sessionId — export raw session log
+// ══════════════════════════════════════════════════════════
+app.get('/session-logs/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
+
+  try {
+    // Fetch session hash, risk reasons, and guard data in parallel
+    const [sessionData, reasonsRaw, guardData] = await Promise.all([
+      redis.hgetall(`sideris:session:${sessionId}`),
+      redis.lrange(`sideris:session:${sessionId}:risk_reasons`, 0, -1),
+      redis.hgetall(`sideris:guard:${sessionId}`),
+    ]);
+
+    const riskReasons = reasonsRaw.map(r => {
+      try { return JSON.parse(r); } catch { return null; }
+    }).filter(Boolean);
+
+    // Scan the events stream for backend access logs belonging to this session
+    // Limit scan to 5000 most recent entries to keep export fast
+    const streamEntries = await redis.xrevrange('sideris:events', '+', '-', 'COUNT', 5000);
+    const accessLogs = [];
+    for (const [streamId, fields] of streamEntries) {
+      const obj = {};
+      for (let i = 0; i < fields.length; i += 2) obj[fields[i]] = fields[i + 1];
+      // Filter: backend source + matching session_id
+      if (obj.source !== 'backend') continue;
+      if (obj.session_id !== sessionId) continue;
+      let payload = {};
+      try { payload = JSON.parse(obj.payload || '{}'); } catch {}
+      const ts = parseInt(streamId.split('-')[0], 10);
+      const d = payload.data || {};
+      accessLogs.push({
+        clf:       toCLF(ts, d, payload.ingest_ip),
+        timestamp: new Date(ts).toISOString(),
+        method:    d.method    || null,
+        endpoint:  d.endpoint  || null,
+        status:    d.status    || null,
+        duration:  d.duration  || null,
+        ip:        d.ip        || payload.ingest_ip || null,
+        user_agent:d.userAgent || null,
+      });
+    }
+    // Sort oldest-first
+    accessLogs.reverse();
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition',
+      `attachment; filename="sideris-session-${sessionId.slice(0, 12)}.json"`);
+    res.json({
+      exported_at:  new Date().toISOString(),
+      session_id:   sessionId,
+      session:      sessionData  || {},
+      guard:        guardData    || {},
+      risk_reasons: riskReasons,
+      access_logs:  accessLogs,
+    });
+  } catch (err) {
+    console.error('[dashboard] /session-logs error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+// ══════════════════════════════════════════════════════════
 // STARTUP
 // ══════════════════════════════════════════════════════════
 app.listen(PORT, () => {
-   console.log(`[dashboard] Sideris Metrics API running on http://localhost:${PORT}`);
+  console.log(`[dashboard] Sideris Metrics API running on http://localhost:${PORT}`);
 });

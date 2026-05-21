@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import './index.css'
 
 const API = 'http://127.0.0.1:6001'
@@ -21,6 +21,13 @@ function App() {
   const [unblockConfirm, setUnblockConfirm] = useState(null)
   const [blockConfirm, setBlockConfirm] = useState(null)
   const [toast, setToast] = useState(null)
+  const [logs, setLogs] = useState([])
+  const [logsPaused, setLogsPaused] = useState(false)
+  // Sorting state for Live Threat Sessions
+  const [sortBy, setSortBy]   = useState('score')   // 'score' | 'critical' | 'very_high' | 'high' | 'suspicious' | 'normal'
+  const [sortDir, setSortDir] = useState('desc')     // 'asc' | 'desc'
+  const logsEndRef = useRef(null)
+  const logsBoxRef = useRef(null)
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type })
@@ -58,6 +65,14 @@ function App() {
     return map[level] || 'NORMAL'
   }
 
+  // Auto-scroll logs to bottom when new entries arrive (unless user scrolled up)
+  useEffect(() => {
+    const box = logsBoxRef.current
+    if (!box || logsPaused) return
+    const isNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80
+    if (isNearBottom) logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logs, logsPaused])
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -76,10 +91,20 @@ function App() {
         setErrorStatus(true)
       }
     }
+
+    const fetchLogs = async () => {
+      if (logsPaused) return
+      try {
+        const res = await fetch(`${API}/logs?limit=100`)
+        if (res.ok) setLogs(await res.json())
+      } catch { /* silent */ }
+    }
+
     fetchData()
-    const interval = setInterval(fetchData, 3000)
+    fetchLogs()
+    const interval = setInterval(() => { fetchData(); fetchLogs() }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [logsPaused])
 
   const handleUnblock = async (sessionId) => {
     try {
@@ -129,10 +154,7 @@ function App() {
           <h1>SIDERIS <span className="highlight">Command Center</span></h1>
           <span className="header-subtitle">Security Operations Console</span>
         </div>
-        <div className={`status-indicator ${errorStatus ? 'offline' : 'online'}`}>
-          <span className="status-dot"></span>
-          {errorStatus ? 'API Disconnected' : 'Systems Online'}
-        </div>
+        <div className={`status-indicator ${errorStatus ? 'offline' : 'online'}`} title={errorStatus ? 'API Disconnected' : 'Systems Online'} />
       </header>
 
       {/* Metrics Grid */}
@@ -157,10 +179,41 @@ function App() {
 
       {/* Sessions Panel */}
       <section className="sessions-panel">
-        <h2 className="panel-title">
-          Live Threat Sessions
-          <span className="session-count">{sessions.length} active</span>
-        </h2>
+        <div className="sessions-panel-header">
+          <h2 className="panel-title">
+            Live Threat Sessions
+            <span className="session-count">{sessions.length} active</span>
+          </h2>
+          <div className="sort-controls">
+            {/* Verdict filter pills */}
+            <div className="sort-pills" role="group" aria-label="Filter by severity">
+              {[
+                { key: 'score',      label: 'All' },
+                { key: 'critical',   label: 'Critical' },
+                { key: 'very_high',  label: 'Very High' },
+                { key: 'high',       label: 'High' },
+                { key: 'suspicious', label: 'Suspicious' },
+                { key: 'normal',     label: 'Normal' },
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  className={`sort-pill sort-pill-${opt.key} ${sortBy === opt.key ? 'active' : ''}`}
+                  onClick={() => setSortBy(opt.key)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {/* Score direction toggle */}
+            <button
+              className="sort-dir-btn"
+              onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+              title={sortDir === 'desc' ? 'Score: High → Low' : 'Score: Low → High'}
+            >
+              {sortDir === 'desc' ? '↓ Score' : '↑ Score'}
+            </button>
+          </div>
+        </div>
 
         {sessions.length === 0 ? (
           <div className="empty-state-card">
@@ -170,7 +223,11 @@ function App() {
         ) : (
           <div className="session-list">
             {sessions
-              .sort((a, b) => (b.session_score || 0) - (a.session_score || 0))
+              .filter(s => sortBy === 'score' || (s.level || 'normal') === sortBy)
+              .sort((a, b) => {
+                const diff = (a.session_score || 0) - (b.session_score || 0)
+                return sortDir === 'desc' ? -diff : diff
+              })
               .map(s => {
                 const score = parseFloat(s.session_score || 0)
                 const isExpanded = expandedSession === s.session_id
@@ -393,6 +450,17 @@ function App() {
                               </button>
                             )
                           )}
+
+                          {/* Export Logs button — always visible */}
+                          <a
+                            className="btn-export"
+                            href={`${API}/session-logs/${s.session_id}`}
+                            download
+                            onClick={(e) => e.stopPropagation()}
+                            title="Download backend access logs for this session as JSON"
+                          >
+                            ⬇ Export Logs
+                          </a>
                         </div>
                       </div>
                     )}
@@ -401,6 +469,43 @@ function App() {
               })}
           </div>
         )}
+      </section>
+
+      {/* ── Live Logs Panel ── */}
+      <section className="logs-panel">
+        <div className="logs-header">
+          <div className="logs-title">
+            <span className="logs-icon">▤</span>
+            Live Logs
+            <span className="logs-count">{logs.length} entries</span>
+          </div>
+          <div className="logs-controls">
+            {!logsPaused && (
+              <span className="live-indicator">
+                <span className="live-dot"></span>Live
+              </span>
+            )}
+            <button className="log-btn" onClick={() => setLogsPaused(p => !p)}>
+              {logsPaused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+            <button className="log-btn" onClick={async () => {
+              try { const r = await fetch(`${API}/logs?limit=100`); if (r.ok) setLogs(await r.json()) } catch {}
+            }}>↻</button>
+          </div>
+        </div>
+        <div className="logs-body" ref={logsBoxRef}>
+          {logs.length === 0
+            ? <div className="logs-empty">No backend access log entries yet…</div>
+            : logs.map((log, i) => (
+              <div key={i} className={`log-entry log-lvl-${log.level.toLowerCase()}`}>
+                <span className="log-ts">{log.timestamp.replace('T',' ').slice(0,23)}</span>
+                <span className="log-svc">{log.service}</span>
+                <span className="log-msg">{log.message}</span>
+              </div>
+            ))
+          }
+          <div ref={logsEndRef} />
+        </div>
       </section>
 
       {/* Guards Panel */}
@@ -438,6 +543,7 @@ function App() {
           </table>
         </div>
       </section>
+
 
       {/* Toast notification */}
       {toast && (
