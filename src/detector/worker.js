@@ -25,6 +25,7 @@ const { decide, getGuardDirective, isHardBlock } = require('./decisionEngine');
 // ── Redis clients ─────────────────────────────────────────
 const redis     = new Redis(config.redisUrl);
 const publisher = new Redis(config.redisUrl);
+let subscriberClient = null;
 
 redis.on('error',     err => console.error('[worker] Redis error:',     err.message));
 publisher.on('error', err => console.error('[worker] Publisher error:', err.message));
@@ -63,26 +64,80 @@ async function persistSession(state, decision) {
   try {
     await pool.query(`
       INSERT INTO attack_sessions
-        (session_id, start_time, ip_address, user_agent,
-         event_count, final_risk_score, session_score, verdict, updated_at)
-      VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, NOW())
+        (session_id, start_time, ip_address, user_agent, event_count,
+         final_risk_score, session_score, verdict, updated_at,
+         highest_score, highest_threat_level, highest_block_type,
+         last_mitigation, mitigation_reason, guard_source,
+         first_suspicious_at, first_mitigated_at, highest_score_at)
+      VALUES ($1, NOW(), $2, $3, $4, $5, $6, $7, NOW(), $8, $9, $10, $11, $12, $13, $14, $15, $16)
       ON CONFLICT (session_id) DO UPDATE SET
-        end_time         = NOW(),
-        ip_address       = COALESCE(attack_sessions.ip_address, EXCLUDED.ip_address),
-        user_agent       = COALESCE(attack_sessions.user_agent, EXCLUDED.user_agent),
-        event_count      = EXCLUDED.event_count,
-        final_risk_score = EXCLUDED.final_risk_score,
-        session_score    = EXCLUDED.session_score,
-        verdict          = EXCLUDED.verdict,
-        updated_at       = NOW()
+        end_time             = NOW(),
+        ip_address           = COALESCE(attack_sessions.ip_address, EXCLUDED.ip_address),
+        user_agent           = COALESCE(attack_sessions.user_agent, EXCLUDED.user_agent),
+        event_count          = EXCLUDED.event_count,
+        final_risk_score     = GREATEST(attack_sessions.final_risk_score, EXCLUDED.final_risk_score),
+        session_score        = EXCLUDED.session_score,
+        verdict              = EXCLUDED.verdict,
+        updated_at           = NOW(),
+        highest_score        = GREATEST(attack_sessions.highest_score, EXCLUDED.highest_score),
+        highest_threat_level = CASE
+          WHEN (CASE EXCLUDED.highest_threat_level
+                  WHEN 'hard_block' THEN 4
+                  WHEN 'soft_block' THEN 3
+                  WHEN 'captcha' THEN 2
+                  WHEN 'rate_limit' THEN 1
+                  ELSE 0 END) >
+               (CASE attack_sessions.highest_threat_level
+                  WHEN 'hard_block' THEN 4
+                  WHEN 'soft_block' THEN 3
+                  WHEN 'captcha' THEN 2
+                  WHEN 'rate_limit' THEN 1
+                  ELSE 0 END)
+          THEN EXCLUDED.highest_threat_level
+          ELSE attack_sessions.highest_threat_level
+        END,
+        highest_block_type   = CASE
+          WHEN (CASE EXCLUDED.highest_threat_level
+                  WHEN 'hard_block' THEN 4
+                  WHEN 'soft_block' THEN 3
+                  WHEN 'captcha' THEN 2
+                  WHEN 'rate_limit' THEN 1
+                  ELSE 0 END) >
+               (CASE attack_sessions.highest_threat_level
+                  WHEN 'hard_block' THEN 4
+                  WHEN 'soft_block' THEN 3
+                  WHEN 'captcha' THEN 2
+                  WHEN 'rate_limit' THEN 1
+                  ELSE 0 END)
+          THEN EXCLUDED.highest_block_type
+          ELSE attack_sessions.highest_block_type
+        END,
+        last_mitigation      = EXCLUDED.last_mitigation,
+        mitigation_reason    = EXCLUDED.mitigation_reason,
+        guard_source         = EXCLUDED.guard_source,
+        first_suspicious_at  = COALESCE(attack_sessions.first_suspicious_at, EXCLUDED.first_suspicious_at),
+        first_mitigated_at   = COALESCE(attack_sessions.first_mitigated_at, EXCLUDED.first_mitigated_at),
+        highest_score_at     = CASE
+          WHEN EXCLUDED.highest_score > attack_sessions.highest_score THEN EXCLUDED.highest_score_at
+          ELSE attack_sessions.highest_score_at
+        END
     `, [
       state.session_id,
       state.ip_address,
       state.user_agent,
       state.event_count,
-      Math.round(state.session_score),
+      Math.round(state.highest_score),
       state.session_score,
       decision.verdict,
+      state.highest_score || 0,
+      state.highest_threat_level || 'allow',
+      state.highest_block_type || 'soft',
+      state.last_mitigation || 'allow',
+      state.mitigation_reason || '',
+      state.guard_source || 'automatic',
+      state.first_suspicious_at ? new Date(state.first_suspicious_at) : null,
+      state.first_mitigated_at ? new Date(state.first_mitigated_at) : null,
+      state.highest_score_at ? new Date(state.highest_score_at) : null
     ]);
   } catch (err) {
     console.error('[worker] PG session upsert error:', err.message);
@@ -120,39 +175,54 @@ async function persistEventScore(streamId, scoringResult) {
 }
 
 // ── Guard directive: write to Redis ───────────────────────
-async function applyGuard(sessionId, decision) {
+const CAPTCHA_GRACE_MS = 5 * 60 * 1000; // 5 min — matches guard.js
+
+async function applyGuard(sessionId, decision, highestScore, reason) {
   const directive = getGuardDirective(decision.action);
   if (!directive) return;
 
   const guardKey = `sideris:guard:${sessionId}`;
   const current  = await redis.hget(guardKey, 'action');
 
-  // Only escalate — never downgrade within a session lifecycle
-  const LEVELS = { challenge: 1, rate_limit: 2, block: 3 };
+  // Escalation ladder: rate_limit → challenge → block
+  // challenge is a STRONGER action than rate_limit (it intercepts the page).
+  const LEVELS = { rate_limit: 1, challenge: 2, block: 3 };
   const currentLevel  = LEVELS[current]   || 0;
   const proposedLevel = LEVELS[directive]  || 0;
 
-  if (proposedLevel > currentLevel) {
-    const fields = [
-      'action',     directive,
-      'risk_score', String(Math.round(decision.score)),
-      'updated_at', String(Date.now()),
-      'block_type', isHardBlock(decision.action) ? 'hard' : 'soft',
-    ];
-    await redis.hset(guardKey, ...fields);
+  if (proposedLevel <= currentLevel) return; // no escalation needed
 
-    // hard_block: no TTL (persists until SOC unblocks)
-    // soft_block / others: TTL-based auto-expire
-    if (!isHardBlock(decision.action)) {
-      await redis.expire(guardKey, SESSION_TTL);
+  if (current === 'challenge' && directive === 'block' && !isHardBlock(decision.action)) {
+    const updatedAt = parseInt(await redis.hget(guardKey, 'updated_at') || '0', 10);
+    const elapsedMs = Date.now() - updatedAt;
+    if (elapsedMs < CAPTCHA_GRACE_MS) {
+      console.log(`[worker] CAPTCHA GRACE: ${sessionId.substring(0,8)}... block deferred (${Math.round(elapsedMs/1000)}s / ${CAPTCHA_GRACE_MS/1000}s elapsed)`);
+      return; // block deferred — CAPTCHA still in play
     }
-
-    // Increment the dashboard metrics counter for this action type.
-    // guard.js (pub/sub path) only covers block/challenge via Lua;
-    // rate_limit actions are set exclusively here, so we must count them.
-    await redis.incr(`sideris:metrics:guard:${directive}`);
   }
+
+  const fields = [
+    'action',       directive,
+    'risk_score',   String(Math.round(highestScore)),
+    'updated_at',   String(Date.now()),
+    'block_type',   isHardBlock(decision.action) ? 'hard' : 'soft',
+    'guard_source', 'automatic',
+    'reason',       reason || 'risk_threshold',
+  ];
+  await redis.hset(guardKey, ...fields);
+
+  // hard_block: no TTL (persists until SOC unblocks)
+  // soft_block / others: TTL-based auto-expire
+  if (!isHardBlock(decision.action)) {
+    await redis.expire(guardKey, SESSION_TTL);
+  }
+
+  // Increment the dashboard metrics counter for this action type.
+  // guard.js (pub/sub path) only covers block/challenge via Lua;
+  // rate_limit actions are set exclusively here, so we must count them.
+  await redis.incr(`sideris:metrics:guard:${directive}`);
 }
+
 
 // ── Alert publisher ───────────────────────────────────────
 async function publishAlert(state, decision, bonuses) {
@@ -168,12 +238,13 @@ async function publishAlert(state, decision, bonuses) {
   const payload = JSON.stringify({
     session_id:     state.session_id,
     session_score:  state.session_score,
-    risk_score:     state.session_score,   // guard.js reads this field
+    risk_score:     state.highest_score,   // guard.js reads this field
     verdict:        decision.verdict,
     action:         decision.action,
     bonus_reasons:  bonuses,
     ip_address:     state.ip_address,
     timestamp:      Date.now(),
+    reason:         state.mitigation_reason || 'risk_threshold',
   });
   await publisher.publish(ALERT_CHANNEL, payload);
   console.log(`[ALERT] ${decision.verdict.toUpperCase()}: session=${state.session_id.substring(0,8)}... score=${state.session_score} action=${decision.action}`);
@@ -224,7 +295,7 @@ async function processMessage(streamId, rawFields) {
   persistEventScore(streamId, scoringResult);
 
   // 8. Apply guard directive to Redis
-  await applyGuard(sessionId, decision);
+  await applyGuard(sessionId, decision, state.highest_score, scoringResult.attack_type || 'risk_threshold');
 
   // 9. Publish alert on threshold crossings
   await publishAlert(state, decision, newReasons);
@@ -254,12 +325,32 @@ function startDeadLetterRecovery() {
   }, 60_000);
 }
 
+async function startCommandSubscriber() {
+  subscriberClient = new Redis(config.redisUrl);
+  subscriberClient.on('error', err => console.error('[worker] Command subscriber error:', err.message));
+  await subscriberClient.subscribe('sideris:commands');
+  subscriberClient.on('message', async (channel, message) => {
+    if (channel === 'sideris:commands') {
+      try {
+        const cmd = JSON.parse(message);
+        if (cmd.action === 'unblock' && cmd.session_id) {
+          tracker.clearCache(cmd.session_id);
+          console.log(`[worker] Cleared L1 cache for unblocked session: ${cmd.session_id}`);
+        }
+      } catch (err) {
+        console.error('[worker] Command processing error:', err.message);
+      }
+    }
+  });
+}
+
 // ── Main consumer loop ────────────────────────────────────
 async function startWorker() {
   console.log(`[worker] Starting: ${CONSUMER_NAME}`);
   console.log(`[worker] Pipeline: eventAnalyzer → scoringEngine → sessionTracker → decisionEngine`);
 
   await initStream();
+  await startCommandSubscriber();
   tracker.startDecayTimer();
   startDeadLetterRecovery();
 
@@ -307,6 +398,9 @@ async function shutdown() {
   console.log('[worker] Shutting down...');
   await redis.quit();
   await publisher.quit();
+  if (subscriberClient) {
+    await subscriberClient.quit();
+  }
   await pool.end();
   process.exit(0);
 }

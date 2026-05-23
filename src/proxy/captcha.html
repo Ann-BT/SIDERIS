@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Verification — SIDERIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream:          #FAF7F2;
+      --latte:          #F2EBE0;
+      --cappuccino:     #E8DDD0;
+      --espresso:       #3D2314;
+      --coffee:         #6F4E37;
+      --caramel:        #C8773A;
+      --caramel-dim:    rgba(200,119,58,0.10);
+      --caramel-border: rgba(200,119,58,0.30);
+      --mocha:          #9A6B4B;
+      --foam:           #FFFFFF;
+      --success:        #2A7D46;
+      --success-dim:    rgba(42,125,70,0.10);
+      --success-border: rgba(42,125,70,0.25);
+      --warning:        #B8860B;
+      --warning-dim:    rgba(184,134,11,0.10);
+      --warning-border: rgba(184,134,11,0.30);
+      --danger:         #C0392B;
+      --danger-dim:     rgba(192,57,43,0.10);
+      --danger-border:  rgba(192,57,43,0.30);
+      --info:           #1D6FA4;
+      --text:           #2C1A0E;
+      --text-secondary: #6B5344;
+      --text-muted:     #9A7B6A;
+      --text-dim:       #B8A090;
+      --border:         #DDD0C4;
+      --border-light:   #EDE4D8;
+      --shadow-sm:      0 1px 3px rgba(61,35,20,0.08);
+      --shadow-md:      0 4px 16px rgba(61,35,20,0.10);
+      --shadow-lg:      0 12px 40px rgba(61,35,20,0.16);
+      --font:           'IBM Plex Sans', system-ui, sans-serif;
+      --mono:           'IBM Plex Mono', monospace;
+      --radius:         12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background-image:
+        radial-gradient(ellipse at 15% 20%, rgba(200,119,58,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 80%, rgba(111,78,55,0.06) 0%, transparent 55%);
+    }
+
+    /* Top accent stripe */
+    body::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: linear-gradient(90deg, var(--caramel), var(--coffee), var(--espresso));
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--foam);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      animation: cardIn 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1);    }
+    }
+
+    /* ── Card Header ── */
+    .card-header {
+      background: var(--latte);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .shield-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--caramel), var(--coffee));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(200,119,58,0.3);
+    }
+    .header-text { display: flex; flex-direction: column; gap: 3px; }
+    .header-brand {
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--caramel);
+    }
+    .header-title {
+      font-size: 1.2rem; font-weight: 700; color: var(--espresso);
+      line-height: 1.2; letter-spacing: -0.3px;
+    }
+    .header-sub {
+      font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;
+    }
+
+    /* ── Card Body ── */
+    .card-body { padding: 1.75rem 2rem; }
+
+    /* Alert banner */
+    .alert-banner {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--warning-dim);
+      border: 1px solid var(--warning-border);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .alert-text { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.55; }
+    .alert-text strong { color: var(--warning); }
+
+    /* Session ID */
+    .session-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--latte); border: 1px solid var(--border-light);
+      border-radius: 8px; padding: 0.55rem 0.9rem; margin-bottom: 1.5rem;
+    }
+    .session-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); }
+    .session-id { font-family: var(--mono); font-size: 0.76rem; color: var(--coffee); }
+
+    /* ── CAPTCHA Canvas ── */
+    .captcha-section { margin-bottom: 1.25rem; }
+    .captcha-label {
+      font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 0.55rem;
+    }
+    .captcha-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .captcha-canvas-wrap {
+      flex: 1; position: relative; border-radius: 8px; overflow: hidden;
+      border: 1px solid var(--border); background: var(--latte);
+      user-select: none;
+    }
+    canvas#captchaCanvas {
+      display: block; width: 100%; height: 72px;
+    }
+    .captcha-noise { /* overlaid scanline effect */
+      position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(61,35,20,0.018) 3px,
+        rgba(61,35,20,0.018) 4px
+      );
+    }
+    .btn-refresh {
+      width: 38px; height: 38px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--foam);
+      color: var(--coffee); font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.18s; flex-shrink: 0;
+    }
+    .btn-refresh:hover { background: var(--latte); border-color: var(--caramel-border); color: var(--caramel); }
+    .btn-refresh.spinning { animation: spin 0.45s ease; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* ── Input ── */
+    .input-section { margin-bottom: 1.5rem; }
+    .input-label {
+      display: block; font-size: 0.68rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--text-muted); margin-bottom: 0.45rem;
+    }
+    .input-wrap { position: relative; }
+    .captcha-input {
+      width: 100%; padding: 0.65rem 2.4rem 0.65rem 0.9rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: var(--mono); font-size: 1rem; font-weight: 500;
+      letter-spacing: 4px; color: var(--espresso);
+      background: var(--foam); outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .captcha-input::placeholder { letter-spacing: 1px; font-size: 0.82rem; color: var(--text-dim); }
+    .captcha-input:focus { border-color: var(--caramel); box-shadow: 0 0 0 3px var(--caramel-dim); }
+    .captcha-input.error  { border-color: var(--danger);  box-shadow: 0 0 0 3px var(--danger-dim); animation: shake 0.35s; }
+    .captcha-input.ok     { border-color: var(--success); box-shadow: 0 0 0 3px var(--success-dim); }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-6px); }
+      40%     { transform: translateX(6px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+    .input-hint {
+      font-size: 0.68rem; color: var(--text-dim); margin-top: 0.4rem;
+    }
+    .input-hint.danger  { color: var(--danger); }
+    .input-hint.success { color: var(--success); }
+
+    /* Attempts badge */
+    .attempts-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 0.55rem;
+    }
+    .attempts-dots { display: flex; gap: 5px; align-items: center; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--cappuccino); border: 1px solid var(--border);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .dot.used  { background: var(--danger); border-color: var(--danger-border); }
+    .dot.left  { background: var(--cappuccino); }
+
+    /* ── Submit Button ── */
+    .btn-verify {
+      width: 100%; padding: 0.8rem 1rem;
+      background: linear-gradient(135deg, var(--caramel) 0%, var(--coffee) 100%);
+      color: #fff; border: none; border-radius: 9px;
+      font-family: var(--font); font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.3px;
+      box-shadow: 0 3px 12px rgba(200,119,58,0.35);
+      transition: opacity 0.18s, transform 0.18s, box-shadow 0.18s;
+      margin-bottom: 1rem;
+    }
+    .btn-verify:hover:not(:disabled) {
+      opacity: 0.93; transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(200,119,58,0.4);
+    }
+    .btn-verify:active:not(:disabled) { transform: translateY(0); }
+    .btn-verify:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-verify.loading { opacity: 0.75; }
+
+    /* ── Success State overlay ── */
+    .success-overlay {
+      display: none; flex-direction: column; align-items: center;
+      text-align: center; padding: 2rem 0 1rem;
+    }
+    .success-overlay.visible { display: flex; animation: cardIn 0.3s ease; }
+    .success-ring {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: var(--success-dim); border: 2px solid var(--success-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; margin-bottom: 1rem;
+      animation: successPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes successPop { from { transform: scale(0.5); opacity:0; } to { transform: scale(1); opacity:1; } }
+    .success-title { font-size: 1.1rem; font-weight: 700; color: var(--success); margin-bottom: 0.35rem; }
+    .success-sub   { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+    .progress-bar-wrap {
+      width: 100%; background: var(--latte); border-radius: 4px;
+      height: 4px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--success), #3DAA60);
+      border-radius: 4px;
+      transition: width 3s linear;
+    }
+
+    /* ── Card Footer ── */
+    .card-footer {
+      border-top: 1px solid var(--border-light);
+      padding: 0.9rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--latte);
+    }
+    .footer-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.67rem; font-weight: 600;
+      color: var(--text-muted); letter-spacing: 0.3px;
+    }
+    .footer-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--info);
+      box-shadow: 0 0 5px rgba(29,111,164,0.5);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+    .footer-meta { font-size: 0.65rem; color: var(--text-dim); font-family: var(--mono); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--cappuccino); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="mainCard">
+
+    <!-- Header -->
+    <div class="card-header">
+      <div class="shield-icon"></div>
+      <div class="header-text">
+        <span class="header-brand">SIDERIS Security</span>
+        <span class="header-title">Human Verification Required</span>
+        <span class="header-sub">Unusual activity detected on your session</span>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="card-body">
+
+      <!-- Warning Banner -->
+      <div class="alert-banner">
+        <span class="alert-icon"></span>
+        <span class="alert-text">
+          Our system has flagged <strong>suspicious behavior patterns</strong> from your session.
+          Please complete the verification below to continue. Repeated failures will result in a temporary block.
+        </span>
+      </div>
+
+      <!-- Session ID Row -->
+      <div class="session-row">
+        <span class="session-label">Session</span>
+        <span class="session-id" id="sessionIdDisplay">—</span>
+      </div>
+
+      <!-- Form (hidden on success) -->
+      <div id="formSection">
+
+        <!-- CAPTCHA Display -->
+        <div class="captcha-section">
+          <div class="captcha-label">Enter the code shown below</div>
+          <div class="captcha-row">
+            <div class="captcha-canvas-wrap">
+              <canvas id="captchaCanvas" width="320" height="72"></canvas>
+              <div class="captcha-noise"></div>
+            </div>
+            <button class="btn-refresh" id="refreshBtn" title="New code" aria-label="Refresh CAPTCHA">New</button>
+          </div>
+        </div>
+
+        <!-- Text Input -->
+        <div class="input-section">
+          <label class="input-label" for="captchaInput">Your answer</label>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="captchaInput"
+              class="captcha-input"
+              placeholder="Type here…"
+              maxlength="6"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+          </div>
+          <div class="attempts-row">
+            <span class="input-hint" id="inputHint">Case-insensitive · 6 characters</span>
+            <div class="attempts-dots" id="attemptDots"></div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="btn-verify" id="verifyBtn">Verify My Identity</button>
+
+      </div>
+
+      <!-- Success State -->
+      <div class="success-overlay" id="successOverlay">
+        <div class="success-ring">OK</div>
+        <div class="success-title">Verification Successful</div>
+        <div class="success-sub">Redirecting you back to the site…</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+      </div>
+
+    </div><!-- /card-body -->
+
+    <!-- Footer -->
+    <div class="card-footer">
+      <div class="footer-badge">
+        <span class="footer-dot"></span>
+        SIDERIS Adaptive Guard · Active
+      </div>
+      <span class="footer-meta" id="footerTs">—</span>
+    </div>
+
+  </div><!-- /card -->
+
+  <script>
+    // ── State ──────────────────────────────────────────────
+    const MAX_ATTEMPTS = 4;
+    let currentCode  = '';
+    let attempts     = 0;
+    let locked       = false;
+
+    const canvas     = document.getElementById('captchaCanvas');
+    const ctx        = canvas.getContext('2d');
+    const input      = document.getElementById('captchaInput');
+    const hint       = document.getElementById('inputHint');
+    const verifyBtn  = document.getElementById('verifyBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const dotsEl     = document.getElementById('attemptDots');
+    const sessionEl  = document.getElementById('sessionIdDisplay');
+    const footerTs   = document.getElementById('footerTs');
+
+    // ── Session ID from URL / cookie ───────────────────────
+    function getSessionId() {
+      const fromCookie = document.cookie.split(';')
+        .map(c => c.trim()).find(c => c.startsWith('sideris_sid='));
+      if (fromCookie) return fromCookie.split('=')[1].substring(0, 20) + '…';
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('sid')) return p.get('sid').substring(0, 20) + '…';
+      return 'unknown';
+    }
+
+    // ── Timestamp ──────────────────────────────────────────
+    function updateTs() {
+      footerTs.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    }
+    updateTs();
+    setInterval(updateTs, 1000);
+
+    // ── Attempt dots ───────────────────────────────────────
+    function renderDots() {
+      dotsEl.innerHTML = '';
+      for (let i = 0; i < MAX_ATTEMPTS; i++) {
+        const d = document.createElement('span');
+        d.className = 'dot ' + (i < attempts ? 'used' : 'left');
+        dotsEl.appendChild(d);
+      }
+    }
+
+    // ── CAPTCHA Renderer ───────────────────────────────────
+    const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+    function randomChar() {
+      return CHARS[Math.floor(Math.random() * CHARS.length)];
+    }
+
+    function generateCode() {
+      return Array.from({ length: 6 }, randomChar).join('');
+    }
+
+    function hsl(h, s, l) { return `hsl(${h},${s}%,${l}%)`; }
+
+    function drawCaptcha(code) {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Background — warm cream
+      ctx.fillStyle = '#F6EFE6';
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle grid noise
+      ctx.strokeStyle = 'rgba(180,140,110,0.12)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x < W; x += 18) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = 0; y < H; y += 18) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+
+      // Interference curves
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${111 + i * 10},${78 + i * 5},55,${0.08 + Math.random() * 0.06})`;
+        ctx.lineWidth = 1 + Math.random() * 1.5;
+        ctx.moveTo(0, H * Math.random());
+        ctx.bezierCurveTo(
+          W * 0.25, H * Math.random(),
+          W * 0.75, H * Math.random(),
+          W, H * Math.random()
+        );
+        ctx.stroke();
+      }
+
+      // Random dots
+      for (let i = 0; i < 60; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(111,78,55,${0.08 + Math.random() * 0.12})`;
+        ctx.fill();
+      }
+
+      // Characters
+      const charW = W / code.length;
+      code.split('').forEach((ch, i) => {
+        const x = charW * i + charW / 2;
+        const y = H / 2 + 10;
+
+        const angle = (Math.random() - 0.5) * 0.4;
+        const size  = 26 + Math.floor(Math.random() * 8);
+
+        // Pick from espresso / coffee / caramel palette
+        const palettes = [
+          [22, 55, 18],   // espresso-ish
+          [22, 40, 30],   // coffee-ish
+          [26, 55, 40],   // caramel-ish
+        ];
+        const [h, s, l] = palettes[Math.floor(Math.random() * palettes.length)];
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        // Shadow / depth
+        ctx.shadowColor = 'rgba(61,35,20,0.18)';
+        ctx.shadowBlur  = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        ctx.font = `${600 + (Math.random() > 0.5 ? 100 : 0)} ${size}px 'IBM Plex Mono', monospace`;
+        ctx.fillStyle = hsl(h, s, l);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch, 0, 0);
+
+        ctx.shadowColor = 'transparent';
+        ctx.restore();
+      });
+    }
+
+    function newCaptcha() {
+      currentCode = generateCode();
+      drawCaptcha(currentCode);
+    }
+
+    // ── Refresh button ────────────────────────────────────
+    refreshBtn.addEventListener('click', () => {
+      if (locked) return;
+      refreshBtn.classList.add('spinning');
+      setTimeout(() => refreshBtn.classList.remove('spinning'), 450);
+      newCaptcha();
+      input.value = '';
+      input.classList.remove('error', 'ok');
+      hint.textContent = 'Case-insensitive · 6 characters';
+      hint.className = 'input-hint';
+    });
+
+    // ── Verify ───────────────────────────────────────────
+    verifyBtn.addEventListener('click', verify);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') verify(); });
+
+    function verify() {
+      if (locked) return;
+      const val = input.value.trim().toUpperCase();
+      if (!val) return;
+
+      if (val === currentCode) {
+        // Success
+        input.classList.add('ok');
+        hint.textContent = 'Correct!';
+        hint.className = 'input-hint success';
+        showSuccess();
+      } else {
+        // Wrong
+        attempts++;
+        renderDots();
+        input.classList.add('error');
+        input.value = '';
+
+        setTimeout(() => input.classList.remove('error'), 600);
+
+        if (attempts >= MAX_ATTEMPTS) {
+          locked = true;
+          hint.textContent = `Too many failed attempts. Refreshing…`;
+          hint.className = 'input-hint danger';
+          verifyBtn.disabled = true;
+          input.disabled = true;
+
+          // Lock countdown then auto-refresh
+          let sec = 10;
+          const id = setInterval(() => {
+            hint.textContent = `Too many failed attempts. Retry in ${--sec}s…`;
+            if (sec <= 0) {
+              clearInterval(id);
+              attempts = 0; locked = false;
+              verifyBtn.disabled = false;
+              input.disabled = false;
+              input.value = '';
+              hint.textContent = 'Case-insensitive · 6 characters';
+              hint.className = 'input-hint';
+              renderDots();
+              newCaptcha();
+            }
+          }, 1000);
+        } else {
+          const left = MAX_ATTEMPTS - attempts;
+          hint.textContent = `Incorrect — ${left} attempt${left !== 1 ? 's' : ''} remaining`;
+          hint.className = 'input-hint danger';
+          newCaptcha();
+        }
+      }
+    }
+
+    // ── Success flow ─────────────────────────────────────
+    function showSuccess() {
+      document.getElementById('formSection').style.display = 'none';
+      const overlay = document.getElementById('successOverlay');
+      overlay.classList.add('visible');
+
+      // Trigger progress bar
+      requestAnimationFrame(() => {
+        const bar = document.getElementById('progressBar');
+        bar.style.width = '100%';
+      });
+
+      // Call verify endpoint then redirect
+      const sidParam = new URLSearchParams(window.location.search).get('sid') || '';
+      const returnTo = new URLSearchParams(window.location.search).get('return') || '/';
+
+      fetch(`/sideris/captcha-verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verified: true, session_id: sidParam })
+      }).catch(() => {}).finally(() => {
+        setTimeout(() => { window.location.href = returnTo; }, 3200);
+      });
+    }
+
+    // ── Init ─────────────────────────────────────────────
+    sessionEl.textContent = getSessionId();
+    renderDots();
+    newCaptcha();
+  </script>
+</body>
+</html>

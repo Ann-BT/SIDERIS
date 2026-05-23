@@ -14,6 +14,7 @@ const express = require('express');
 const cors = require('cors');
 const Redis = require('ioredis');
 const config = require('../shared/config');
+const pool = require('../shared/pgPool');
 
 const app = express();
 const redis = new Redis(config.redisUrl);
@@ -188,6 +189,18 @@ app.get('/sessions', async (req, res) => {
 
         // Bonuses applied
         bonus_applied: JSON.parse(data.bonus_applied || '[]'),
+
+        // Stateful adaptive security state machine fields
+        highest_score: parseFloat(data.highest_score || '0'),
+        highest_threat_level: data.highest_threat_level || 'allow',
+        highest_block_type: data.highest_block_type || 'soft',
+        last_mitigation: data.last_mitigation || 'allow',
+        mitigation_reason: data.mitigation_reason || (guardData.reason || ''),
+        active_mitigation: guardAction || 'allow',
+        guard_source: guardData.guard_source || null,
+        first_suspicious_at: parseInt(data.first_suspicious_at || '0', 10),
+        first_mitigated_at: parseInt(data.first_mitigated_at || '0', 10),
+        highest_score_at: parseInt(data.highest_score_at || '0', 10),
       });
     }
 
@@ -300,6 +313,31 @@ app.post('/unblock/:sessionId', async (req, res) => {
       await redis.decr('sideris:metrics:guard:rate_limit');
     }
 
+    // Reset the live score and last mitigation in Redis (leave peak history intact)
+    const sessionKey = `sideris:session:${sessionId}`;
+    await redis.hset(sessionKey,
+      'session_score', '0.00',
+      'last_mitigation', 'allow'
+    );
+
+    // Publish unblock synchronization message to worker threads
+    await redis.publish('sideris:commands', JSON.stringify({
+      action: 'unblock',
+      session_id: sessionId
+    }));
+
+    // Sync unblock to Postgres
+    try {
+      await pool.query(`
+        UPDATE attack_sessions SET
+          session_score = 0,
+          last_mitigation = 'allow'
+        WHERE session_id = $1
+      `, [sessionId]);
+    } catch (pgErr) {
+      console.error('[dashboard] PG unblock sync error:', pgErr.message);
+    }
+
     // Write audit log
     const auditEntry = JSON.stringify({
       action: 'unblock',
@@ -349,9 +387,35 @@ app.post('/block/:sessionId', async (req, res) => {
       'block_type', 'hard',
       'risk_score', '0',
       'reason', reason || 'SOC manual block',
+      'guard_source', 'analyst',
       'updated_at', String(Date.now())
     );
     // No EXPIRE — hard block persists
+
+    // Update session state in Redis
+    const sessionKey = `sideris:session:${sessionId}`;
+    await redis.hset(sessionKey,
+      'last_mitigation', 'block',
+      'mitigation_reason', reason || 'SOC manual block',
+      'guard_source', 'analyst',
+      'highest_threat_level', 'hard_block',
+      'highest_block_type', 'hard'
+    );
+
+    // Sync to Postgres
+    try {
+      await pool.query(`
+        UPDATE attack_sessions SET
+          last_mitigation = 'block',
+          mitigation_reason = $1,
+          guard_source = 'analyst',
+          highest_threat_level = 'hard_block',
+          highest_block_type = 'hard'
+        WHERE session_id = $2
+      `, [reason || 'SOC manual block', sessionId]);
+    } catch (pgErr) {
+      console.error('[dashboard] PG manual block sync error:', pgErr.message);
+    }
 
     // Increment block metric
     await redis.incr('sideris:metrics:guard:block');
@@ -376,6 +440,99 @@ app.post('/block/:sessionId', async (req, res) => {
     });
   } catch (err) {
     console.error('[dashboard] /block error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// POST /challenge/:sessionId — SOC manual CAPTCHA challenge
+//
+// Issues a CAPTCHA challenge guard directive. The proxy will
+// inject the CAPTCHA overlay into the next HTML response from
+// the session, prompting human verification.
+// ══════════════════════════════════════════════════════════
+app.post('/challenge/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const { reason } = req.body || {};
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Missing sessionId' });
+  }
+
+  try {
+    const guardKey = `sideris:guard:${sessionId}`;
+
+    // Only set challenge if no stronger action is already in place
+    const existing = await redis.hget(guardKey, 'action');
+    if (existing === 'block') {
+      return res.status(409).json({ error: 'Session is already hard-blocked. Unblock before issuing challenge.' });
+    }
+
+    await redis.hset(guardKey,
+      'action',     'challenge',
+      'block_type', 'captcha',
+      'risk_score', '0',
+      'reason',     reason || 'SOC manual CAPTCHA challenge',
+      'guard_source', 'analyst',
+      'updated_at', String(Date.now())
+    );
+    // Challenge expires after 30 minutes if not solved
+    await redis.expire(guardKey, 1800);
+
+    // Update session state in Redis
+    const sessionKey = `sideris:session:${sessionId}`;
+    const currLevel = await redis.hget(sessionKey, 'highest_threat_level') || 'allow';
+    const LEVELS = { allow: 0, rate_limit: 1, captcha: 2, soft_block: 3, hard_block: 4 };
+    if ((LEVELS[currLevel] || 0) < 2) {
+      await redis.hset(sessionKey, 'highest_threat_level', 'captcha');
+    }
+    await redis.hset(sessionKey,
+      'last_mitigation', 'challenge',
+      'mitigation_reason', reason || 'SOC manual CAPTCHA challenge',
+      'guard_source', 'analyst'
+    );
+
+    // Sync to Postgres
+    try {
+      await pool.query(`
+        UPDATE attack_sessions SET
+          last_mitigation = 'challenge',
+          mitigation_reason = $1,
+          guard_source = 'analyst',
+          highest_threat_level = CASE
+            WHEN highest_threat_level IN ('allow', 'rate_limit') THEN 'captcha'
+            ELSE highest_threat_level
+          END
+        WHERE session_id = $2
+      `, [reason || 'SOC manual CAPTCHA challenge', sessionId]);
+    } catch (pgErr) {
+      console.error('[dashboard] PG manual challenge sync error:', pgErr.message);
+    }
+
+    // Increment challenge metric
+    await redis.incr('sideris:metrics:guard:challenge');
+
+    // Write audit log
+    const auditEntry = JSON.stringify({
+      action:     'challenge',
+      session_id: sessionId,
+      block_type: 'captcha',
+      reason:     reason || 'SOC manual CAPTCHA challenge',
+      timestamp:  Date.now(),
+      time:       new Date().toISOString(),
+    });
+    await redis.lpush('sideris:audit:log', auditEntry);
+    await redis.ltrim('sideris:audit:log', 0, 499);
+
+    console.log(`[SOC] CHALLENGE: session=${sessionId} type=captcha reason=${reason || 'manual'}`);
+
+    res.json({
+      success:    true,
+      session_id: sessionId,
+      message:    'CAPTCHA challenge issued. User will see verification on next page load.',
+    });
+  } catch (err) {
+    console.error('[dashboard] /challenge error:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

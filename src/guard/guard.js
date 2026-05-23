@@ -16,19 +16,20 @@ const redis = new Redis(config.redisUrl);
 const ALERT_CHANNEL = config.alertChannel || 'sideris:alerts';
 const OFFENSE_TTL = 86400; // 24 hours penalty decay
 
-// Define weights for atomic evaluation
-const ACTION_WEIGHTS = {
-  'block': 3,
-  'rate_limit': 2,
-  'challenge': 1
-};
+const { ACTION_WEIGHTS } = require('../shared/severity');
 
 // Define baseline action parameters
 // These must align with src/detector/decisionEngine.js thresholds
 const ACTION_THRESHOLDS = [
-  { action: 'block',     minScore: 30, baseTtl: 1800 }, // 30 mins
-  { action: 'challenge', minScore: 20, baseTtl: 600 }   // 10 mins
+  { action: 'block',     minScore: 50, baseTtl: 0 },    // hard block
+  { action: 'block',     minScore: 30, baseTtl: 1800 }, // soft block
+  { action: 'challenge', minScore: 20, baseTtl: 600 },  // challenge
+  { action: 'rate_limit', minScore: 10, baseTtl: 300 }  // rate limit
 ];
+
+// Grace period (ms): if a session is already under CAPTCHA challenge,
+// don't escalate to block for this duration. Gives the user time to solve.
+const CAPTCHA_GRACE_MS = 5 * 60 * 1000; // 5 minutes
 
 // ── Lua Atomicity Script ──────────────────────────────────
 // This script ensures priority logic is completely atomic.
@@ -49,25 +50,47 @@ const ACTION_THRESHOLDS = [
 const LUA_ENFORCE_GUARD = `
   local current_action = redis.call('HGET', KEYS[1], 'action')
   local current_weight = 0
-  
+
+  -- Escalation ladder: rate_limit(1) < challenge(2) < block(3)
+  -- challenge is STRONGER than rate_limit — it intercepts the user's page.
   if current_action == 'block' then current_weight = 3
-  elseif current_action == 'rate_limit' then current_weight = 2
-  elseif current_action == 'challenge' then current_weight = 1
+  elseif current_action == 'challenge' then current_weight = 2
+  elseif current_action == 'rate_limit' then current_weight = 1
   end
-  
+
   local intended_weight = tonumber(ARGV[2])
-  
+
   if current_weight > intended_weight then
-    return 0 -- Abort: Exisiting action overrides this intended action
+    return 0 -- Abort: existing action overrides this intended action
   end
-  
+
+  -- CAPTCHA Grace Period: if the session is already under a CAPTCHA challenge,
+  -- don't immediately escalate to block. Give the user time to solve it first.
+  -- ARGV[7] = grace period in milliseconds, ARGV[8] = block_type (hard/soft)
+  if current_action == 'challenge' and ARGV[1] == 'block' and ARGV[8] ~= 'hard' then
+    local updated_at = tonumber(redis.call('HGET', KEYS[1], 'updated_at') or '0')
+    local now = tonumber(ARGV[5])
+    local grace_ms = tonumber(ARGV[7])
+    if (now - updated_at) < grace_ms then
+      return 2 -- Grace period active: block deferred, CAPTCHA in progress
+    end
+  end
+
   -- Execute Write
-  redis.call('HSET', KEYS[1], 'action', ARGV[1], 'reason', ARGV[3], 'risk_score', ARGV[4], 'updated_at', ARGV[5])
-  redis.call('EXPIRE', KEYS[1], ARGV[6])
-  redis.call('INCR', KEYS[2])
+  redis.call('HSET', KEYS[1], 'action', ARGV[1], 'reason', ARGV[3], 'risk_score', ARGV[4], 'updated_at', ARGV[5], 'block_type', ARGV[8], 'guard_source', ARGV[9])
   
+  local ttl = tonumber(ARGV[6])
+  if ttl > 0 then
+    redis.call('EXPIRE', KEYS[1], ttl)
+  else
+    redis.call('PERSIST', KEYS[1])
+  end
+  redis.call('INCR', KEYS[2])
+
   return 1 -- Success
+
 `;
+
 
 redis.defineCommand('enforceGuard', {
   numberOfKeys: 2,
@@ -85,7 +108,7 @@ async function processAlert(payloadStr) {
     return;
   }
 
-  const { session_id, risk_score } = payload;
+  const { session_id, risk_score, reason } = payload;
   
   if (!session_id || typeof session_id !== 'string') return;
   if (!risk_score) return;
@@ -126,20 +149,26 @@ async function processAlert(payloadStr) {
   const guardKey = `sideris:guard:${session_id}`;
   const metricsKey = `sideris:metrics:guard:${intendedAction}`;
   const weight = ACTION_WEIGHTS[intendedAction] || 0;
+  const blockType = baseTtl === 0 ? 'hard' : 'soft';
 
   const result = await redis.enforceGuard(
     guardKey,
     metricsKey,
     intendedAction,
     weight.toString(),
-    'risk_threshold',
+    reason || 'risk_threshold',
     risk_score.toString(),
     Date.now().toString(),
-    finalTtl.toString()
+    finalTtl.toString(),
+    CAPTCHA_GRACE_MS.toString(),    // ARGV[7]: grace period for CAPTCHA
+    blockType,                      // ARGV[8]: block_type
+    'automatic'                     // ARGV[9]: guard_source
   );
 
   if (result === 1) {
     console.log(`[GUARD] ENFORCED: Session ${session_id} action=${intendedAction} score=${risk_score} ttl=${finalTtl}s (offense #${offenseCount})`);
+  } else if (result === 2) {
+    console.log(`[GUARD] CAPTCHA GRACE: Session ${session_id} block deferred — CAPTCHA challenge active, giving user time to verify (${CAPTCHA_GRACE_MS/1000}s window).`);
   } else {
     // Current action is stronger, ignoring...
     console.log(`[GUARD] ABORTED: Session ${session_id} action=${intendedAction} (Priority overridden by stronger existing rule)`);

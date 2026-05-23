@@ -61,6 +61,15 @@ async function initSchema() {
       session_score    FLOAT       NOT NULL DEFAULT 0,
       verdict          TEXT        NOT NULL DEFAULT 'normal',
       event_count      INTEGER     NOT NULL DEFAULT 0,
+      highest_score       FLOAT       NOT NULL DEFAULT 0,
+      highest_threat_level TEXT        NOT NULL DEFAULT 'allow',
+      highest_block_type   TEXT        NOT NULL DEFAULT 'soft',
+      last_mitigation     TEXT        NOT NULL DEFAULT 'allow',
+      mitigation_reason   TEXT        NOT NULL DEFAULT '',
+      guard_source        TEXT        NOT NULL DEFAULT 'automatic',
+      first_suspicious_at TIMESTAMPTZ,
+      first_mitigated_at  TIMESTAMPTZ,
+      highest_score_at    TIMESTAMPTZ,
       updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
@@ -88,6 +97,15 @@ async function initSchema() {
   // Migrate existing tables to add new columns safely
   const alterCmds = [
     `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS session_score FLOAT NOT NULL DEFAULT 0`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS highest_score FLOAT NOT NULL DEFAULT 0`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS highest_threat_level TEXT NOT NULL DEFAULT 'allow'`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS highest_block_type TEXT NOT NULL DEFAULT 'soft'`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS last_mitigation TEXT NOT NULL DEFAULT 'allow'`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS mitigation_reason TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS guard_source TEXT NOT NULL DEFAULT 'automatic'`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS first_suspicious_at TIMESTAMPTZ`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS first_mitigated_at TIMESTAMPTZ`,
+    `ALTER TABLE attack_sessions ADD COLUMN IF NOT EXISTS highest_score_at TIMESTAMPTZ`,
     `ALTER TABLE attack_events   ADD COLUMN IF NOT EXISTS attack_type  TEXT  NOT NULL DEFAULT 'unknown'`,
     `ALTER TABLE attack_events   ADD COLUMN IF NOT EXISTS impact       FLOAT NOT NULL DEFAULT 0`,
     `ALTER TABLE attack_events   ADD COLUMN IF NOT EXISTS confidence   FLOAT NOT NULL DEFAULT 0`,

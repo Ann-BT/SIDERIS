@@ -24,6 +24,7 @@ const Redis        = require('ioredis');
 const path         = require('path');
 const fs           = require('fs');
 const dotenv       = require('dotenv');
+const CAPTCHA_PATH = path.resolve(__dirname, 'captcha.html');
 const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -108,6 +109,349 @@ app.get('/sideris/agent.js', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
+// CAPTCHA OVERLAY — injected into HTML responses for challenged
+// sessions. Full-screen modal; no redirect required.
+// ══════════════════════════════════════════════════════════
+function getCaptchaOverlay(sid) {
+  return `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+#sideris-captcha-overlay {
+  position:fixed;inset:0;z-index:2147483647;
+  display:flex;align-items:center;justify-content:center;
+  padding:1.5rem;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  background:rgba(61,35,20,0.72);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  animation:sdrFadeIn 0.35s ease;
+}
+@keyframes sdrFadeIn{from{opacity:0}to{opacity:1}}
+#sideris-captcha-overlay *{box-sizing:border-box;margin:0;padding:0}
+.sdr-card{
+  background:#FFFFFF;border-radius:18px;
+  border:1px solid #DDD0C4;
+  box-shadow:0 20px 60px rgba(61,35,20,0.35);
+  width:100%;max-width:460px;overflow:hidden;
+  animation:sdrSlideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes sdrSlideUp{from{opacity:0;transform:translateY(28px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.sdr-head{
+  background:#F2EBE0;border-bottom:1px solid #EDE4D8;
+  padding:1.4rem 1.75rem 1.2rem;
+  display:flex;align-items:center;gap:1rem;
+}
+.sdr-shield{
+  width:46px;height:46px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,#C8773A,#6F4E37);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.35rem;
+  box-shadow:0 3px 10px rgba(200,119,58,0.35);
+}
+.sdr-brand{font-size:0.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#C8773A;margin-bottom:3px}
+.sdr-title{font-size:1.15rem;font-weight:700;color:#3D2314;letter-spacing:-0.3px;line-height:1.2}
+.sdr-sub{font-size:0.73rem;color:#9A7B6A;margin-top:2px}
+.sdr-body{padding:1.6rem 1.75rem}
+.sdr-warn{
+  display:flex;gap:10px;align-items:flex-start;
+  background:rgba(184,134,11,0.08);border:1px solid rgba(184,134,11,0.28);
+  border-radius:8px;padding:.75rem .95rem;margin-bottom:1.4rem;
+}
+.sdr-warn-icon{font-size:.95rem;flex-shrink:0;margin-top:1px}
+.sdr-warn-text{font-size:.78rem;color:#6B5344;line-height:1.55}
+.sdr-warn-text strong{color:#B8860B}
+.sdr-sid-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#F2EBE0;border:1px solid #EDE4D8;
+  border-radius:7px;padding:.5rem .85rem;margin-bottom:1.4rem;
+}
+.sdr-sid-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:1.2px;color:#B8A090}
+.sdr-sid-val{font-family:'IBM Plex Mono',monospace;font-size:.73rem;color:#6F4E37}
+.sdr-cap-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#9A7B6A;margin-bottom:.5rem}
+.sdr-cap-row{display:flex;gap:10px;align-items:center;margin-bottom:1.25rem}
+.sdr-canvas-wrap{
+  flex:1;border-radius:8px;overflow:hidden;
+  border:1px solid #DDD0C4;background:#F6EFE6;
+  position:relative;user-select:none;
+}
+#sdrCanvas{display:block;width:100%;height:68px}
+.sdr-noise{
+  position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(61,35,20,.018) 3px,rgba(61,35,20,.018) 4px);
+}
+.sdr-refresh{
+  width:38px;height:38px;border-radius:8px;flex-shrink:0;
+  border:1px solid #DDD0C4;background:#FFFFFF;
+  color:#6F4E37;font-size:1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s;
+}
+.sdr-refresh:hover{background:#F2EBE0;border-color:rgba(200,119,58,.3);color:#C8773A}
+.sdr-refresh.sdr-spin{animation:sdrSpin .42s ease}
+@keyframes sdrSpin{to{transform:rotate(360deg)}}
+.sdr-inp-lbl{display:block;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#9A7B6A;margin-bottom:.45rem}
+.sdr-input{
+  width:100%;padding:.62rem .9rem;
+  border:1.5px solid #DDD0C4;border-radius:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:500;
+  letter-spacing:4px;color:#3D2314;background:#FFFFFF;
+  outline:none;transition:border-color .18s,box-shadow .18s;
+}
+.sdr-input::placeholder{letter-spacing:1px;font-size:.82rem;color:#B8A090;font-family:'IBM Plex Sans',sans-serif}
+.sdr-input:focus{border-color:#C8773A;box-shadow:0 0 0 3px rgba(200,119,58,.12)}
+.sdr-input.sdr-err{border-color:#C0392B;box-shadow:0 0 0 3px rgba(192,57,43,.1);animation:sdrShake .35s}
+.sdr-input.sdr-ok {border-color:#2A7D46;box-shadow:0 0 0 3px rgba(42,125,70,.1)}
+@keyframes sdrShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.sdr-meta-row{display:flex;align-items:center;justify-content:space-between;margin-top:.5rem;margin-bottom:1.3rem}
+.sdr-hint{font-size:.67rem;color:#B8A090}
+.sdr-hint.sdr-h-err{color:#C0392B}
+.sdr-hint.sdr-h-ok{color:#2A7D46}
+.sdr-dots{display:flex;gap:5px}
+.sdr-dot{width:8px;height:8px;border-radius:50%;background:#E8DDD0;border:1px solid #DDD0C4;transition:all .2s}
+.sdr-dot.sdr-dot-used{background:#C0392B;border-color:rgba(192,57,43,.3)}
+.sdr-btn{
+  width:100%;padding:.78rem 1rem;
+  background:linear-gradient(135deg,#C8773A 0%,#6F4E37 100%);
+  color:#fff;border:none;border-radius:9px;
+  font-family:'IBM Plex Sans',sans-serif;font-size:.88rem;font-weight:600;
+  cursor:pointer;letter-spacing:.3px;
+  box-shadow:0 3px 14px rgba(200,119,58,.38);
+  transition:opacity .18s,transform .18s,box-shadow .18s;
+}
+.sdr-btn:hover:not(:disabled){opacity:.93;transform:translateY(-1px);box-shadow:0 6px 22px rgba(200,119,58,.44)}
+.sdr-btn:active:not(:disabled){transform:translateY(0)}
+.sdr-btn:disabled{opacity:.5;cursor:not-allowed}
+.sdr-success{display:none;flex-direction:column;align-items:center;text-align:center;padding:1.5rem 0 .5rem}
+.sdr-success.sdr-vis{display:flex;animation:sdrFadeIn .3s ease}
+.sdr-ok-ring{
+  width:58px;height:58px;border-radius:50%;
+  background:rgba(42,125,70,.1);border:2px solid rgba(42,125,70,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;margin-bottom:.85rem;
+  animation:sdrPop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes sdrPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.sdr-ok-title{font-size:1.05rem;font-weight:700;color:#2A7D46;margin-bottom:.3rem}
+.sdr-ok-sub{font-size:.78rem;color:#9A7B6A;margin-bottom:1.1rem}
+.sdr-prog-wrap{width:100%;background:#F2EBE0;border-radius:4px;height:4px;overflow:hidden}
+.sdr-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,#2A7D46,#3DAA60);border-radius:4px;transition:width 3s linear}
+.sdr-foot{
+  border-top:1px solid #EDE4D8;padding:.85rem 1.75rem;
+  display:flex;align-items:center;justify-content:space-between;
+  background:#F2EBE0;
+}
+.sdr-foot-badge{display:flex;align-items:center;gap:6px;font-size:.65rem;font-weight:600;color:#9A7B6A;letter-spacing:.3px}
+.sdr-live-dot{width:6px;height:6px;border-radius:50%;background:#1D6FA4;box-shadow:0 0 5px rgba(29,111,164,.5);animation:sdrBlink 2s infinite}
+@keyframes sdrBlink{0%,100%{opacity:1}50%{opacity:.25}}
+.sdr-foot-ts{font-size:.63rem;color:#B8A090;font-family:'IBM Plex Mono',monospace}
+</style>
+<div id="sideris-captcha-overlay">
+  <div class="sdr-card">
+    <div class="sdr-head">
+      <div class="sdr-shield"></div>
+      <div>
+        <div class="sdr-brand">SIDERIS Security</div>
+        <div class="sdr-title">Human Verification Required</div>
+        <div class="sdr-sub">Unusual activity detected on your session</div>
+      </div>
+    </div>
+    <div class="sdr-body">
+      <div class="sdr-warn">
+        <span class="sdr-warn-icon"></span>
+        <span class="sdr-warn-text">Our system has flagged <strong>suspicious behavior patterns</strong> from your session. Complete the verification to continue. Repeated failures will result in a temporary block.</span>
+      </div>
+      <div class="sdr-sid-row">
+        <span class="sdr-sid-lbl">Session</span>
+        <span class="sdr-sid-val" id="sdrSid">${sid ? sid.substring(0,20) + '…' : '—'}</span>
+      </div>
+      <div id="sdrForm">
+        <div class="sdr-cap-lbl">Enter the code shown below</div>
+        <div class="sdr-cap-row">
+          <div class="sdr-canvas-wrap">
+            <canvas id="sdrCanvas" width="320" height="68"></canvas>
+            <div class="sdr-noise"></div>
+          </div>
+          <button class="sdr-refresh" id="sdrRefresh" title="New code">New</button>
+        </div>
+        <label class="sdr-inp-lbl" for="sdrInput">Your answer</label>
+        <input id="sdrInput" class="sdr-input" type="text" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type here…" />
+        <div class="sdr-meta-row">
+          <span class="sdr-hint" id="sdrHint">Case-insensitive · 6 characters</span>
+          <div class="sdr-dots" id="sdrDots"></div>
+        </div>
+        <button class="sdr-btn" id="sdrBtn">Verify My Identity</button>
+      </div>
+      <div class="sdr-success" id="sdrSuccess">
+        <div class="sdr-ok-ring">OK</div>
+        <div class="sdr-ok-title">Verification Successful</div>
+        <div class="sdr-ok-sub">Resuming your session…</div>
+        <div class="sdr-prog-wrap"><div class="sdr-prog-fill" id="sdrProg"></div></div>
+      </div>
+    </div>
+    <div class="sdr-foot">
+      <div class="sdr-foot-badge"><span class="sdr-live-dot"></span>SIDERIS Adaptive Guard · Active</div>
+      <span class="sdr-foot-ts" id="sdrTs"></span>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var MAX=4, code='', tries=0, locked=false;
+  var canvas=document.getElementById('sdrCanvas');
+  var ctx=canvas.getContext('2d');
+  var inp=document.getElementById('sdrInput');
+  var hint=document.getElementById('sdrHint');
+  var btn=document.getElementById('sdrBtn');
+  var ref=document.getElementById('sdrRefresh');
+  var dots=document.getElementById('sdrDots');
+  var ts=document.getElementById('sdrTs');
+  var CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function rc(){return CHARS[Math.floor(Math.random()*CHARS.length)];}
+  function gen(){return Array.from({length:6},rc).join('');}
+  function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)';}
+  function draw(c){
+    var W=canvas.width,H=canvas.height;
+    ctx.fillStyle='#F6EFE6';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(180,140,110,0.13)';ctx.lineWidth=0.5;
+    for(var x=0;x<W;x+=16){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(var y=0;y<H;y+=16){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    for(var i=0;i<5;i++){
+      ctx.beginPath();
+      ctx.strokeStyle='rgba('+(111+i*8)+','+(78+i*5)+',55,'+(0.07+Math.random()*0.07)+')';
+      ctx.lineWidth=1+Math.random()*1.5;
+      ctx.moveTo(0,H*Math.random());
+      ctx.bezierCurveTo(W*0.25,H*Math.random(),W*0.75,H*Math.random(),W,H*Math.random());
+      ctx.stroke();
+    }
+    for(var d=0;d<55;d++){
+      ctx.beginPath();
+      ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.4,0,Math.PI*2);
+      ctx.fillStyle='rgba(111,78,55,'+(0.07+Math.random()*0.12)+')';
+      ctx.fill();
+    }
+    var cw=W/c.length;
+    c.split('').forEach(function(ch,i){
+      var x=cw*i+cw/2, y=H/2+9;
+      var angle=(Math.random()-0.5)*0.38;
+      var size=24+Math.floor(Math.random()*7);
+      var pals=[[22,55,18],[22,40,30],[26,55,38]];
+      var p=pals[Math.floor(Math.random()*pals.length)];
+      ctx.save();
+      ctx.translate(x,y);ctx.rotate(angle);
+      ctx.shadowColor='rgba(61,35,20,0.2)';ctx.shadowBlur=3;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
+      ctx.font=(Math.random()>.5?'700 ':'600 ')+size+"px 'IBM Plex Mono',monospace";
+      ctx.fillStyle=hsl(p[0],p[1],p[2]);
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(ch,0,0);
+      ctx.shadowColor='transparent';
+      ctx.restore();
+    });
+  }
+  function fresh(){code=gen();draw(code);}
+  function renderDots(){
+    dots.innerHTML='';
+    for(var i=0;i<MAX;i++){
+      var d=document.createElement('span');
+      d.className='sdr-dot'+(i<tries?' sdr-dot-used':'');
+      dots.appendChild(d);
+    }
+  }
+  function updateTs(){ts.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});}
+  function verify(){
+    if(locked)return;
+    var v=inp.value.trim().toUpperCase();
+    if(!v)return;
+    if(v===code){
+      inp.classList.add('sdr-ok');
+      hint.textContent='✓ Correct!';
+      hint.className='sdr-hint sdr-h-ok';
+      showSuccess();
+    } else {
+      tries++; renderDots();
+      inp.classList.add('sdr-err');
+      inp.value='';
+      setTimeout(function(){inp.classList.remove('sdr-err');},600);
+      if(tries>=MAX){
+        locked=true;
+        btn.disabled=true;inp.disabled=true;
+        hint.className='sdr-hint sdr-h-err';
+        var sec=15;
+        hint.textContent='Too many attempts. Retry in '+sec+'s…';
+        var tid=setInterval(function(){
+          sec--; hint.textContent='Too many attempts. Retry in '+sec+'s…';
+          if(sec<=0){
+            clearInterval(tid);
+            tries=0;locked=false;
+            btn.disabled=false;inp.disabled=false;
+            inp.value='';hint.textContent='Case-insensitive · 6 characters';
+            hint.className='sdr-hint';
+            renderDots();fresh();
+          }
+        },1000);
+      } else {
+        var left=MAX-tries;
+        hint.textContent='Incorrect — '+left+' attempt'+(left!==1?'s':'')+' remaining';
+        hint.className='sdr-hint sdr-h-err';
+        fresh();
+      }
+    }
+  }
+  function showSuccess(){
+    document.getElementById('sdrForm').style.display='none';
+    var s=document.getElementById('sdrSuccess');
+    s.classList.add('sdr-vis');
+    requestAnimationFrame(function(){document.getElementById('sdrProg').style.width='100%';});
+    fetch('/sideris/captcha-verify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({verified:true,session_id:"${sid || ''}"})
+    }).catch(function(){}).finally(function(){
+      setTimeout(function(){
+        var overlay=document.getElementById('sideris-captcha-overlay');
+        if(overlay){overlay.style.transition='opacity .4s';overlay.style.opacity='0';setTimeout(function(){overlay.remove();},420);}
+      },3200);
+    });
+  }
+  ref.addEventListener('click',function(){
+    if(locked)return;
+    ref.classList.add('sdr-spin');
+    setTimeout(function(){ref.classList.remove('sdr-spin');},440);
+    fresh();inp.value='';
+    inp.className='sdr-input';
+    hint.textContent='Case-insensitive · 6 characters';
+    hint.className='sdr-hint';
+  });
+  btn.addEventListener('click',verify);
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')verify();});
+  updateTs();setInterval(updateTs,1000);
+  renderDots();fresh();
+})();
+</script>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// ROUTE: POST /sideris/captcha-verify — clear challenge guard
+// Called by the CAPTCHA page JS after successful verification.
+// ══════════════════════════════════════════════════════════
+app.post('/sideris/captcha-verify', async (req, res) => {
+  const sid = req.body?.session_id ||
+    (req.cookies && req.cookies.sideris_sid) ||
+    req.headers['x-sideris-session'];
+
+  if (sid) {
+    try {
+      await guardRedis.del(`sideris:guard:${sid}`);
+      console.log(`[proxy] CAPTCHA verified — challenge cleared for session ${sid}`);
+    } catch (err) {
+      console.error('[proxy] CAPTCHA verify redis error:', err.message);
+    }
+  }
+  res.json({ ok: true });
+});
+
+// ══════════════════════════════════════════════════════════
 // GUARD ENFORCEMENT + INLINE ATTACK BLOCKING
 // Phase 1: Check existing Redis guard (from previous blocks)
 // Phase 2: Scan URL + body for critical attack patterns
@@ -129,7 +473,7 @@ const BLOCK_PAGE = `<!DOCTYPE html>
   .code { font-family: monospace; color: #f59e0b; }
 </style></head>
 <body><div class="box">
-  <h1>🛡️ Access Denied</h1>
+  <h1>Access Denied</h1>
   <p>Your session has been blocked by <strong>SIDERIS</strong> due to detected malicious activity.</p>
   <p class="code">ERR_GUARD_BLOCK</p>
   <p>If you believe this is an error, contact the security team.</p>
@@ -170,7 +514,13 @@ app.use(async (req, res, next) => {
     try {
       const action = await guardRedis.hget(`sideris:guard:${sid}`, 'action');
       if (action === 'block') {
-        return res.status(403).json({ error: 'blocked', code: 'E_GUARD_BLOCK' });
+        return res.status(403).send(BLOCK_PAGE);
+      }
+      if (action === 'challenge') {
+        // Tag the request — the responseInterceptor will inject the overlay.
+        // Non-HTML requests (XHR/API) from a challenged session are rate-limited
+        // at the response level; the guard key stays until verified.
+        req._sideris_challenge_sid = sid;
       }
     } catch (err) {
       console.error('[proxy] Guard check error:', err.message);
@@ -343,7 +693,7 @@ const proxy = createProxyMiddleware({
         proxyReq.end();
       }
     },
-    proxyRes: responseInterceptor(async (responseBuffer, proxyRes) => {
+    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req) => {
       const contentType = proxyRes.headers['content-type'] || '';
 
       // Only modify text/html responses
@@ -351,14 +701,30 @@ const proxy = createProxyMiddleware({
         return responseBuffer; // pass binary/JSON/etc. unchanged
       }
 
-      const html = responseBuffer.toString('utf8');
+      let html = responseBuffer.toString('utf8');
 
-      // Inject agent snippet right before </head>.
-      // Falls back to prepending if </head> is not found (edge case).
+      // Inject agent snippet right before </head>
       if (html.includes('</head>')) {
-        return html.replace('</head>', `${AGENT_SNIPPET}\n</head>`);
+        html = html.replace('</head>', `${AGENT_SNIPPET}\n</head>`);
+      } else {
+        html = AGENT_SNIPPET + '\n' + html;
       }
-      return AGENT_SNIPPET + '\n' + html;
+
+      // ── CAPTCHA overlay injection ────────────────────────
+      // If this session is under challenge, inject the full-screen
+      // CAPTCHA modal before </body>. The overlay freezes the page
+      // until the user solves it. Non-HTML bot requests are still
+      // hard-blocked by the Redis guard on each API call.
+      if (req._sideris_challenge_sid) {
+        const overlay = getCaptchaOverlay(req._sideris_challenge_sid);
+        if (html.includes('</body>')) {
+          html = html.replace('</body>', `${overlay}\n</body>`);
+        } else {
+          html = html + '\n' + overlay;
+        }
+      }
+
+      return html;
     })
   }
 });

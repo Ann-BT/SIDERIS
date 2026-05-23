@@ -63,6 +63,9 @@ const SESSION_TTL = config.sessionTtlSec || 1800;
 const DECAY_INTERVAL = 30_000;
 const DECAY_FACTOR = 0.95;
 
+const { THREAT_LEVELS } = require('../shared/severity');
+const { decide, getGuardDirective } = require('./decisionEngine');
+
 redis.on('error', err => console.error('[sessionTracker] Redis:', err.message));
 
 // ── L1 in-memory cache ─────────────────────────────────────
@@ -233,6 +236,17 @@ function freshSession(sessionId) {
 
     // Bonus dedup
     bonus_applied: [],
+
+    // Stateful adaptive defense parameters
+    highest_score: 0,
+    highest_threat_level: 'allow',
+    highest_block_type: 'soft',
+    last_mitigation: 'allow',
+    mitigation_reason: '',
+    guard_source: 'automatic',
+    first_suspicious_at: 0,
+    first_mitigated_at: 0,
+    highest_score_at: 0,
   };
 }
 
@@ -264,6 +278,15 @@ function toRedisFields(s) {
     'unique_payloads', JSON.stringify((s.unique_payloads || []).slice(-20)),
     'mouse_moves', String(s.mouse_moves || 0),
     'bonus_applied', JSON.stringify(s.bonus_applied),
+    'highest_score', (s.highest_score || 0).toFixed(2),
+    'highest_threat_level', s.highest_threat_level || 'allow',
+    'highest_block_type', s.highest_block_type || 'soft',
+    'last_mitigation', s.last_mitigation || 'allow',
+    'mitigation_reason', s.mitigation_reason || '',
+    'guard_source', s.guard_source || 'automatic',
+    'first_suspicious_at', String(s.first_suspicious_at || 0),
+    'first_mitigated_at', String(s.first_mitigated_at || 0),
+    'highest_score_at', String(s.highest_score_at || 0),
   ];
 }
 
@@ -294,6 +317,15 @@ function fromRedisFields(sessionId, h) {
     unique_payloads: JSON.parse(h.unique_payloads || '[]'),
     mouse_moves: parseInt(h.mouse_moves || '0', 10),
     bonus_applied: JSON.parse(h.bonus_applied || '[]'),
+    highest_score: parseFloat(h.highest_score || '0'),
+    highest_threat_level: h.highest_threat_level || 'allow',
+    highest_block_type: h.highest_block_type || 'soft',
+    last_mitigation: h.last_mitigation || 'allow',
+    mitigation_reason: h.mitigation_reason || '',
+    guard_source: h.guard_source || 'automatic',
+    first_suspicious_at: parseInt(h.first_suspicious_at || '0', 10),
+    first_mitigated_at: parseInt(h.first_mitigated_at || '0', 10),
+    highest_score_at: parseInt(h.highest_score_at || '0', 10),
   };
 }
 
@@ -434,6 +466,35 @@ async function update(sessionId, scoringResult, event) {
   // ── Add event score to session ──
   state.session_score = parseFloat((state.session_score + event_score).toFixed(2));
 
+  // ── Timestamps & State Machine updates ──
+  if (state.session_score >= 10) {
+    if (!state.first_suspicious_at || state.first_suspicious_at === 0) {
+      state.first_suspicious_at = now;
+    }
+  }
+
+  if (state.session_score > (state.highest_score || 0)) {
+    state.highest_score = state.session_score;
+    state.highest_score_at = now;
+  }
+
+  const decision = decide(state.session_score);
+  if (decision && decision.action && decision.action !== 'allow') {
+    if (!state.first_mitigated_at || state.first_mitigated_at === 0) {
+      state.first_mitigated_at = now;
+    }
+    state.last_mitigation = getGuardDirective(decision.action);
+    state.mitigation_reason = attack_type || 'risk_threshold';
+
+    const currentHighestWeight = THREAT_LEVELS[state.highest_threat_level] || 0;
+    const newWeight = THREAT_LEVELS[decision.action] || 0;
+
+    if (newWeight > currentHighestWeight) {
+      state.highest_threat_level = decision.action;
+      state.highest_block_type = decision.action === 'hard_block' ? 'hard' : 'soft';
+    }
+  }
+
   // ── Apply behavior bonuses (idempotent) ──
   const { bonusTotal, newReasons } = applyBonuses(state);
 
@@ -490,4 +551,8 @@ function startDecayTimer() {
   }, DECAY_INTERVAL);
 }
 
-module.exports = { getSession, update, startDecayTimer };
+function clearCache(sessionId) {
+  cache.delete(sessionId);
+}
+
+module.exports = { getSession, update, startDecayTimer, clearCache };
