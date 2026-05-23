@@ -752,23 +752,38 @@ function App() {
             <thead>
               <tr>
                 <th>Target Session</th>
+                <th>IP Address</th>
                 <th>Action</th>
                 <th>Type</th>
                 <th>Score</th>
                 <th>Updated</th>
+                <th style={{ textAlign: 'right' }}>Report</th>
               </tr>
             </thead>
             <tbody>
               {filteredGuards.length === 0 ? (
-                <tr><td colSpan="5" className="empty-state">No matching guard actions enforced</td></tr>
+                <tr><td colSpan="7" className="empty-state">No matching guard actions enforced</td></tr>
               ) : (
                 filteredGuards.map(g => (
                   <tr key={g.session_id}>
                     <td className="code-font">{g.session_id.substring(0, 16)}…</td>
+                    <td className="code-font">{g.ip_address || (sessions.find(s => s.session_id === g.session_id)?.ip_address) || '—'}</td>
                     <td><span className={`action-badge type-${g.action}`}>{getMitigationLabel(g.action, g.block_type)}</span></td>
                     <td><span className="block-type-badge">{(g.block_type || 'auto').toUpperCase()}</span></td>
                     <td><span className={`risk-badge ${getRiskClass(g.risk_score)}`}>{g.risk_score}</span></td>
                     <td className="time">{formatRelativeTime(g.updated_at)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <a
+                        className="btn-copy"
+                        style={{ textDecoration: 'none' }}
+                        href={`${API}/session-logs/${g.session_id}`}
+                        download
+                        onClick={(e) => e.stopPropagation()}
+                        title="Download backend access logs for this session as JSON"
+                      >
+                        ⬇ Download
+                      </a>
+                    </td>
                   </tr>
                 ))
               )}

@@ -227,11 +227,29 @@ app.get('/guards', async (req, res) => {
 
     const results = await pipeline.exec();
 
+    // Fetch IP addresses for the guard sessions in parallel
+    const sessionPipeline = redis.pipeline();
+    results.forEach((result, i) => {
+      const keyParts = keys[i].split(':');
+      const session_id = keyParts.slice(2).join(':');
+      const data = result[1];
+      if (data && data.action) {
+        sessionPipeline.hget(`sideris:session:${session_id}`, 'ip_address');
+      }
+    });
+
+    const sessionIps = await sessionPipeline.exec();
+    let sessionIpIdx = 0;
+
     const guards = results.map((result, i) => {
       const keyParts = keys[i].split(':');
       const session_id = keyParts.slice(2).join(':'); // handle colons in ID
       const data = result[1];
       if (!data || !data.action) return null;
+
+      const ip_address = sessionIps[sessionIpIdx] ? sessionIps[sessionIpIdx][1] : null;
+      sessionIpIdx++;
+
       return {
         session_id,
         action: data.action,
@@ -239,6 +257,7 @@ app.get('/guards', async (req, res) => {
         risk_score: parseInt(data.risk_score || '0', 10),
         reason: data.reason || null,
         updated_at: parseInt(data.updated_at || '0', 10),
+        ip_address: ip_address || '—'
       };
     }).filter(g => g !== null);
 
