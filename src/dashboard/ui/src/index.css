@@ -234,6 +234,9 @@ body::before {
   color: var(--text-dim); text-transform: uppercase;
   letter-spacing: 0.8px;
 }
+.session-list-header .header-time {
+  text-align: right;
+}
 
 .session-list { display: flex; flex-direction: column; gap: 6px; }
 

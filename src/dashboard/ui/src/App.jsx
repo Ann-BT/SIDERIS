@@ -104,7 +104,9 @@ function App() {
     const box = logsBoxRef.current
     if (!box || logsPaused) return
     const isNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80
-    if (isNearBottom) logsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (isNearBottom) {
+      box.scrollTop = box.scrollHeight
+    }
   }, [logs, logsPaused])
 
   useEffect(() => {
@@ -339,7 +341,7 @@ function App() {
               <span>Verdict (Live / Peak)</span>
               <span>Mitigation</span>
               <span>Events</span>
-              <span>Last Seen</span>
+              <span className="header-time">Last Seen</span>
             </div>
             <div className="session-list">
             {sessions
