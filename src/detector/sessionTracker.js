@@ -500,10 +500,26 @@ async function update(sessionId, scoringResult, event) {
 
   // ── Persist risk reason to Redis list (for timeline in dashboard) ──
   if (event_score > 0 || newReasons.length > 0) {
+    let customSignal = behavior_signal || '';
+    if (attack_type !== 'normal_browsing') {
+      const parts = [];
+      if (data.query) {
+        const qStr = typeof data.query === 'object' ? JSON.stringify(data.query) : String(data.query);
+        parts.push(`query: ${qStr.substring(0, 150)}${qStr.length > 150 ? '...' : ''}`);
+      }
+      if (data.body) {
+        const bStr = typeof data.body === 'object' ? JSON.stringify(data.body) : String(data.body);
+        parts.push(`body: ${bStr.substring(0, 150)}${bStr.length > 150 ? '...' : ''}`);
+      }
+      if (parts.length > 0) {
+        customSignal = `${customSignal} [${parts.join(', ')}]`;
+      }
+    }
+
     const reasonEntry = JSON.stringify({
       rule: attack_type,
       category: category || 'normal',
-      signal: behavior_signal || '',
+      signal: customSignal,
       score: `+${event_score}`,
       total: state.session_score,
       timestamp: now,

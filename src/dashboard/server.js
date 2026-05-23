@@ -45,7 +45,25 @@ function toCLF(ts, data, ingestIp) {
   const path    = data.endpoint|| '-';
   const status  = data.status  || '-';
   const ua      = data.userAgent ? `"${data.userAgent}"` : '"-"';
-  return `${ip} - - [${formatCLF(ts)}] "${method} ${path} HTTP/1.1" ${status} - "-" ${ua}`;
+
+  let extra = '';
+  const formatExtraField = (field) => {
+    if (!field) return '';
+    let str = typeof field === 'object' ? JSON.stringify(field) : String(field);
+    if (str.length > 250) {
+      str = str.substring(0, 247) + '...';
+    }
+    return str;
+  };
+
+  if (data.body) {
+    extra += ` | body: ${formatExtraField(data.body)}`;
+  }
+  if (data.query) {
+    extra += ` | query: ${formatExtraField(data.query)}`;
+  }
+
+  return `${ip} - - [${formatCLF(ts)}] "${method} ${path} HTTP/1.1" ${status} - "-" ${ua}${extra}`;
 }
 
 // Helper function to scan keys efficiently with hard limits
@@ -652,6 +670,8 @@ app.get('/session-logs/:sessionId', async (req, res) => {
         duration:  d.duration  || null,
         ip:        d.ip        || payload.ingest_ip || null,
         user_agent:d.userAgent || null,
+        body:      d.body      || null,
+        query:     d.query     || null,
       });
     }
     // Sort oldest-first
