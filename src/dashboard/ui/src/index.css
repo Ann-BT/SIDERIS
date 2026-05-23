@@ -349,10 +349,10 @@ body::before {
 .meta-val.val-danger { color: var(--danger); }
 .meta-ua { font-size: 0.68rem; font-weight: 400; word-break: break-all; }
 .btn-copy {
-  padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: bold;
+  padding: 4px 10px; border-radius: 6px; font-size: 0.68rem; font-weight: bold;
   cursor: pointer; background: var(--foam); color: var(--coffee);
   border: 1px solid var(--border); transition: all 0.15s;
-  display: inline-flex; align-items: center; gap: 3px;
+  display: inline-flex; align-items: center; gap: 4px;
   line-height: 1;
 }
 .btn-copy:hover {
