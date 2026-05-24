@@ -33,7 +33,7 @@ function App() {
   const [sortDir, setSortDir] = useState('desc')     // 'asc' | 'desc'
 
   // Sorting & search state for Active Defense Matrix (guards)
-  const [guardSortBy, setGuardSortBy]   = useState('score')       // 'score' | 'updated_at'
+  const [guardSortBy, setGuardSortBy]   = useState('score')       // 'score' | 'action' | 'updated_at'
   const [guardSortDir, setGuardSortDir] = useState('desc')        // 'asc' | 'desc'
   const [guardSearch, setGuardSearch]   = useState('')
 
@@ -212,6 +212,9 @@ function App() {
       if (guardSortBy === 'score') {
         valA = parseFloat(a.risk_score || 0)
         valB = parseFloat(b.risk_score || 0)
+      } else if (guardSortBy === 'action') {
+        valA = (a.action || '').toLowerCase()
+        valB = (b.action || '').toLowerCase()
       } else {
         valA = a.updated_at || 0
         valB = b.updated_at || 0
@@ -815,6 +818,7 @@ function App() {
             <div className="sort-pills" role="group" aria-label="Sort guards">
               {[
                 { key: 'score', label: 'Score' },
+                { key: 'action', label: 'Action' },
                 { key: 'updated_at', label: 'Updated' }
               ].map(opt => (
                 <button
