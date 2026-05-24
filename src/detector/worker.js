@@ -211,11 +211,8 @@ async function applyGuard(sessionId, decision, highestScore, reason) {
   ];
   await redis.hset(guardKey, ...fields);
 
-  // hard_block: no TTL (persists until SOC unblocks)
-  // soft_block / others: TTL-based auto-expire
-  if (!isHardBlock(decision.action)) {
-    await redis.expire(guardKey, SESSION_TTL);
-  }
+  // Store all kinds of action sessions permanently in the Active Defense Matrix
+  await redis.persist(guardKey);
 
   // Increment the dashboard metrics counter for this action type.
   // guard.js (pub/sub path) only covers block/challenge via Lua;
@@ -295,7 +292,7 @@ async function processMessage(streamId, rawFields) {
   persistEventScore(streamId, scoringResult);
 
   // 8. Apply guard directive to Redis
-  await applyGuard(sessionId, decision, state.highest_score, scoringResult.attack_type || 'risk_threshold');
+  await applyGuard(sessionId, decision, state.highest_score, state.mitigation_reason || 'risk_threshold');
 
   // 9. Publish alert on threshold crossings
   await publishAlert(state, decision, newReasons);

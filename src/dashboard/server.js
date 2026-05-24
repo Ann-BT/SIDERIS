@@ -39,7 +39,7 @@ function formatCLF(tsMs) {
 }
 
 // Build one Combined Log Format line from event data fields
-function toCLF(ts, data, ingestIp) {
+function toCLF(ts, data, ingestIp, skipTimestamp = false) {
   const ip      = data.ip      || ingestIp || '-';
   const method  = data.method  || '-';
   const path    = data.endpoint|| '-';
@@ -63,21 +63,23 @@ function toCLF(ts, data, ingestIp) {
     extra += ` | query: ${formatExtraField(data.query)}`;
   }
 
-  return `${ip} - - [${formatCLF(ts)}] "${method} ${path} HTTP/1.1" ${status} - "-" ${ua}${extra}`;
+  const tsStr = skipTimestamp ? '' : `[${formatCLF(ts)}] `;
+  return `${ip} - - ${tsStr}"${method} ${path} HTTP/1.1" ${status} - "-" ${ua}${extra}`;
 }
 
-// Helper function to scan keys efficiently with hard limits
-async function scanKeys(pattern, maxCount = 50) {
+// Helper function to scan keys efficiently with hard limits (null/undefined means unlimited)
+async function scanKeys(pattern, maxCount = null) {
   return new Promise((resolve, reject) => {
     let keys = [];
     const stream = redis.scanStream({ match: pattern, count: 100 });
 
     stream.on('data', (resultKeys) => {
       for (const k of resultKeys) {
-        if (keys.length < maxCount) keys.push(k);
+        if (k.endsWith(':risk_reasons')) continue;
+        if (!maxCount || keys.length < maxCount) keys.push(k);
       }
       // Hard break early to prevent unbounded database sweeps
-      if (keys.length >= maxCount) {
+      if (maxCount && keys.length >= maxCount) {
         stream.pause();
         stream.destroy();
         resolve(keys);
@@ -103,9 +105,10 @@ async function scanKeys(pattern, maxCount = 50) {
 //   risk_reasons: [ { rule, category, signal, score, total, timestamp, time } ],
 //   last_seen, user_agent
 // }
+// ══════════════════════════════════════════════════════════
 app.get('/sessions', async (req, res) => {
   try {
-    const keys = await scanKeys('sideris:session:*', 50);
+    const keys = await scanKeys('sideris:session:*', null);
     if (keys.length === 0) return res.json([]);
 
     // Phase 1: Fetch all hash fields for every session
@@ -122,7 +125,7 @@ app.get('/sessions', async (req, res) => {
       const data = result[1];
       if (data && data.session_id) {
         validIndices.push(i);
-        enrichPipeline.lrange(`sideris:session:${data.session_id}:risk_reasons`, 0, 49);
+        enrichPipeline.lrange(`sideris:session:${data.session_id}:risk_reasons`, 0, 99);
         enrichPipeline.hgetall(`sideris:guard:${data.session_id}`);
       }
     });
@@ -237,7 +240,7 @@ app.get('/sessions', async (req, res) => {
 // ══════════════════════════════════════════════════════════
 app.get('/guards', async (req, res) => {
   try {
-    const keys = await scanKeys('sideris:guard:*', 50);
+    const keys = await scanKeys('sideris:guard:*', null);
     if (keys.length === 0) return res.json([]);
 
     const pipeline = redis.pipeline();
@@ -309,7 +312,8 @@ app.get('/metrics', async (req, res) => {
       blocks: parseInt(values[0] || '0', 10),
       challenges: parseInt(values[1] || '0', 10),
       rate_limits: parseInt(values[2] || '0', 10),
-      processed: parseInt(values[3] || '0', 10)
+      processed: parseInt(values[3] || '0', 10),
+      targetUrl: config.targetUrl
     });
   } catch (err) {
     console.error('[dashboard] /metrics error:', err.message);
@@ -615,7 +619,7 @@ app.get('/logs', async (req, res) => {
 
       const ts = parseInt(streamId.split('-')[0], 10) || payload.ingest_time || Date.now();
       const message = (data.method && data.endpoint)
-        ? toCLF(ts, data, payload.ingest_ip)
+        ? toCLF(ts, data, payload.ingest_ip, true)
         : `${obj.event_type || 'event'} from ${ip}${sid ? ` sess:${sid}…` : ''}`;
 
       return { ts, timestamp: new Date(ts).toISOString(), level, service: source, message };

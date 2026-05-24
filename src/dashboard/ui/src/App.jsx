@@ -37,6 +37,21 @@ function App() {
   const [guardSortDir, setGuardSortDir] = useState('desc')        // 'asc' | 'desc'
   const [guardSearch, setGuardSearch]   = useState('')
 
+  const ITEMS_PER_PAGE = 30
+  const GUARDS_PER_PAGE = 30
+  const [sessionPage, setSessionPage] = useState(1)
+  const [guardPage, setGuardPage] = useState(1)
+
+  // Reset session page when sort or filter changes
+  useEffect(() => {
+    setSessionPage(1)
+  }, [sortBy, sessionSortField, sortDir])
+
+  // Reset guard page when sort, search, or direction changes
+  useEffect(() => {
+    setGuardPage(1)
+  }, [guardSearch, guardSortBy, guardSortDir])
+
   const logsEndRef = useRef(null)
   const logsBoxRef = useRef(null)
 
@@ -186,7 +201,11 @@ function App() {
   const filteredGuards = guards
     .filter(g => {
       if (!guardSearch) return true
-      return (g.session_id || '').toLowerCase().includes(guardSearch.toLowerCase())
+      const searchLower = guardSearch.toLowerCase()
+      const idMatch = (g.session_id || '').toLowerCase().includes(searchLower)
+      const resolvedIp = g.ip_address || (sessions.find(s => s.session_id === g.session_id)?.ip_address) || ''
+      const ipMatch = resolvedIp.toLowerCase().includes(searchLower)
+      return idMatch || ipMatch
     })
     .sort((a, b) => {
       let valA, valB
@@ -201,6 +220,38 @@ function App() {
       if (valA > valB) return guardSortDir === 'desc' ? -1 : 1
       return 0
     })
+
+  const totalGuardPages = Math.ceil(filteredGuards.length / GUARDS_PER_PAGE)
+  const currentGuardPage = Math.min(guardPage, Math.max(1, totalGuardPages))
+  const paginatedGuards = filteredGuards.slice(
+    (currentGuardPage - 1) * GUARDS_PER_PAGE,
+    currentGuardPage * GUARDS_PER_PAGE
+  )
+
+  const filteredAndSortedSessions = sessions
+    .filter(s => sortBy === 'score' || (s.level || 'normal') === sortBy)
+    .sort((a, b) => {
+      let diff = 0
+      if (sessionSortField === 'score') {
+        diff = (a.session_score || 0) - (b.session_score || 0)
+      } else if (sessionSortField === 'ip') {
+        const ipA = (a.ip_address || '').toLowerCase()
+        const ipB = (b.ip_address || '').toLowerCase()
+        if (ipA < ipB) return sortDir === 'desc' ? 1 : -1
+        if (ipA > ipB) return sortDir === 'desc' ? -1 : 1
+        return 0
+      } else if (sessionSortField === 'last_seen') {
+        diff = (a.last_seen || 0) - (b.last_seen || 0)
+      }
+      return sortDir === 'desc' ? -diff : diff
+    })
+
+  const totalSessionPages = Math.ceil(filteredAndSortedSessions.length / ITEMS_PER_PAGE)
+  const currentSessionPage = Math.min(sessionPage, Math.max(1, totalSessionPages))
+  const paginatedSessions = filteredAndSortedSessions.slice(
+    (currentSessionPage - 1) * ITEMS_PER_PAGE,
+    currentSessionPage * ITEMS_PER_PAGE
+  )
 
   const getTopAttackerIPs = () => {
     const ipMap = {}
@@ -224,8 +275,8 @@ function App() {
     <div className="sideris-dashboard">
       <header className="dash-header">
         <div className="header-left">
-          <h1>SIDERIS <span className="highlight">Command Center</span></h1>
-          <span className="header-subtitle">Security Operations Console</span>
+          <h1>SIDERIS <span className="highlight">Runtime Defense</span></h1>
+          <span className="header-subtitle">protecting : {metrics.targetUrl || '—'}</span>
         </div>
         <div className={`status-indicator ${errorStatus ? 'offline' : 'online'}`} title={errorStatus ? 'API Disconnected' : 'Systems Online'} />
       </header>
@@ -275,12 +326,51 @@ function App() {
         </div>
       </section>
 
+      {/* ── Live Logs Panel ── */}
+      <section className="logs-panel">
+        <div className="logs-header">
+          <div className="logs-title">
+            <span className="logs-icon">▤</span>
+            Live Logs
+            <span className="logs-count">{logs.length} entries</span>
+          </div>
+          <div className="logs-controls">
+            {!logsPaused && (
+              <span className="live-indicator">
+                <span className="live-dot"></span>Live
+              </span>
+            )}
+            <button className="log-btn" onClick={() => setLogsPaused(p => !p)}>
+              {logsPaused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+            <button className="log-btn" onClick={async () => {
+              try { const r = await fetch(`${API}/logs?limit=100`); if (r.ok) setLogs(await r.json()) } catch {}
+            }}>Reload</button>
+          </div>
+        </div>
+        <div className="logs-body" ref={logsBoxRef}>
+          {logs.length === 0
+            ? <div className="logs-empty">No backend access log entries yet…</div>
+            : logs.map((log, i) => (
+              <div key={i} className={`log-entry log-lvl-${log.level.toLowerCase()}`}>
+                <span className="log-ts">{log.timestamp.replace('T',' ').slice(0,23)}</span>
+                <span className="log-svc">{log.service}</span>
+                <span className="log-msg">{log.message}</span>
+              </div>
+            ))
+          }
+          <div ref={logsEndRef} />
+        </div>
+      </section>
+
       {/* Sessions Panel */}
       <section className="sessions-panel">
         <div className="sessions-panel-header">
           <h2 className="panel-title">
             Live Threat Sessions
-            <span className="session-count">{sessions.length} active</span>
+            <span className="session-count">
+              {sortBy !== 'score' ? `${filteredAndSortedSessions.length} of ${sessions.length}` : sessions.length} active
+            </span>
           </h2>
           <div className="sort-controls">
             {/* Verdict filter pills */}
@@ -344,24 +434,7 @@ function App() {
               <span className="header-time">Last Seen</span>
             </div>
             <div className="session-list">
-            {sessions
-              .filter(s => sortBy === 'score' || (s.level || 'normal') === sortBy)
-              .sort((a, b) => {
-                let diff = 0
-                if (sessionSortField === 'score') {
-                  diff = (a.session_score || 0) - (b.session_score || 0)
-                } else if (sessionSortField === 'ip') {
-                  const ipA = (a.ip_address || '').toLowerCase()
-                  const ipB = (b.ip_address || '').toLowerCase()
-                  if (ipA < ipB) return sortDir === 'desc' ? 1 : -1
-                  if (ipA > ipB) return sortDir === 'desc' ? -1 : 1
-                  return 0
-                } else if (sessionSortField === 'last_seen') {
-                  diff = (a.last_seen || 0) - (b.last_seen || 0)
-                }
-                return sortDir === 'desc' ? -diff : diff
-              })
-              .map(s => {
+            {paginatedSessions.map(s => {
                 const score = parseFloat(s.session_score || 0)
                 const isExpanded = expandedSession === s.session_id
                 const cats = s.category_counts || {}
@@ -455,16 +528,18 @@ function App() {
                           </div>
                         </div>
 
-                        {/* Session Metadata */}
+                        {/* Session Metadata Grouped into Categories */}
                         <div className="detail-section">
                           <h4 className="detail-heading">Session Intelligence</h4>
-                          <div className="meta-grid">
-                            <div className="meta-item item-full-width">
-                              <span className="meta-key">Session Name</span>
-                              <span className="meta-val code-font" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.session_id}</span>
+                          
+                          {/* Identity & Telemetry Banner */}
+                          <div className="intel-banner">
+                            <div className="intel-banner-left">
+                              <div className="intel-banner-row">
+                                <span className="intel-banner-key">Session Name</span>
+                                <span className="intel-banner-val">{s.session_id}</span>
                                 <button
-                                  className="btn-copy"
+                                  className="btn-copy-small"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     navigator.clipboard.writeText(s.session_id);
@@ -472,65 +547,94 @@ function App() {
                                   }}
                                   title="Copy Session ID to Clipboard"
                                 >
-                                  📋 Copy
+                                  Copy
                                 </button>
-                              </span>
+                              </div>
+                              <div className="intel-banner-row" style={{ marginTop: '6px' }}>
+                                <span className="intel-banner-key">IP Address</span>
+                                <span className="intel-banner-val">{s.ip_address || '—'}</span>
+                                <span className="intel-banner-sep">|</span>
+                                <span className="intel-banner-key">User Agent</span>
+                                <span className="intel-banner-val meta-ua" title={s.user_agent || ''}>
+                                  {s.user_agent || '—'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Login Attempts</span>
-                              <span className="meta-val">{s.login_attempts || 0}</span>
+                            <div className="intel-banner-right">
+                              <div className="telemetry-pill">
+                                <span className="tel-key">Login Attempts</span>
+                                <span className="tel-val">{s.login_attempts || 0}</span>
+                              </div>
+                              <div className="telemetry-pill">
+                                <span className="tel-key">Unique Usernames Tried</span>
+                                <span className="tel-val">{s.unique_username_count || 0}</span>
+                              </div>
+                              <div className="telemetry-pill">
+                                <span className="tel-key">404 Errors</span>
+                                <span className="tel-val">{s.count_404 || 0}</span>
+                              </div>
                             </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Unique Usernames</span>
-                              <span className="meta-val">{s.unique_username_count || 0}</span>
+                          </div>
+
+                          {/* Symmetrical 3-Column Grid */}
+                          <div className="intel-balanced-grid">
+                            {/* Threat Analysis Card */}
+                            <div className="intel-category-card">
+                              <h5 className="intel-category-title">Threat Analysis</h5>
+                              <div className="intel-field-list">
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Peak Score</span>
+                                  <span className="intel-field-value">{s.highest_score ? s.highest_score.toFixed(1) : '0.0'}</span>
+                                </div>
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Highest Threat</span>
+                                  <span className="intel-field-value">{getVerdictLabel(s.highest_threat_level)}</span>
+                                </div>
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Scanner Detected</span>
+                                  <span className={`intel-field-value ${s.scanner_detected ? 'val-danger' : ''}`}>
+                                    {s.scanner_detected ? 'YES' : 'No'}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="meta-item">
-                              <span className="meta-key">404 Hits</span>
-                              <span className="meta-val">{s.count_404 || 0}</span>
+
+                            {/* Enforcement Card */}
+                            <div className="intel-category-card">
+                              <h5 className="intel-category-title">Enforcement</h5>
+                              <div className="intel-field-list">
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Last Mitigation</span>
+                                  <span className="intel-field-value">{getMitigationLabel(s.last_mitigation, s.highest_block_type)}</span>
+                                </div>
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Mitigation Reason</span>
+                                  <span className="intel-field-value text-warning">{s.mitigation_reason || '—'}</span>
+                                </div>
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Guard Source</span>
+                                  <span className="intel-field-value">{s.guard_source ? s.guard_source.toUpperCase() : '—'}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Scanner Detected</span>
-                              <span className={`meta-val ${s.scanner_detected ? 'val-danger' : ''}`}>
-                                {s.scanner_detected ? 'YES' : 'No'}
-                              </span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Peak Score</span>
-                              <span className="meta-val font-semibold">{s.highest_score ? s.highest_score.toFixed(1) : '0.0'}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Highest Threat</span>
-                              <span className="meta-val font-semibold">{getVerdictLabel(s.highest_threat_level)}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Last Mitigation</span>
-                              <span className="meta-val">{getMitigationLabel(s.last_mitigation, s.highest_block_type)}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Mitigation Reason</span>
-                              <span className="meta-val text-warning">{s.mitigation_reason || '—'}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Guard Source</span>
-                              <span className="meta-val">{s.guard_source ? s.guard_source.toUpperCase() : '—'}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">First Suspicious</span>
-                              <span className="meta-val">{s.first_suspicious_at ? new Date(s.first_suspicious_at).toLocaleTimeString() : '—'}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">First Mitigated</span>
-                              <span className="meta-val">{s.first_mitigated_at ? new Date(s.first_mitigated_at).toLocaleTimeString() : '—'}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">Peak Score At</span>
-                              <span className="meta-val">{s.highest_score_at ? new Date(s.highest_score_at).toLocaleTimeString() : '—'}</span>
-                            </div>
-                            <div className="meta-item">
-                              <span className="meta-key">User Agent</span>
-                              <span className="meta-val meta-ua" title={s.user_agent || ''}>
-                                {s.user_agent ? s.user_agent.substring(0, 50) + '…' : '—'}
-                              </span>
+
+                            {/* Timeline Card */}
+                            <div className="intel-category-card">
+                              <h5 className="intel-category-title">Timeline</h5>
+                              <div className="intel-field-list">
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">First Suspicious</span>
+                                  <span className="intel-field-value">{s.first_suspicious_at ? new Date(s.first_suspicious_at).toLocaleTimeString() : '—'}</span>
+                                </div>
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">Peak Score At</span>
+                                  <span className="intel-field-value">{s.highest_score_at ? new Date(s.highest_score_at).toLocaleTimeString() : '—'}</span>
+                                </div>
+                                <div className="intel-field-row">
+                                  <span className="intel-field-label">First Mitigated</span>
+                                  <span className="intel-field-value">{s.first_mitigated_at ? new Date(s.first_mitigated_at).toLocaleTimeString() : '—'}</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -571,7 +675,7 @@ function App() {
                             {(!s.risk_reasons || s.risk_reasons.length === 0) ? (
                               <div className="timeline-empty">No risk events recorded yet</div>
                             ) : (
-                              s.risk_reasons.slice(0, 10).map((r, i) => (
+                              s.risk_reasons.map((r, i) => (
                                 <div key={i} className="timeline-entry">
                                   <span className="tl-time">{formatRelativeTime(r.timestamp)}</span>
                                   <span className={`tl-category cat-${r.category}`}>{r.category}</span>
@@ -657,7 +761,7 @@ function App() {
                             onClick={(e) => e.stopPropagation()}
                             title="Download backend access logs for this session as JSON"
                           >
-                            ⬇ Export Logs
+                            Export Logs
                           </a>
                         </div>
                       </div>
@@ -666,45 +770,29 @@ function App() {
                 )
               })}
             </div>
+            {totalSessionPages > 1 && (
+              <div className="pagination-controls">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setSessionPage(p => Math.max(1, p - 1))}
+                  disabled={currentSessionPage === 1}
+                >
+                  ◀ Prev
+                </button>
+                <span className="pagination-info">
+                  Page {currentSessionPage} of {totalSessionPages} ({filteredAndSortedSessions.length} total)
+                </span>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setSessionPage(p => Math.min(totalSessionPages, p + 1))}
+                  disabled={currentSessionPage === totalSessionPages}
+                >
+                  Next ▶
+                </button>
+              </div>
+            )}
           </>
         )}
-      </section>
-
-      {/* ── Live Logs Panel ── */}
-      <section className="logs-panel">
-        <div className="logs-header">
-          <div className="logs-title">
-            <span className="logs-icon">▤</span>
-            Live Logs
-            <span className="logs-count">{logs.length} entries</span>
-          </div>
-          <div className="logs-controls">
-            {!logsPaused && (
-              <span className="live-indicator">
-                <span className="live-dot"></span>Live
-              </span>
-            )}
-            <button className="log-btn" onClick={() => setLogsPaused(p => !p)}>
-              {logsPaused ? '▶ Resume' : '⏸ Pause'}
-            </button>
-            <button className="log-btn" onClick={async () => {
-              try { const r = await fetch(`${API}/logs?limit=100`); if (r.ok) setLogs(await r.json()) } catch {}
-            }}>Reload</button>
-          </div>
-        </div>
-        <div className="logs-body" ref={logsBoxRef}>
-          {logs.length === 0
-            ? <div className="logs-empty">No backend access log entries yet…</div>
-            : logs.map((log, i) => (
-              <div key={i} className={`log-entry log-lvl-${log.level.toLowerCase()}`}>
-                <span className="log-ts">{log.timestamp.replace('T',' ').slice(0,23)}</span>
-                <span className="log-svc">{log.service}</span>
-                <span className="log-msg">{log.message}</span>
-              </div>
-            ))
-          }
-          <div ref={logsEndRef} />
-        </div>
       </section>
 
       {/* Guards Panel */}
@@ -719,7 +807,7 @@ function App() {
           <div className="sort-controls">
             <input
               type="text"
-              placeholder="Search Session ID..."
+              placeholder="Search Session ID or IP Address..."
               value={guardSearch}
               onChange={(e) => setGuardSearch(e.target.value)}
               className="search-input"
@@ -764,7 +852,7 @@ function App() {
               {filteredGuards.length === 0 ? (
                 <tr><td colSpan="7" className="empty-state">No matching guard actions enforced</td></tr>
               ) : (
-                filteredGuards.map(g => (
+                paginatedGuards.map(g => (
                   <tr key={g.session_id}>
                     <td className="code-font">{g.session_id.substring(0, 16)}…</td>
                     <td className="code-font">{g.ip_address || (sessions.find(s => s.session_id === g.session_id)?.ip_address) || '—'}</td>
@@ -774,14 +862,13 @@ function App() {
                     <td className="time">{formatRelativeTime(g.updated_at)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <a
-                        className="btn-copy"
-                        style={{ textDecoration: 'none' }}
+                        className="btn-download-small"
                         href={`${API}/session-logs/${g.session_id}`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         title="Download backend access logs for this session as JSON"
                       >
-                        ⬇ Download
+                        Download
                       </a>
                     </td>
                   </tr>
@@ -790,6 +877,27 @@ function App() {
             </tbody>
           </table>
         </div>
+        {totalGuardPages > 1 && (
+          <div className="pagination-controls">
+            <button
+              className="pagination-btn"
+              onClick={() => setGuardPage(p => Math.max(1, p - 1))}
+              disabled={currentGuardPage === 1}
+            >
+              &lt;
+            </button>
+            <span className="pagination-info">
+              {currentGuardPage} ({filteredGuards.length} total)
+            </span>
+            <button
+              className="pagination-btn"
+              onClick={() => setGuardPage(p => Math.min(totalGuardPages, p + 1))}
+              disabled={currentGuardPage === totalGuardPages}
+            >
+              &gt;
+            </button>
+          </div>
+        )}
       </section>
 
 

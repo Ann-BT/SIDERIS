@@ -522,6 +522,9 @@ app.use(async (req, res, next) => {
         // at the response level; the guard key stays until verified.
         req._sideris_challenge_sid = sid;
       }
+      if (action === 'rate_limit') {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     } catch (err) {
       console.error('[proxy] Guard check error:', err.message);
     }
@@ -565,10 +568,31 @@ app.use(async (req, res, next) => {
         const urlCounts = existingUrlCounts ? JSON.parse(existingUrlCounts) : {};
         urlCounts[detected] = (urlCounts[detected] || 0) + 1;
 
+        // Fetch existing highest_score to ensure it is at least 100
+        const existingHighestStr = await guardRedis.hget(sessionKey, 'highest_score');
+        const existingHighest = parseFloat(existingHighestStr || '0');
+        const newHighest = Math.max(existingHighest, 100);
+
+        // Fetch existing timeline timestamps
+        const existingSuspStr = await guardRedis.hget(sessionKey, 'first_suspicious_at');
+        const existingSusp = parseInt(existingSuspStr || '0', 10);
+        const newSusp = existingSusp || Date.now();
+
+        const existingMitStr = await guardRedis.hget(sessionKey, 'first_mitigated_at');
+        const existingMit = parseInt(existingMitStr || '0', 10);
+        const newMit = existingMit || Date.now();
+
+        const existingHighestTimeStr = await guardRedis.hget(sessionKey, 'highest_score_at');
+        let newHighestTime = parseInt(existingHighestTimeStr || '0', 10);
+        if (100 > existingHighest || !newHighestTime) {
+          newHighestTime = Date.now();
+        }
+
         // Write session state for dashboard
         await guardRedis.hset(sessionKey,
           'session_id',      effectiveSid,
           'session_score',   '100',
+          'highest_score',   String(newHighest),
           'event_count',     String(parseInt(await guardRedis.hget(sessionKey, 'event_count') || '0', 10) + 1),
           'ip_address',      req.ip || '::1',
           'user_agent',      req.headers['user-agent'] || 'unknown',
@@ -584,8 +608,30 @@ app.use(async (req, res, next) => {
           'scan_detected',   '1',
           'exploit_detected', '1',
           'count_404',       await guardRedis.hget(sessionKey, 'count_404') || '0',
+          'first_suspicious_at', String(newSusp),
+          'highest_score_at',   String(newHighestTime),
+          'first_mitigated_at',  String(newMit),
+          'highest_threat_level', 'hard_block',
+          'highest_block_type',   'hard',
+          'last_mitigation',      'block',
+          'mitigation_reason',    `Inline detection: ${detected}`
         );
         await guardRedis.expire(sessionKey, 86400);
+
+        // Push the inline detection event directly to the risk_reasons list to ensure the timeline shows it immediately
+        const reasonEntry = JSON.stringify({
+          rule: detected,
+          category: cat,
+          signal: `Inline detection: ${detected} in ${req.method} ${req.originalUrl}`,
+          score: '+100.0',
+          total: 100,
+          timestamp: Date.now(),
+          time: new Date().toISOString(),
+        });
+        const reasonKey = `sideris:session:${effectiveSid}:risk_reasons`;
+        await guardRedis.lpush(reasonKey, reasonEntry);
+        await guardRedis.ltrim(reasonKey, 0, 99);
+        await guardRedis.expire(reasonKey, 86400);
 
         // 3. Also fire the event to ingest so it shows in the timeline
         fetch(INGEST_URL, {

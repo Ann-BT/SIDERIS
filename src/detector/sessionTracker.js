@@ -59,7 +59,8 @@ const Redis = require('ioredis');
 const config = require('../shared/config');
 
 const redis = new Redis(config.redisUrl);
-const SESSION_TTL = config.sessionTtlSec || 1800;
+const CACHE_TTL = 1800; // 30 minutes in-memory cache
+const REDIS_TTL = 86400; // 24 hours in Redis
 const DECAY_INTERVAL = 30_000;
 const DECAY_FACTOR = 0.95;
 
@@ -333,7 +334,7 @@ async function saveToRedis(state) {
   const key = `sideris:session:${state.session_id}`;
   const pipe = redis.pipeline();
   pipe.hset(key, 'session_id', state.session_id, ...toRedisFields(state));
-  pipe.expire(key, SESSION_TTL);
+  pipe.expire(key, REDIS_TTL);
   try { await pipe.exec(); }
   catch (err) { console.error('[sessionTracker] Redis save error:', err.message); }
 }
@@ -466,6 +467,9 @@ async function update(sessionId, scoringResult, event) {
   // ── Add event score to session ──
   state.session_score = parseFloat((state.session_score + event_score).toFixed(2));
 
+  // ── Apply behavior bonuses (idempotent) ──
+  const { bonusTotal, newReasons } = applyBonuses(state);
+
   // ── Timestamps & State Machine updates ──
   if (state.session_score >= 10) {
     if (!state.first_suspicious_at || state.first_suspicious_at === 0) {
@@ -484,7 +488,13 @@ async function update(sessionId, scoringResult, event) {
       state.first_mitigated_at = now;
     }
     state.last_mitigation = getGuardDirective(decision.action);
-    state.mitigation_reason = attack_type || 'risk_threshold';
+    
+    const activeRules = Object.keys(state.url_counts)
+      .filter(k => k !== 'normal_browsing')
+      .map(k => k.replace(/_/g, ' '));
+    state.mitigation_reason = activeRules.length > 0 
+      ? activeRules.join(', ') 
+      : (attack_type || 'risk_threshold');
 
     const currentHighestWeight = THREAT_LEVELS[state.highest_threat_level] || 0;
     const newWeight = THREAT_LEVELS[decision.action] || 0;
@@ -494,9 +504,6 @@ async function update(sessionId, scoringResult, event) {
       state.highest_block_type = decision.action === 'hard_block' ? 'hard' : 'soft';
     }
   }
-
-  // ── Apply behavior bonuses (idempotent) ──
-  const { bonusTotal, newReasons } = applyBonuses(state);
 
   // ── Persist risk reason to Redis list (for timeline in dashboard) ──
   if (event_score > 0 || newReasons.length > 0) {
@@ -528,8 +535,8 @@ async function update(sessionId, scoringResult, event) {
     try {
       const reasonKey = `sideris:session:${sessionId}:risk_reasons`;
       await redis.lpush(reasonKey, reasonEntry);
-      await redis.ltrim(reasonKey, 0, 49);  // keep last 50
-      await redis.expire(reasonKey, SESSION_TTL);
+      await redis.ltrim(reasonKey, 0, 99);  // keep last 100
+      await redis.expire(reasonKey, REDIS_TTL);
     } catch (err) {
       console.error('[sessionTracker] risk_reasons push error:', err.message);
     }
@@ -555,7 +562,7 @@ function startDecayTimer() {
     const now = Date.now();
     for (const [sessionId, state] of cache.entries()) {
       // Evict sessions idle longer than TTL
-      if (now - state.last_seen > SESSION_TTL * 1000) {
+      if (now - state.last_seen > CACHE_TTL * 1000) {
         cache.delete(sessionId);
         continue;
       }
