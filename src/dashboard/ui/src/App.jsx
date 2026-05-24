@@ -36,6 +36,7 @@ function App() {
   const [guardSortBy, setGuardSortBy]   = useState('score')       // 'score' | 'action' | 'updated_at'
   const [guardSortDir, setGuardSortDir] = useState('desc')        // 'asc' | 'desc'
   const [guardSearch, setGuardSearch]   = useState('')
+  const [guardActionFilter, setGuardActionFilter] = useState('all') // 'all' | 'block' | 'challenge' | 'rate_limit'
 
   const ITEMS_PER_PAGE = 30
   const GUARDS_PER_PAGE = 30
@@ -47,10 +48,10 @@ function App() {
     setSessionPage(1)
   }, [sortBy, sessionSortField, sortDir])
 
-  // Reset guard page when sort, search, or direction changes
+  // Reset guard page when sort, search, action filter, or direction changes
   useEffect(() => {
     setGuardPage(1)
-  }, [guardSearch, guardSortBy, guardSortDir])
+  }, [guardSearch, guardSortBy, guardSortDir, guardActionFilter])
 
   const logsEndRef = useRef(null)
   const logsBoxRef = useRef(null)
@@ -200,12 +201,17 @@ function App() {
 
   const filteredGuards = guards
     .filter(g => {
-      if (!guardSearch) return true
-      const searchLower = guardSearch.toLowerCase()
-      const idMatch = (g.session_id || '').toLowerCase().includes(searchLower)
-      const resolvedIp = g.ip_address || (sessions.find(s => s.session_id === g.session_id)?.ip_address) || ''
-      const ipMatch = resolvedIp.toLowerCase().includes(searchLower)
-      return idMatch || ipMatch
+      if (guardSearch) {
+        const searchLower = guardSearch.toLowerCase()
+        const idMatch = (g.session_id || '').toLowerCase().includes(searchLower)
+        const resolvedIp = g.ip_address || (sessions.find(s => s.session_id === g.session_id)?.ip_address) || ''
+        const ipMatch = resolvedIp.toLowerCase().includes(searchLower)
+        if (!idMatch && !ipMatch) return false
+      }
+      if (guardActionFilter !== 'all') {
+        if (g.action !== guardActionFilter) return false
+      }
+      return true
     })
     .sort((a, b) => {
       let valA, valB
@@ -804,7 +810,7 @@ function App() {
           <h2 className="panel-title">
             Active Defense Matrix
             <span className="session-count">
-              {guardSearch ? `${filteredGuards.length} of ${guards.length}` : guards.length} enforced
+              {guardSearch || guardActionFilter !== 'all' ? `${filteredGuards.length} of ${guards.length}` : guards.length} enforced
             </span>
           </h2>
           <div className="sort-controls">
@@ -815,6 +821,19 @@ function App() {
               onChange={(e) => setGuardSearch(e.target.value)}
               className="search-input"
             />
+            <div className="sort-field-select">
+              <span className="sort-label">Action:</span>
+              <select
+                value={guardActionFilter}
+                onChange={(e) => setGuardActionFilter(e.target.value)}
+                className="sort-dropdown"
+              >
+                <option value="all">All</option>
+                <option value="block">Block</option>
+                <option value="challenge">Challenge</option>
+                <option value="rate_limit">Rate Limit</option>
+              </select>
+            </div>
             <div className="sort-pills" role="group" aria-label="Sort guards">
               {[
                 { key: 'score', label: 'Score' },
