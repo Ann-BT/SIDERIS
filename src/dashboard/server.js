@@ -15,17 +15,125 @@ const cors = require('cors');
 const Redis = require('ioredis');
 const config = require('../shared/config');
 const pool = require('../shared/pgPool');
+const crypto = require('crypto');
 
 const app = express();
+app.set('trust proxy', true);
+
 const redis = new Redis(config.redisUrl);
 const PORT = config.dashboardPort || 8080;
 
 app.use(cors());
 app.use(express.json());
 
+// ══════════════════════════════════════════════════════════
+// IP ALLOWLIST MIDDLEWARE (SECURE CONTROLS)
+// ══════════════════════════════════════════════════════════
+
+// Convert IPv4 string to 32-bit unsigned integer
+function ipv4ToInt(ip) {
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) {
+    return null;
+  }
+  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+}
+
+// Normalize IP address (e.g., IPv6-mapped IPv4 -> IPv4)
+function normalizeIp(ip) {
+  if (!ip) return '';
+  let clean = ip.trim();
+  if (clean.startsWith('::ffff:')) {
+    clean = clean.substring(7);
+  }
+  if (clean === '::1') {
+    return '127.0.0.1';
+  }
+  return clean;
+}
+
+// Match client IP against exact match or CIDR range
+function matchIp(clientIp, entry) {
+  const normalizedClient = normalizeIp(clientIp);
+  const normalizedEntry = normalizeIp(entry);
+
+  if (!normalizedClient || !normalizedEntry) return false;
+
+  // Check if CIDR range
+  if (normalizedEntry.includes('/')) {
+    const [rangeIp, prefixStr] = normalizedEntry.split('/');
+    const prefix = parseInt(prefixStr, 10);
+    if (isNaN(prefix) || prefix < 0 || prefix > 32) return false;
+
+    const clientInt = ipv4ToInt(normalizedClient);
+    const rangeInt = ipv4ToInt(rangeIp);
+
+    if (clientInt === null || rangeInt === null) return false;
+
+    const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+    return (clientInt & mask) === (rangeInt & mask);
+  }
+
+  // Exact match
+  return normalizedClient === normalizedEntry;
+}
+
+// Record dashboard access session in Redis (with 24h expiration)
+async function recordDashboardAccess(req, allowed) {
+  const clientIp = normalizeIp(req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown');
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const userKey = `sideris:dashboard:user:${clientIp}`;
+
+  const now = Date.now();
+  const data = {
+    ip: clientIp,
+    user_agent: userAgent,
+    last_seen: String(now),
+    last_path: `${req.method} ${req.path}`,
+    allowed: allowed ? '1' : '0'
+  };
+
+  try {
+    const exists = await redis.exists(userKey);
+    if (!exists) {
+      data.first_seen = String(now);
+    }
+    await redis.hset(userKey, data);
+    await redis.expire(userKey, 86400); // 24 hours TTL
+  } catch (err) {
+    console.error('[dashboard] Failed to record dashboard session in Redis:', err.message);
+  }
+}
+
+app.use((req, res, next) => {
+  if (!config.dashboardAllowedIps || config.dashboardAllowedIps.length === 0) {
+    return next();
+  }
+
+  const clientIp = normalizeIp(req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown');
+
+  const isAllowed = config.dashboardAllowedIps.some(allowedNet => matchIp(clientIp, allowedNet));
+
+  if (!isAllowed) {
+    console.warn(`[dashboard] Blocked unauthorized dashboard access attempt from IP: ${clientIp}`);
+    recordDashboardAccess(req, false).catch(() => {});
+    return res.status(403).json({
+      error: 'forbidden',
+      code: 'E_DASHBOARD_IP_BLOCKED',
+      message: 'Access denied: Client IP is not authorized to access SIDERIS Dashboard.'
+    });
+  }
+
+  next();
+});
+
 // Log every incoming request for debugging
 app.use((req, res, next) => {
   console.log(`[dashboard] ${new Date().toISOString()} ${req.method} ${req.path}`);
+  // Log dashboard access (skip logging our own user list poll endpoint to avoid spamming Redis writes)
+  if (req.path !== '/dashboard-users') {
+    recordDashboardAccess(req, true).catch(() => {});
+  }
   next();
 });
 
@@ -231,6 +339,29 @@ app.get('/sessions', async (req, res) => {
     res.json(sessions);
   } catch (err) {
     console.error('[dashboard] /sessions error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// GET /dashboard-users — active/blocked dashboard accesses
+// ══════════════════════════════════════════════════════════
+app.get('/dashboard-users', async (req, res) => {
+  try {
+    const keys = await scanKeys('sideris:dashboard:user:*', null);
+    if (keys.length === 0) return res.json([]);
+
+    const pipeline = redis.pipeline();
+    keys.forEach(key => pipeline.hgetall(key));
+    const results = await pipeline.exec();
+
+    const users = results.map(r => r[1]).filter(Boolean);
+    // Sort by last_seen descending
+    users.sort((a, b) => parseInt(b.last_seen) - parseInt(a.last_seen));
+
+    res.json(users);
+  } catch (err) {
+    console.error('[dashboard] /dashboard-users error:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -704,4 +835,11 @@ app.get('/session-logs/:sessionId', async (req, res) => {
 // ══════════════════════════════════════════════════════════
 app.listen(PORT, () => {
   console.log(`[dashboard] Sideris Metrics API running on http://localhost:${PORT}`);
+  
+  if (config.dashboardAllowedIps && config.dashboardAllowedIps.length > 0) {
+    console.log(`[dashboard] IP Allowlist Enabled. Allowed networks:`);
+    config.dashboardAllowedIps.forEach(net => console.log(`  - ${net}`));
+  } else {
+    console.warn(`[dashboard] WARNING: Dashboard API exposed without IP restrictions.`);
+  }
 });

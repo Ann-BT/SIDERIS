@@ -31,16 +31,19 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const PROXY_PORT = parseInt(process.env.PROXY_PORT  || '4000', 10);
 const TARGET_URL = process.env.TARGET_URL            || 'http://localhost:3000';
-const INGEST_URL = (process.env.INGEST_URL           || 'http://localhost:5000') + '/api/events';
+const INGEST_HOST = process.env.INGEST_HOST          || `http://localhost:${process.env.INGEST_PORT || '5000'}`;
+const INGEST_URL = INGEST_HOST + '/api/events';
 
 // agent.js is served from our own source tree
 const AGENT_PATH = path.resolve(__dirname, '../agent/agent.js');
 
 // ── Snippet injected into every HTML <head> ───────────────
-// Points the agent at the ingest server (port 5000, not the proxy).
+// Points the agent at the relative endpoint /sideris/ingest.
+// This routes telemetry traffic through the proxy itself, avoiding exposing 
+// the ingest port (5000) to the public internet and avoiding CORS issues.
 const AGENT_SNIPPET = `
 <script>
-  window.SIDERIS_INGEST_URL = 'http://localhost:5000/sideris/ingest';
+  window.SIDERIS_INGEST_URL = '/sideris/ingest';
 </script>
 <script src="/sideris/agent.js" defer></script>`.trim();
 
@@ -774,6 +777,25 @@ const proxy = createProxyMiddleware({
     })
   }
 });
+
+// ══════════════════════════════════════════════════════════
+// ROUTE: /sideris/ingest — proxy agent telemetry to ingest server internally
+// ══════════════════════════════════════════════════════════
+app.use('/sideris/ingest', createProxyMiddleware({
+  target: INGEST_HOST,
+  changeOrigin: true,
+  logLevel: 'silent',
+  on: {
+    proxyReq: (proxyReq, req) => {
+      // Re-write the body if parsed by our raw-body middleware
+      if (req.rawBody && req.rawBody.length > 0) {
+        proxyReq.setHeader('Content-Length', req.rawBody.length);
+        proxyReq.write(req.rawBody);
+        proxyReq.end();
+      }
+    }
+  }
+}));
 
 app.use('/', proxy);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import './index.css'
 
-const API = 'http://127.0.0.1:6001'
+const API = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:6001`
 
 const CATEGORIES = [
   { key: 'authentication',  label: 'Authentication',  color: '#f59e0b' },
@@ -19,6 +19,7 @@ function App() {
   const [metrics, setMetrics] = useState({ blocks: 0, challenges: 0, rate_limits: 0, processed: 0 })
   const [sessions, setSessions] = useState([])
   const [guards, setGuards] = useState([])
+  const [dashboardUsers, setDashboardUsers] = useState([])
   const [errorStatus, setErrorStatus] = useState(false)
   const [expandedSession, setExpandedSession] = useState(null)
   const [unblockConfirm, setUnblockConfirm] = useState(null)
@@ -26,6 +27,8 @@ function App() {
   const [toast, setToast] = useState(null)
   const [logs, setLogs] = useState([])
   const [logsPaused, setLogsPaused] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [activeTab, setActiveTab] = useState('lifecycle')
 
   // Sorting state for Live Threat Sessions
   const [sortBy, setSortBy]   = useState('score')   // 'score' | 'critical' | 'very_high' | 'high' | 'suspicious' | 'normal'
@@ -53,6 +56,17 @@ function App() {
     setGuardPage(1)
   }, [guardSearch, guardSortBy, guardSortDir, guardActionFilter])
 
+  // Escape key listener for guide modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowGuide(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const logsEndRef = useRef(null)
   const logsBoxRef = useRef(null)
 
@@ -68,6 +82,19 @@ function App() {
     if (diff < 60) return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     return `${Math.floor(diff / 3600)}h ago`
+  }
+
+  const formatLocalLogTime = (isoString) => {
+    if (!isoString) return ''
+    try {
+      const d = new Date(isoString)
+      if (isNaN(d.getTime())) return isoString.replace('T', ' ').slice(0, 23)
+      const pad = n => String(n).padStart(2, '0')
+      const pad3 = n => String(n).padStart(3, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad3(d.getMilliseconds())}`
+    } catch {
+      return isoString.replace('T', ' ').slice(0, 23)
+    }
   }
 
   const getRiskClass = (score) => {
@@ -128,15 +155,17 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [metRes, sesRes, guardRes] = await Promise.all([
+        const [metRes, sesRes, guardRes, userRes] = await Promise.all([
           fetch(`${API}/metrics`),
           fetch(`${API}/sessions`),
-          fetch(`${API}/guards`)
+          fetch(`${API}/guards`),
+          fetch(`${API}/dashboard-users`)
         ])
-        if (!metRes.ok || !sesRes.ok || !guardRes.ok) throw new Error('API Sync Failed')
+        if (!metRes.ok || !sesRes.ok || !guardRes.ok || !userRes.ok) throw new Error('API Sync Failed')
         setMetrics(await metRes.json())
         setSessions(await sesRes.json())
         setGuards(await guardRes.json())
+        setDashboardUsers(await userRes.json())
         setErrorStatus(false)
       } catch (err) {
         console.error("Dashboard Sync Error:", err)
@@ -287,14 +316,19 @@ function App() {
           <h1>SIDERIS <span className="highlight">Runtime Defense</span></h1>
           <span className="header-subtitle">protecting : {metrics.targetUrl || '—'}</span>
         </div>
-        <div className={`status-indicator ${errorStatus ? 'offline' : 'online'}`} title={errorStatus ? 'API Disconnected' : 'Systems Online'} />
+        <div className="header-right">
+          <button className="btn-runtime-guide" onClick={() => setShowGuide(true)}>
+            Runtime Defense Guide
+          </button>
+          <div className={`status-indicator ${errorStatus ? 'offline' : 'online'}`} title={errorStatus ? 'API Disconnected' : 'Systems Online'} />
+        </div>
       </header>
 
       {/* Top Dashboard Section */}
       <section className="top-dashboard-section">
-        {/* Left Side: Top Attacker IPs */}
+        {/* Left Side: Top IP Addresses */}
         <div className="top-attackers-panel">
-          <h3>Top Attacker IP Addresses</h3>
+          <h3>Top IP Addresses</h3>
           <div className="attacker-list">
             {getTopAttackerIPs().map((item, idx) => (
               <div key={item.ip} className="attacker-row">
@@ -309,7 +343,32 @@ function App() {
               </div>
             ))}
             {getTopAttackerIPs().length === 0 && (
-              <div className="empty-state">No attacker IP data available</div>
+              <div className="empty-state">No IP data available</div>
+            )}
+          </div>
+        </div>
+
+        {/* Middle Side: Dashboard Access Log */}
+        <div className="dashboard-access-panel">
+          <h3>Dashboard Access Log</h3>
+          <div className="attacker-list">
+            {dashboardUsers.map((user, idx) => (
+              <div key={user.ip + '_' + idx} className="attacker-row" title={user.user_agent}>
+                <span className="attacker-ip code-font" title={user.ip}>
+                  {user.ip.length > 24 ? user.ip.substring(0, 22) + '…' : user.ip}
+                </span>
+                <span className="attacker-stats">
+                  <span className={user.allowed === '1' ? 'badge-allowed' : 'badge-blocked'}>
+                    {user.allowed === '1' ? 'Allowed' : 'Blocked'}
+                  </span>
+                  <span className="badge-time">
+                    {formatRelativeTime(parseInt(user.last_seen))}
+                  </span>
+                </span>
+              </div>
+            ))}
+            {dashboardUsers.length === 0 && (
+              <div className="empty-state">No access records available</div>
             )}
           </div>
         </div>
@@ -362,7 +421,7 @@ function App() {
             ? <div className="logs-empty">No backend access log entries yet…</div>
             : logs.map((log, i) => (
               <div key={i} className={`log-entry log-lvl-${log.level.toLowerCase()}`}>
-                <span className="log-ts">{log.timestamp.replace('T',' ').slice(0,23)}</span>
+                <span className="log-ts">{formatLocalLogTime(log.timestamp)}</span>
                 <span className="log-svc">{log.service}</span>
                 <span className="log-msg">{log.message}</span>
               </div>
@@ -925,6 +984,439 @@ function App() {
 
 
 
+
+      {/* Runtime Defense Guide Modal */}
+      {showGuide && (
+        <div className="guide-modal-overlay" onClick={() => setShowGuide(false)}>
+          <div className="guide-modal" onClick={(e) => e.stopPropagation()}>
+            <header className="guide-modal-header">
+              <div className="guide-title-area">
+                <h2>SIDERIS Runtime Defense Guide</h2>
+              </div>
+              <button className="guide-modal-close" onClick={() => setShowGuide(false)} title="Close Guide (Esc)">&times;</button>
+            </header>
+
+            <div className="guide-modal-body">
+              
+              {/* Tab Navigation */}
+              <div className="guide-tabs">
+                <button 
+                  className={`guide-tab-btn ${activeTab === 'lifecycle' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('lifecycle')}
+                >
+                  1. Lifecycle & Decay
+                </button>
+                <button 
+                  className={`guide-tab-btn ${activeTab === 'matrix' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('matrix')}
+                >
+                  2. Mitigation Matrix
+                </button>
+                <button 
+                  className={`guide-tab-btn ${activeTab === 'glossary' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('glossary')}
+                >
+                  3. Telemetry Glossary
+                </button>
+                <button 
+                  className={`guide-tab-btn ${activeTab === 'bonuses' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('bonuses')}
+                >
+                  4. Correlation Heuristics (13)
+                </button>
+              </div>
+
+              {/* Tab 1: Detection Lifecycle & Decay */}
+              {activeTab === 'lifecycle' && (
+                <div className="guide-tab-content">
+                  {/* Section 1: Threat Escalation Lifecycle (Horizontal Animated Timeline) */}
+                  <div className="guide-panel full-width">
+                    <h3>Threat Escalation Lifecycle</h3>
+                    <p className="panel-intro-text">SIDERIS implements dynamic behavioral defense by statefully observing client events and escalating mitigations based on cumulative threat profiles.</p>
+                    <div className="lifecycle-timeline">
+                      <div className="timeline-progress-line">
+                        <div className="timeline-pulse-glow"></div>
+                      </div>
+                      
+                      <div className="lifecycle-step">
+                        <div className="step-number-node">1</div>
+                        <div className="step-content">
+                          <span className="step-title">Observe</span>
+                          <span className="step-desc">Ingests raw client HTTP requests and user interaction telemetry.</span>
+                        </div>
+                      </div>
+                      
+                      <div className="lifecycle-step">
+                        <div className="step-number-node">2</div>
+                        <div className="step-content">
+                          <span className="step-title">Correlate</span>
+                          <span className="step-desc">Analyzes behavioral logs and logs patterns within the active session scope.</span>
+                        </div>
+                      </div>
+                      
+                      <div className="lifecycle-step">
+                        <div className="step-number-node">3</div>
+                        <div className="step-content">
+                          <span className="step-title">Escalate</span>
+                          <span className="step-desc">Applies dynamic scoring bonuses when heuristics confirm coordinated attack signatures.</span>
+                        </div>
+                      </div>
+                      
+                      <div className="lifecycle-step">
+                        <div className="step-number-node">4</div>
+                        <div className="step-content">
+                          <span className="step-title">Mitigate</span>
+                          <span className="step-desc">Enforces appropriate defense directives matching current scoring thresholds.</span>
+                        </div>
+                      </div>
+                      
+                      <div className="lifecycle-step">
+                        <div className="step-number-node">5</div>
+                        <div className="step-content">
+                          <span className="step-title">Persist</span>
+                          <span className="step-desc">Synchronizes dynamic security guards to fast Redis cache for proxy enforcement.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="guide-grid-2col" style={{ marginTop: '2rem' }}>
+                    <div className="guide-panel">
+                      <h3>Dynamic Threat Scoring Engine</h3>
+                      <p className="panel-intro-text">To prevent false-positive lockouts while maintaining zero-day protection, SIDERIS calculates real-time event risk using a dynamic confidence-persistence equation:</p>
+                      
+                      <div className="equation-container">
+                        <div className="equation-math">
+                          Event Score = Base Impact &times; Confidence &times; Persistence Modifier
+                        </div>
+                      </div>
+
+                      <div className="equation-breakdown">
+                        <div className="eq-element">
+                          <span className="eq-label">Base Impact (0.0 to 5.0)</span>
+                          <span className="eq-text">The inherent severity of the threat category. SQLi and command injections trigger <strong>5.0 (Critical)</strong>, credential stuffing triggers <strong>4.0 (High)</strong>, endpoint fuzzing triggers <strong>3.0 (Medium)</strong>, while standard authorization failures trigger <strong>2.0 (Low)</strong>.</span>
+                        </div>
+                        <div className="eq-element">
+                          <span className="eq-label">Confidence Refinement floor & Multipliers</span>
+                          <span className="eq-text">The base certainty ranges from <strong>0.5 to 1.3</strong>. If an attack is repeated 3+ times, SIDERIS escalates the confidence floor to <strong>0.8 (Unusual)</strong>; at 5+ times, it escalates to <strong>1.0 (Known Signature)</strong>. Additionally, if the attacker pivots across 2+ distinct categories, a <strong>+0.1 multi-vector confidence boost</strong> is applied (max 1.5).</span>
+                        </div>
+                        <div className="eq-element">
+                          <span className="eq-label">Persistence Modifier (1.0 to 2.0)</span>
+                          <span className="eq-text">Differentiates one-off probes from heavy scanning. Single attacks use <strong>1.0 (One-Time)</strong>, 3+ matching attacks use <strong>1.3 (Repeated)</strong>, 5+ matching attacks use <strong>1.6 (Sustained)</strong>, and high-frequency real payloads matching &gt;10 requests per second trigger a <strong>2.0 (Flood)</strong> multiplier.</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="guide-panel">
+                      <h3>Temporal Score Decay Heuristics</h3>
+                      <p className="panel-text">To prevent transient user connection issues or keyboard errors from locking out legitimate staff permanently, SIDERIS integrates a dynamic cooling decay algorithm. Every <strong>30 seconds</strong>, active session scores are multiplied by a decay factor of <strong>0.95</strong> (S_new = S_old &times; 0.95).</p>
+                      <p className="panel-text">This continuous cooling forces the threat score down towards zero over periods of inactivity. A suspicious session that triggered a CAPTCHA will eventually drift back into the normal zone as time passes, unless the score crossed the persistent block threshold (50+ points) or inline signatures triggered an immediate un-expiring lockout.</p>
+                      
+                      <h3>Session Statefulness & Persistence</h3>
+                      <p className="panel-text">SIDERIS maintains behavioral memory across requests within a session. Repeated suspicious activity increases cumulative confidence and escalation probability. Storing state parameters inside memory-cached Redis entries allows the engine to track aggregates (e.g. failed login rates) rather than processing requests in isolation, enabling advanced brute force and spraying heuristics.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Mitigation Matrix & Override Philosophy */}
+              {activeTab === 'matrix' && (
+                <div className="guide-tab-content">
+                  <div className="guide-grid-2col">
+                    <div className="guide-panel">
+                      <h3>Mitigation Enforcement Matrix</h3>
+                      <p className="panel-intro-text">Enforcement actions are triggered automatically based on the current decayed threat score of the session:</p>
+                      <table className="guide-matrix-table">
+                        <thead>
+                          <tr>
+                            <th>Score</th>
+                            <th>Threat Level</th>
+                            <th>Guard Directive</th>
+                            <th>Operational Scope & Expiration</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><span className="risk-badge low-risk">&lt; 10</span></td>
+                            <td><span className="verdict-badge verdict-normal">NORMAL</span></td>
+                            <td><code>ALLOW</code></td>
+                            <td>Traffic is forwarded to backend with telemetry observation. No TTL.</td>
+                          </tr>
+                          <tr>
+                            <td><span className="risk-badge medium-risk">10+</span></td>
+                            <td><span className="verdict-badge verdict-suspicious">SUSPICIOUS</span></td>
+                            <td><code>RATE LIMIT</code></td>
+                            <td>Reverse proxy applies request rate throttling. Dynamic TTL.</td>
+                          </tr>
+                          <tr>
+                            <td><span className="risk-badge high-risk">20+</span></td>
+                            <td><span className="verdict-badge verdict-high">CHALLENGE</span></td>
+                            <td><code>CAPTCHA</code></td>
+                            <td>Active CAPTCHA verification required. Expires in 10 minutes.</td>
+                          </tr>
+                          <tr>
+                            <td><span className="risk-badge very-high-risk">30+</span></td>
+                            <td><span className="verdict-badge verdict-very-high">SOFT BLOCK</span></td>
+                            <td><code>TEMP BLOCK</code></td>
+                            <td>Session terminated at proxy level. Expires in 30 minutes.</td>
+                          </tr>
+                          <tr>
+                            <td><span className="risk-badge critical-risk">50+</span></td>
+                            <td><span className="verdict-badge verdict-critical">CRITICAL</span></td>
+                            <td><code>HARD BLOCK</code></td>
+                            <td>Immediate, permanent proxy block. Stored without TTL. Requires manual override.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="guide-panel">
+                      <h3>False Positive Philosophy</h3>
+                      <p className="panel-text">SIDERIS prioritizes progressive, adaptive defense layers rather than binary block/allow rules. Legitimate users experiencing connection anomalies, autofill problems, or spelling mistakes might trigger low-level telemetry events, but the system absorbs these in the rate-limit or CAPTCHA levels. Legitimate interactions easily clear CAPTCHAs, resetting active guards without blocking the user.</p>
+                      <p className="panel-text">This progressive approach limits permanent lockouts exclusively to verified critical injection payloads or persistent, high-frequency bot scanners. It optimizes the balance between strict protection and zero-friction customer experiences.</p>
+                      
+                      <h3>SOC Override Controls</h3>
+                      <p className="panel-text">For manual intervention, the dashboard provides analysts with immediate override buttons:</p>
+                      <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        <li style={{ marginBottom: '6px' }}><strong>Block Session</strong>: Instantly forces an un-expiring <code>hard_block</code> guard onto the session's client IP across the reverse proxy.</li>
+                        <li style={{ marginBottom: '6px' }}><strong>Unblock Session</strong>: Deletes all active proxy guard keys from Redis, resets the cumulative session score to 0, and clears telemetry counters to allow immediate traffic recovery.</li>
+                        <li><strong>Export Logs</strong>: Downloads the detailed audit trail (in JSON) containing raw headers, IP sequences, and parameters for offline SOC forensic logging.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Telemetry Glossary */}
+              {activeTab === 'glossary' && (
+                <div className="guide-tab-content">
+                  <div className="guide-grid-2col">
+                    
+                    {/* User Heuristics */}
+                    <div className="guide-panel">
+                      <h3>Client-Side User Heuristics</h3>
+                      <p className="panel-intro-text">Passive telemetry captured via client-side javascript agent (mouse movements, focus durations, and event timing):</p>
+                      
+                      <div className="glossary-list">
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>headless_browser</code> <small>(Impact 3, Conf 1.3)</small></span>
+                          <p className="glossary-text">Triggered when browser checks reveal webdriver execution, automated sandbox environment variables, or headless browser rendering properties. Used by bot scripts to execute headless scraping.</p>
+                        </div>
+                        
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>rapid_navigation</code> <small>(Impact 2, Conf 0.9)</small></span>
+                          <p className="glossary-text">Identifies when a client loads &ge; 10 pages within 5 seconds. Inhuman browsing pace indicates automated crawler indexing or vulnerability scanning spiders.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>instant_form_fill</code> <small>(Impact 2, Conf 0.8)</small></span>
+                          <p className="glossary-text">Triggers when a form is submitted in &lt; 800ms from focus. Humans require time to read and type; instant completions reveal automated registration spam or stuffing bots.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>keystroke_burst</code> <small>(Impact 2, Conf 0.7)</small></span>
+                          <p className="glossary-text">Detects &gt;10 keystrokes in 500ms. Inconsistent with human typing speeds, it flags paste operations, auto-fill macros, or automated script inputs in text areas.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>no_mouse_activity</code> <small>(Impact 2, Conf 0.6)</small></span>
+                          <p className="glossary-text">Flags interaction sequences devoid of mouse movement coordinates. Indicates direct API requests (cURL, Python requests) or automation runners bypassing visual cursor emulation.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Backend Request Logs */}
+                    <div className="guide-panel">
+                      <h3>Web & Backend Request Logs</h3>
+                      <p className="panel-intro-text">Signatures and HTTP protocol anomalies checked synchronously at the proxy layer or asynchronously in access logs:</p>
+                      
+                      <div className="glossary-list">
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>sql_injection</code> <small>(Impact 5, Conf 1.3)</small></span>
+                          <p className="glossary-text">Detects SQL syntax keywords (UNION SELECT, OR 1=1, DROP, SLEEP, etc.) inside headers, query strings, or body buffers. Indicates attempts to access or modify backend databases.</p>
+                        </div>
+                        
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>xss</code> <small>(Impact 4, Conf 1.2)</small></span>
+                          <p className="glossary-text">Matches HTML script tags, onerror/onload event handlers, or javascript: payloads. Indicates scripts aiming to execute client-side code in other users' browsers.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>cmd_injection</code> <small>(Impact 5, Conf 1.2)</small></span>
+                          <p className="glossary-text">Identifies shell command metacharacters (;, |, `, $()) followed by system executables (id, cat, wget, whoami). Aims to run commands on the server OS.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>ssti</code> / <code>xxe</code> / <code>ssrf</code> <small>(Impact 5, Conf 1.0)</small></span>
+                          <p className="glossary-text">Identifies server-side template syntax (e.g. {"${...}"} or {"{{...}}"}), XML DOCTYPE system entities, or internal IP redirects (127.0.0.1, file://). Aims to exploit backend runtimes.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>file_upload_exploit</code> <small>(Impact 5, Conf 1.2)</small></span>
+                          <p className="glossary-text">POST request filenames containing executable scripts (.php, .jsp, .asp, .cgi). Aims to upload a web shell for persistent server access.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>file_exposure</code> <small>(Impact 4, Conf 1.0)</small></span>
+                          <p className="glossary-text">Probes targeted at backups, repositories, or system configurations (.env, .git/config, wp-config.php). Aims to locate database credentials or code backups.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>cms_admin_probe</code> <small>(Impact 3, Conf 1.0)</small></span>
+                          <p className="glossary-text">Scans on administrative portals (/wp-admin, /phpmyadmin) on non-CMS architectures, identifying automated vulnerability scanner mapping.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>directory_traversal</code> <small>(Impact 3, Conf 1.0)</small></span>
+                          <p className="glossary-text">Matches file path traversal sequences (../, %2e%2e%2f) aiming to escape the web root and read local system files.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>http_method_abuse</code> <small>(Impact 2, Conf 1.0)</small></span>
+                          <p className="glossary-text">Matches unusual HTTP methods like TRACE, CONNECT, or PROPFIND. Standard clients do not use these; they are common in reconnaissance tools.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>auth_failure</code> <small>(Impact 3, Conf 0.8-1.2)</small></span>
+                          <p className="glossary-text">HTTP status codes 401 or 403. Scored with 1.2 confidence on dedicated login paths, and 0.8 on other resources.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>recon_404</code> <small>(Impact 1, Conf 0.5)</small></span>
+                          <p className="glossary-text">HTTP status code 404 (Not Found). High counts indicate automated directory fuzzers checking for active endpoints.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 4: Correlation Heuristics */}
+              {activeTab === 'bonuses' && (
+                <div className="guide-tab-content">
+                  <div className="guide-panel full-width">
+                    <h3>Behavioral Correlation Heuristic Rules</h3>
+                    <p className="panel-intro-text">SIDERIS statefully aggregates events within active session scopes. When behavioral counters cross threshold limits, the correlation engine applies a one-time score boost to accelerate mitigation enforcement:</p>
+                    
+                    <div className="table-container" style={{ maxHeight: 'none', border: 'none', padding: 0 }}>
+                      <table className="guide-matrix-table" style={{ width: '100%' }}>
+                        <thead>
+                          <tr>
+                            <th>Bonus Key</th>
+                            <th>Attack Category</th>
+                            <th>Triggering Conditions</th>
+                            <th>Score Boost</th>
+                            <th>Threat Rationale</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="code-font"><code>brute_force</code></td>
+                            <td>Authentication</td>
+                            <td>&ge; 15 failed login responses (401/403 status).</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+10.0</strong></td>
+                            <td>Indicates automated attempts to crack user credentials on a single account.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>password_spray</code></td>
+                            <td>Authentication</td>
+                            <td>&ge; 3 distinct usernames targeted and &ge; 5 total login attempts.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+12.0</strong></td>
+                            <td>Flags attempts to test common credentials across multiple accounts to bypass account lockouts.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>credential_stuffing</code></td>
+                            <td>Authentication</td>
+                            <td>&ge; 20 login attempts and &ge; 15 failed logins.</td>
+                            <td><strong style={{ color: 'var(--danger)' }}>+15.0</strong></td>
+                            <td>Identifies takeover bots testing lists of leaked credentials.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>404_storm</code></td>
+                            <td>Fuzzing</td>
+                            <td>&ge; 15 Page Not Found (404) responses.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+8.0</strong></td>
+                            <td>Detects active endpoint discovery scans mapping the application file tree.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>scanner_detected</code></td>
+                            <td>Fuzzing</td>
+                            <td>User-Agent strings matching automated scanners (sqlmap, nikto, dirb, etc.).</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+8.0</strong></td>
+                            <td>Confirms active automated recon and penetration testing tool execution.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>payload_variation</code></td>
+                            <td>Fuzzing</td>
+                            <td>&ge; 5 unique payload variants detected in parameters or POST bodies.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+10.0</strong></td>
+                            <td>Identifies automated parameter fuzzing or exploit payload mutations.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>scan_exploit_combo</code></td>
+                            <td>Injection</td>
+                            <td>Both scan/recon and active exploit (SQLi, XSS) flags triggered in session.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+12.0</strong></td>
+                            <td>Detects the typical transition from mapping vulnerability scanning to active exploitation.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>multi_vector</code></td>
+                            <td>Injection</td>
+                            <td>Active threat triggers spans &ge; 3 distinct attack categories.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+10.0</strong></td>
+                            <td>Flags an advanced attacker pivoting across methods (e.g. Bot + Fuzzing + Injection).</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>bot_speed</code></td>
+                            <td>Bot / Automation</td>
+                            <td>Total events &gt; 20, requests per second &gt; 10, and zero cursor movements.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+8.0</strong></td>
+                            <td>Differentiates rapid human browsing from fast automated scraping.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>headless_confirmed</code></td>
+                            <td>Bot / Automation</td>
+                            <td>&ge; 3 distinct bot events registered and zero cursor movements.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+10.0</strong></td>
+                            <td>High-certainty confirmation of headless scrapers or UI testing runners.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>dos_flood</code></td>
+                            <td>Denial of Service</td>
+                            <td>&ge; 50 requests within a rolling 60-second window.</td>
+                            <td><strong style={{ color: 'var(--danger)' }}>+15.0</strong></td>
+                            <td>Flags volumetric application-layer denial of service attempts.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>endpoint_hammer</code></td>
+                            <td>Denial of Service</td>
+                            <td>&ge; 20 requests hitting the exact same URL path.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+10.0</strong></td>
+                            <td>Detects high-frequency polling abuse or endpoint resource starvation attacks.</td>
+                          </tr>
+                          <tr>
+                            <td className="code-font"><code>session_ip_switch</code></td>
+                            <td>Session Abuse</td>
+                            <td>Same session ID used across &ge; 2 distinct client IP addresses.</td>
+                            <td><strong style={{ color: 'var(--warning)' }}>+8.0</strong></td>
+                            <td>Identifies session hijacking, cookie theft, or proxy-hopping attackers.</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            <footer className="guide-modal-footer">
+              <button className="btn-close-guide" onClick={() => setShowGuide(false)}>Close Operational Guide</button>
+            </footer>
+          </div>
+        </div>
+      )}
 
       {/* Toast notification */}
       {toast && (

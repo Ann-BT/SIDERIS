@@ -30,6 +30,11 @@ const config = {
   proxyPort: parseInt(process.env.PROXY_PORT || '4000', 10),
   targetUrl: process.env.TARGET_URL || 'http://localhost:3000',
 
+  // Allowed IPs / CIDR ranges for the Dashboard API (separated by commas)
+  dashboardAllowedIps: process.env.DASHBOARD_ALLOWED_IPS
+    ? process.env.DASHBOARD_ALLOWED_IPS.split(',').map(ip => ip.trim()).filter(Boolean)
+    : null,
+
   // Redis connection string
   redisUrl: process.env.REDIS_URL,
 
