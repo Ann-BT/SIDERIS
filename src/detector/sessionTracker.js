@@ -248,6 +248,7 @@ function freshSession(sessionId) {
     first_suspicious_at: 0,
     first_mitigated_at: 0,
     highest_score_at: 0,
+    captcha_solved: false,
   };
 }
 
@@ -288,6 +289,7 @@ function toRedisFields(s) {
     'first_suspicious_at', String(s.first_suspicious_at || 0),
     'first_mitigated_at', String(s.first_mitigated_at || 0),
     'highest_score_at', String(s.highest_score_at || 0),
+    'captcha_solved', s.captcha_solved ? '1' : '0',
   ];
 }
 
@@ -327,6 +329,7 @@ function fromRedisFields(sessionId, h) {
     first_suspicious_at: parseInt(h.first_suspicious_at || '0', 10),
     first_mitigated_at: parseInt(h.first_mitigated_at || '0', 10),
     highest_score_at: parseInt(h.highest_score_at || '0', 10),
+    captcha_solved: h.captcha_solved === '1',
   };
 }
 
@@ -568,6 +571,9 @@ function startDecayTimer() {
       }
       if (state.session_score > 0) {
         state.session_score = parseFloat((state.session_score * DECAY_FACTOR).toFixed(2));
+        if (state.session_score < 20 && state.captcha_solved) {
+          state.captcha_solved = false;
+        }
         await saveToRedis(state);
       }
     }

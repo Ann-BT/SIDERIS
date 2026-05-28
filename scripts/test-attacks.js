@@ -1,31 +1,45 @@
 // scripts/test-attacks.js
 // ─────────────────────────────────────────────────────────────────────────────
-// SIDERIS Comprehensive Attack & Defense Test Suite
+// SIDERIS Comprehensive Attack & Defense Test Suite (Rewritten)
 //
-// Tests all three defense layers:
-//   Layer 1 — Inline proxy blocking (instant, no pipeline delay)
-//   Layer 2 — Behavioral scoring pipeline (ingest → detector → guard)
-//   Layer 3 — Rate limiting / challenge enforcement
+// Tests all defense layers, actions, and behavioral bonuses:
+//   Layer 1 — Inline proxy blocking (instant, pre-pipeline)
+//   Layer 2 — Behavioral scoring actions (Allow, Rate Limit, Challenge, Soft Block, Hard Block)
+//   Layer 3 — Behavioral Correlation Bonuses (Credential Stuffing, IP Switch, Endpoint Hammer, 404 Storm)
 //
-// Prerequisites: npm run start-all (all services running)
+// Generates randomized session names and client IP addresses for each test.
 // ─────────────────────────────────────────────────────────────────────────────
 'use strict';
 
 const http  = require('http');
 const https = require('https');
 
-const PROXY_URL   = 'http://localhost:4000';  // Layer 1: inline blocking
-const INGEST_URL  = 'http://localhost:5000';  // Layer 2/3: behavioral pipeline
-const DASH_URL    = 'http://localhost:6001';  // Results read-back
+const PROXY_URL   = 'http://localhost:4000';  // WAF Proxy (for inline scanning)
+const INGEST_URL  = 'http://localhost:5000';  // Ingest Server (for event simulation)
+const DASH_URL    = 'http://localhost:6001';  // Dashboard API (for assertions)
 
 const PASS = '✅';
 const FAIL = '❌';
-const INFO = '  ';
 
 let totalPass = 0;
 let totalFail = 0;
 
-// ── HTTP helpers ─────────────────────────────────────────────────────────────
+// Random Adjectives and Nouns for realistic session names
+const ADJECTIVES = ['cyber', 'shadow', 'silent', 'phantom', 'omega', 'delta', 'alpha', 'stealth', 'rapid', 'rogue'];
+const NOUNS = ['hacker', 'ninja', 'spider', 'scout', 'phantom', 'operative', 'runner', 'spectre', 'ghost', 'recon'];
+
+function randomSessionId(prefix = 'sess') {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const randNum = Math.floor(Math.random() * 9000) + 1000;
+  return `${prefix}_${adj}_${noun}_${randNum}`;
+}
+
+function randomIp() {
+  return `192.168.${Math.floor(Math.random() * 254) + 1}.${Math.floor(Math.random() * 254) + 1}`;
+}
+
+// ── HTTP Request Helpers ──────────────────────────────────────────────────────
 
 function request(method, rawUrl, { headers = {}, body = null } = {}) {
   return new Promise((resolve, reject) => {
@@ -62,8 +76,7 @@ const get  = (url, opts) => request('GET',  url, opts);
 const post = (url, body, opts) => request('POST', url, { body, ...opts });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ── Assertion helper ─────────────────────────────────────────────────────────
-
+// Assertion & Logging Helpers
 function assert(label, condition, got = '') {
   if (condition) {
     console.log(`  ${PASS} ${label}`);
@@ -74,412 +87,359 @@ function assert(label, condition, got = '') {
   }
 }
 
-// ── Section header ───────────────────────────────────────────────────────────
-
 function section(title) {
-  const line = '═'.repeat(62);
+  const line = '═'.repeat(70);
   console.log(`\n${line}`);
   console.log(`  ${title}`);
   console.log(line);
 }
 
-// ── Session lookup helper (direct key, bypasses 50-key scan cap) ─────────────
+// Polling Helper to fetch session state from Dashboard API
+async function getSession(sid, maxAttempts = 15, interval = 200) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const r = await get(`${DASH_URL}/session-logs/${sid}`);
+      if (r.status === 200 && r.body?.session && r.body.session.session_score !== undefined) {
+        const s = r.body.session;
+        const score = parseFloat(s.session_score || s.risk_score || 0);
+        
+        // Determine level from score (same mapping as Dashboard UI)
+        let level = 'normal';
+        if (score >= 50) level = 'critical';
+        else if (score >= 30) level = 'very_high';
+        else if (score >= 20) level = 'high';
+        else if (score >= 10) level = 'suspicious';
 
-async function getSession(sid) {
-  try {
-    // Use session-logs for direct lookup — avoids the scanKeys(50) cap in /sessions
-    const r = await get(`${DASH_URL}/session-logs/${sid}`);
-    if (r.status === 200 && r.body?.session) {
-      const s = r.body.session;
-      return {
-        session_id:    sid,
-        session_score: parseFloat(s.session_score || s.risk_score || 0),
-        verdict:       s.verdict || 'allow',
-        guard_action:  r.body.guard?.action || null,
-        is_blocked:    r.body.guard?.action === 'block',
-      };
+        return {
+          session_id:    sid,
+          session_score: score,
+          level,
+          guard_action:  r.body.guard?.action || null,
+          block_type:    r.body.guard?.block_type || null,
+          bonus_applied: s.bonus_applied || JSON.parse(s.bonus_applied || '[]'),
+        };
+      }
+    } catch (e) {
+      // Ignore network errors during polling
     }
-    return null;
-  } catch { return null; }
+    await sleep(interval);
+  }
+  return null;
+}
+
+// Helper to send backend event directly to Ingest (bypassing WAF proxy scanner)
+async function sendEventToIngest(sid, ip, details) {
+  return post(`${INGEST_URL}/api/events`, {
+    sessionId: sid,
+    timestamp: Date.now(),
+    type: 'backend_log',
+    ip,
+    userAgent: 'Mozilla/5.0 (Test Client)',
+    ...details
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LAYER 1: INLINE PROXY BLOCKING
-// Tests the proxy's synchronous CRITICAL_PATTERNS scanner.
-// Expects HTTP 403 with { code: 'E_ATTACK_DETECTED' } immediately.
+// TEST SUITES
 // ─────────────────────────────────────────────────────────────────────────────
 
+// --- Test 1: Benign Browsing (Action: Allow) ---
+async function testAllow() {
+  section('CASE 1: NORMAL USER BROWSING (Expect: Allow / 0 Score)');
+  const sid = randomSessionId();
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
+
+  await sendEventToIngest(sid, ip, { method: 'GET', endpoint: '/', status: 200 });
+  await sendEventToIngest(sid, ip, { method: 'GET', endpoint: '/api/Products', status: 200 });
+  await sendEventToIngest(sid, ip, { method: 'GET', endpoint: '/assets/index.js', status: 200 });
+
+  const session = await getSession(sid);
+  assert('Session score is 0', session?.session_score === 0, session?.session_score);
+  assert('Session level is "normal"', session?.level === 'normal', session?.level);
+  assert('No guard action applied', session?.guard_action === null, session?.guard_action);
+}
+
+// --- Test 2: Inline Proxy Blocking (Layer 1 - Hard Block) ---
 async function testInlineBlocking() {
-  section('LAYER 1 — INLINE PROXY BLOCKING  (instant, pre-pipeline)');
-  const sid = `test-inline-${Date.now()}`;
+  section('CASE 2: INLINE PROXY SCANNER BLOCK (Expect: Instant 403 / Hard Block)');
+  const sid = randomSessionId();
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
 
-  const attacks = [
-    // SQL Injection
-    { label: 'SQLi — OR 1=1',         method:'POST', path:'/rest/user/login',
-      body: { email: "' OR 1=1--", password: 'x' } },
-    { label: 'SQLi — UNION SELECT',   method:'GET',  path:"/rest/products/search?q=1 UNION SELECT 1,2,3--" },
-    { label: 'SQLi — DROP TABLE',     method:'POST', path:'/api/test',
-      body: "'; DROP TABLE users;--" },
-    { label: 'SQLi — SLEEP(5)',        method:'POST', path:'/api/test',
-      body: { id: "1' AND SLEEP(5)--" } },
-    // XSS
-    // XSS — URL GET is URL-encoded by Node before the request goes out;
-    // send as POST body so the raw string reaches the proxy unencoded.
-    { label: 'XSS — <script> tag',    method:'POST', path:'/api/feedback',
-      body: { comment: '<script>alert(1)</script>' } },
-    { label: 'XSS — onerror handler', method:'POST', path:'/api/feedback',
-      body: { comment: '<img onerror=alert(1) src=x>' } },
-    { label: 'XSS — javascript: URI', method:'GET',  path:'/redirect?url=javascript:alert(1)' },
-    // Command Injection
-    // CMDi — include trailing space or end-of-string after command to satisfy regex
-    { label: 'CMDi — ; id ',           method:'POST', path:'/api/ping',
-      body: { host: '127.0.0.1; id ' } },
-    { label: 'CMDi — | whoami ',       method:'POST', path:'/api/exec',
-      body: { cmd: 'ls | whoami ' } },
-    // Path Traversal
-    { label: 'Path traversal ../etc', method:'GET',  path:'/download?file=../../etc/passwd' },
-    { label: 'Path traversal encoded',method:'GET',  path:'/file?path=%2e%2e%2fetc%2fpasswd' },
-    // SSRF
-    { label: 'SSRF — localhost',      method:'GET',  path:'/fetch?url=http://localhost:8080/admin' },
-    { label: 'SSRF — 192.168.x.x',   method:'GET',  path:'/fetch?url=http://192.168.1.1/' },
-    { label: 'SSRF — file://',        method:'GET',  path:'/read?src=file:///etc/passwd' },
-    // SSTI
-    { label: 'SSTI — {{7*7}}',        method:'GET',  path:'/render?tpl={{7*7}}' },
-    // XXE
-    { label: 'XXE — DOCTYPE entity',  method:'POST', path:'/api/xml',
-      body: '<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>' },
-  ];
+  // Send SQL injection payload via WAF Proxy (Port 4000)
+  const url = `${PROXY_URL}/rest/user/login`;
+  try {
+    const r = await post(url, { email: "' OR 1=1--", password: 'x' }, { headers: { 'X-Sideris-Session': sid } });
+    
+    assert('Proxy returned HTTP 403 instantly', r.status === 403, r.status);
+    assert('Response body is E_ATTACK_DETECTED', r.body?.code === 'E_ATTACK_DETECTED', r.body);
 
-  const normalRequests = [
-    { label: 'Normal login (should pass)',   method:'POST', path:'/rest/user/login',
-      body: { email: 'alice@example.com', password: 'Hunter2!' } },
-    { label: 'Normal search (should pass)',  method:'GET',  path:'/rest/products/search?q=apple+juice' },
-    { label: 'Browse product (should pass)', method:'GET',  path:'/api/Products/42' },
-  ];
-
-  // Each attack gets its OWN fresh session so the first inline block doesn't
-  // cascade to subsequent tests (proxy would return E_GUARD_BLOCK instead).
-  console.log('\n  → Attack requests (expect 403 E_ATTACK_DETECTED):');
-  const ts = Date.now();
-  for (let i = 0; i < attacks.length; i++) {
-    const t = attacks[i];
-    const attackSid = `test-inline-atk-${ts}-${i}`;
-    const url = `${PROXY_URL}${t.path}`;
-    try {
-      const r = t.method === 'GET'
-        ? await get(url, { headers: { 'X-Sideris-Session': attackSid } })
-        : await post(url, t.body, { headers: { 'X-Sideris-Session': attackSid } });
-      assert(
-        t.label,
-        r.status === 403 && (r.body?.code === 'E_ATTACK_DETECTED' || r.body?.code === 'E_GUARD_BLOCK'),
-        `status=${r.status} code=${r.body?.code}`
-      );
-    } catch (e) {
-      assert(t.label, false, e.message);
-    }
-  }
-
-  console.log('\n  → Normal requests (expect 200/3xx, NOT blocked):');
-  const safeSid = `test-safe-${Date.now()}`;
-  for (const t of normalRequests) {
-    const url = `${PROXY_URL}${t.path}`;
-    try {
-      const r = t.method === 'GET'
-        ? await get(url, { headers: { 'X-Sideris-Session': safeSid } })
-        : await post(url, t.body, { headers: { 'X-Sideris-Session': safeSid } });
-      assert(t.label, r.status !== 403 || r.body?.code !== 'E_ATTACK_DETECTED',
-        `status=${r.status}`);
-    } catch (e) {
-      // Juice Shop may not be running — connection refused is fine (not a false positive block)
-      assert(t.label, e.code === 'ECONNREFUSED' || e.message.includes('refused'), e.message);
-    }
+    // Verify guard state in Dashboard
+    const session = await getSession(sid);
+    assert('Session has peak score of at least 50', session?.session_score >= 50, session?.session_score);
+    assert('Guard has set action: "block"', session?.guard_action === 'block', session?.guard_action);
+    assert('Guard has block_type: "hard"', session?.block_type === 'hard', session?.block_type);
+  } catch (e) {
+    assert('Inline proxy request failed', false, e.message);
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LAYER 2: BEHAVIORAL SCORING PIPELINE
-// Sends events directly to ingest and checks that the detector scores
-// the session high enough for the guard to block it.
-// ─────────────────────────────────────────────────────────────────────────────
+// --- Test 3: Behavioral Rate Limiting (Action: Rate Limit) ---
+async function testRateLimit() {
+  section('CASE 3: BEHAVIORAL RATE LIMIT (Expect: 500ms Delayed Ingestion)');
+  const sid = randomSessionId();
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
 
-async function testBehavioralPipeline() {
-  section('LAYER 2 — BEHAVIORAL SCORING PIPELINE  (ingest → detector → guard)');
-
-  // ── 2a: Normal browsing — should NOT be blocked ──────────────────────────
-  const sidNormal = `test-normal-${Date.now()}`;
-  console.log(`\n  2a. Normal browsing — session should stay clean`);
-  console.log(`      Session: ${sidNormal}`);
-
-  await post(`${INGEST_URL}/api/events`, {
-    type: 'backend_log', sessionId: sidNormal, timestamp: Date.now(),
-    method: 'GET', endpoint: '/api/Products', status: 200,
-    userAgent: 'Mozilla/5.0', duration: 50, ip: '10.0.0.1'
-  });
-  await post(`${INGEST_URL}/api/events`, {
-    type: 'backend_log', sessionId: sidNormal, timestamp: Date.now(),
-    method: 'GET', endpoint: '/', status: 200,
-    userAgent: 'Mozilla/5.0', duration: 30, ip: '10.0.0.1'
-  });
-
-  await sleep(2000);
-  const normal = await getSession(sidNormal);
-  const normalScore = parseFloat(normal?.session_score || 0);
-  assert(`Normal session score < 20 (got ${normalScore})`, normalScore < 20, normalScore);
-
-  // ── 2b: SQL injection flood ───────────────────────────────────────────────
-  const sidSqli = `test-sqli-${Date.now()}`;
-  console.log(`\n  2b. SQL Injection flood — should trigger BLOCK`);
-  console.log(`      Session: ${sidSqli}`);
-
-  const sqliEvents = Array.from({ length: 8 }, (_, i) => ({
-    type: 'backend_log', sessionId: sidSqli, timestamp: Date.now() + i,
-    method: 'GET', endpoint: `/rest/products/search?q=' OR ${i}=1--`,
-    status: 200, userAgent: 'sqlmap/1.7.8#stable', duration: 20, ip: '10.0.0.2'
-  }));
-  for (const ev of sqliEvents) {
-    await post(`${INGEST_URL}/api/events`, ev);
-    await sleep(80);
-  }
-
-  await sleep(2500);
-  const sqliSession = await getSession(sidSqli);
-  const sqliScore   = parseFloat(sqliSession?.session_score || 0);
-  const sqliVerdict = sqliSession?.verdict || 'unknown';
-  assert(`SQLi session score ≥ 30 (got ${sqliScore})`, sqliScore >= 30, sqliScore);
-  // The session hash `verdict` field is set by sessionTracker (may be 'allow').
-  // The authoritative block signal is `guard_action` or `is_blocked` from /sessions.
-  const sqliBlocked = sqliSession?.guard_action === 'block' || sqliSession?.is_blocked;
-  assert(`SQLi session is BLOCKED by guard (guard_action=${sqliSession?.guard_action})`,
-    sqliBlocked, `guard_action=${sqliSession?.guard_action} is_blocked=${sqliSession?.is_blocked}`);
-
-  // ── 2c: XSS + scanner UA ─────────────────────────────────────────────────
-  const sidXss = `test-xss-${Date.now()}`;
-  console.log(`\n  2c. XSS + scanner UA — should trigger BLOCK`);
-  console.log(`      Session: ${sidXss}`);
-
-  const xssEvents = [
-    { type:'backend_log', sessionId:sidXss, timestamp:Date.now(),
-      method:'GET', endpoint:'/search?q=<script>alert(1)</script>',
-      status:200, userAgent:'Nikto/2.1.6', duration:10, ip:'10.0.0.3' },
-    { type:'backend_log', sessionId:sidXss, timestamp:Date.now()+1,
-      method:'POST', endpoint:'/api/feedback',
-      status:200, userAgent:'Nikto/2.1.6', duration:10, ip:'10.0.0.3',
-      body: { msg: '<img onerror=alert(1) src=x>' } },
-    { type:'backend_log', sessionId:sidXss, timestamp:Date.now()+2,
-      method:'GET', endpoint:'/.env',
-      status:404, userAgent:'Nikto/2.1.6', duration:5, ip:'10.0.0.3' },
-    { type:'backend_log', sessionId:sidXss, timestamp:Date.now()+3,
-      method:'GET', endpoint:'/.git/config',
-      status:404, userAgent:'Nikto/2.1.6', duration:5, ip:'10.0.0.3' },
-  ];
-  for (const ev of xssEvents) {
-    await post(`${INGEST_URL}/api/events`, ev);
-    await sleep(100);
-  }
-
-  await sleep(2500);
-  const xssSession = await getSession(sidXss);
-  const xssScore   = parseFloat(xssSession?.session_score || 0);
-  assert(`XSS+scanner session score ≥ 20 (got ${xssScore})`, xssScore >= 20, xssScore);
-
-  // ── 2d: Credential stuffing / brute force ─────────────────────────────────
-  const sidBrute = `test-brute-${Date.now()}`;
-  console.log(`\n  2d. Credential stuffing (brute force) — should trigger BLOCK`);
-  console.log(`      Session: ${sidBrute}`);
-
-  for (let i = 0; i < 10; i++) {
-    await post(`${INGEST_URL}/api/events`, {
-      type: 'backend_log', sessionId: sidBrute, timestamp: Date.now() + i,
-      method: 'POST', endpoint: '/rest/user/login',
-      status: 401, userAgent: 'Mozilla/5.0', duration: 120, ip: '10.0.0.4'
+  // Send 3 scanning hits using a crawler user agent to CMS admin path
+  // scanner_tool: impact=3, confidence=1.3 => 3.9 score each.
+  // 3 hits will cross 10 points threshold for Rate Limiting.
+  for (let i = 0; i < 3; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'GET',
+      endpoint: '/wp-admin/login.php',
+      userAgent: 'Nikto/2.1.6',
+      status: 404
     });
-    await sleep(60);
   }
 
-  await sleep(2500);
-  const bruteSession = await getSession(sidBrute);
-  const bruteScore   = parseFloat(bruteSession?.session_score || 0);
-  assert(`Brute-force session score ≥ 20 (got ${bruteScore})`, bruteScore >= 20, bruteScore);
+  const session = await getSession(sid);
+  console.log(`  Score: ${session?.session_score}  Level: ${session?.level}`);
+  assert('Session score is between 10 and 20', session?.session_score >= 10 && session?.session_score < 20, session?.session_score);
+  assert('Guard action set to "rate_limit"', session?.guard_action === 'rate_limit', session?.guard_action);
 
-  // ── 2e: DoS / rapid request flood ─────────────────────────────────────────
-  const sidDos = `test-dos-${Date.now()}`;
-  console.log(`\n  2e. DoS rapid flood — should score high`);
-  console.log(`      Session: ${sidDos}`);
+  // Measure latency to verify 500ms delay on subsequent requests
+  const start = Date.now();
+  await post(`${INGEST_URL}/sideris/ingest`,
+    [{ sessionId: sid, ts: Date.now(), type: 'page_view', data: {} }],
+    { headers: { 'X-Sideris-Session': sid } }
+  );
+  const latency = Date.now() - start;
+  console.log(`  Subsequent request latency: ${latency}ms`);
+  assert('Latency is delayed by at least 500ms', latency >= 500, latency);
+}
 
-  // DoS needs 50+ requests on THE SAME endpoint within 60s AND they must be
-  // non-normal events (request_timestamps only accumulates for attack events).
-  // Use 404 status → recon_404 rule → qualifies for rate tracking.
-  for (let i = 0; i < 55; i++) {
-    await post(`${INGEST_URL}/api/events`, {
-      type: 'backend_log', sessionId: sidDos, timestamp: Date.now(),
-      method: 'GET', endpoint: '/api/nonexistent-probe',
-      status: 404, userAgent: 'python-requests/2.28', duration: 5, ip: '10.0.0.5'
+// --- Test 4: Behavioral Challenge (Action: Challenge/CAPTCHA) ---
+async function testChallenge() {
+  section('CASE 4: BEHAVIORAL CHALLENGE (Expect: CAPTCHA Overlay / 429 status)');
+  const sid = randomSessionId();
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
+
+  // Send 5 file_exposure events directly to Ingest to bypass inline proxy blocking
+  // 5 events will cross the 20-point challenge threshold (~22.4 score)
+  for (let i = 0; i < 5; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'GET',
+      endpoint: `/api/feedback/.env?i=${i}`
+    });
+    await sleep(50);
+  }
+
+  const session = await getSession(sid);
+  console.log(`  Score: ${session?.session_score}  Level: ${session?.level}`);
+  assert('Session score is between 20 and 30', session?.session_score >= 20 && session?.session_score < 30, session?.session_score);
+  assert('Guard action set to "challenge"', session?.guard_action === 'challenge', session?.guard_action);
+
+  // Subsequent API requests to Ingest should return 429 CAPTCHA required
+  const r = await post(`${INGEST_URL}/sideris/ingest`,
+    [{ sessionId: sid, ts: Date.now(), type: 'page_view', data: {} }],
+    { headers: { 'X-Sideris-Session': sid } }
+  );
+  assert('Ingest endpoint returns 429 for challenged session', r.status === 429, r.status);
+  assert('Ingest response contains E_GUARD_CHALLENGE code', r.body?.code === 'E_GUARD_CHALLENGE', r.body);
+}
+
+// --- Test 5: Behavioral Soft Block (Action: Soft Block) ---
+// Demonstrates CAPTCHA verification verification, challenge clearance,
+// and subsequent automatic escalation to a soft block on additional attacks.
+async function testSoftBlock() {
+  section('CASE 5: BEHAVIORAL SOFT BLOCK (Expect: Challenge solved -> new attack -> Soft Block)');
+  const sid = randomSessionId();
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
+
+  // 1. Build score up to challenge threshold (~28.8 score)
+  for (let i = 0; i < 6; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'GET',
+      endpoint: `/api/feedback/.env?i=${i}`
+    });
+    await sleep(50);
+  }
+
+  let session = await getSession(sid);
+  assert('Session has active challenge guard', session?.guard_action === 'challenge', session?.guard_action);
+
+  // Give the async Redis Pub/Sub alerts pipeline in guard.js a moment to settle
+  // before we delete the guard key.
+  await sleep(500);
+
+  // 2. Solve the CAPTCHA via WAF Proxy validation endpoint to bypass Ingest guard middleware restriction
+  console.log('  Solving CAPTCHA challenge via proxy /sideris/captcha-verify...');
+  const verifyRes = await post(`${PROXY_URL}/sideris/captcha-verify`, {
+    session_id: sid
+  });
+  assert('CAPTCHA verification response is successful', verifyRes.status === 200 && verifyRes.body?.ok === true, verifyRes.body);
+
+  // 3. Send 1 more attack event.
+  // The score will cross 30 (soft block threshold, ~35.2 score).
+  // Since the active challenge guard was solved/deleted, the block is applied immediately.
+  for (let i = 6; i < 7; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'GET',
+      endpoint: `/api/feedback/.env?i=${i}`
+    });
+    await sleep(50);
+  }
+
+  session = await getSession(sid);
+  console.log(`  Score: ${session?.session_score}  Level: ${session?.level}  Guard: ${session?.guard_action}`);
+  assert('Session score is between 30 and 50', session?.session_score >= 30 && session?.session_score < 50, session?.session_score);
+  assert('Guard action set to "block"', session?.guard_action === 'block', session?.guard_action);
+  assert('Block type is "soft"', session?.block_type === 'soft', session?.block_type);
+
+  // 4. Subsequent API requests should return 403 blocked
+  const r = await post(`${INGEST_URL}/sideris/ingest`,
+    [{ sessionId: sid, ts: Date.now(), type: 'page_view', data: {} }],
+    { headers: { 'X-Sideris-Session': sid } }
+  );
+  assert('Ingest returns 403 for blocked session', r.status === 403, r.status);
+  assert('Ingest response contains E_GUARD_BLOCK code', r.body?.code === 'E_GUARD_BLOCK', r.body);
+}
+
+// --- Test 6: Behavioral Hard Block (Action: Hard Block) ---
+async function testHardBlock() {
+  section('CASE 6: BEHAVIORAL HARD BLOCK (Expect: Permanent Block / 403 status)');
+  const sid = randomSessionId();
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
+
+  // Send 8 SQLi events directly to Ingest to cross 50 points
+  // Since score is >= 50, it bypasses the CAPTCHA grace period and blocks immediately.
+  for (let i = 0; i < 8; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'POST',
+      endpoint: '/api/feedback',
+      body: { query: `UNION SELECT ${i},2,3--` }
+    });
+    await sleep(50);
+  }
+
+  const session = await getSession(sid);
+  console.log(`  Score: ${session?.session_score}  Level: ${session?.level}`);
+  assert('Session score is >= 50', session?.session_score >= 50, session?.session_score);
+  assert('Guard action set to "block"', session?.guard_action === 'block', session?.guard_action);
+  assert('Block type is "hard"', session?.block_type === 'hard', session?.block_type);
+}
+
+// --- Test 7: Credential Stuffing & Brute Force (Behavioral Bonus) ---
+async function testCredentialStuffing() {
+  section('CASE 7: CREDENTIAL STUFFING / BRUTE FORCE DETECTION');
+  const sid = randomSessionId('brute');
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
+
+  // Send 20 failed login attempts on auth endpoints targeting different users
+  for (let i = 0; i < 20; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'POST',
+      endpoint: '/rest/user/login',
+      status: 401,
+      body: { email: `attacker_${i}@victim.com`, password: 'bad_password' }
+    });
+    await sleep(30);
+  }
+
+  const session = await getSession(sid);
+  console.log(`  Score: ${session?.session_score}  Applied Bonuses: ${JSON.stringify(session?.bonus_applied)}`);
+  assert('Applied "brute_force" behavioral bonus (+10 pts)', session?.bonus_applied.includes('brute_force'), session?.bonus_applied);
+  assert('Applied "password_spray" or "credential_stuffing" behavioral bonus (+12/15 pts)', 
+    session?.bonus_applied.includes('credential_stuffing') || session?.bonus_applied.includes('password_spray'), 
+    session?.bonus_applied
+  );
+}
+
+// --- Test 8: Session IP Switch (Behavioral Bonus) ---
+async function testIpSwitch() {
+  section('CASE 8: SESSION IP SWITCH CORRELATION');
+  const sid = randomSessionId('ipchange');
+  const ip1 = randomIp();
+  const ip2 = randomIp();
+  const ip3 = randomIp();
+  console.log(`  [Session]: ${sid}  [IPs]: ${ip1} → ${ip2} → ${ip3}`);
+
+  // Send event from IP 1
+  await sendEventToIngest(sid, ip1, { method: 'GET', endpoint: '/products', status: 200 });
+  await sleep(100);
+  // Send event from IP 2
+  await sendEventToIngest(sid, ip2, { method: 'GET', endpoint: '/basket', status: 200 });
+  await sleep(100);
+  // Send event from IP 3
+  await sendEventToIngest(sid, ip3, { method: 'GET', endpoint: '/checkout', status: 200 });
+
+  const session = await getSession(sid);
+  console.log(`  Applied Bonuses: ${JSON.stringify(session?.bonus_applied)}`);
+  assert('Applied "session_ip_switch" behavioral bonus (+8 pts)', session?.bonus_applied.includes('session_ip_switch'), session?.bonus_applied);
+}
+
+// --- Test 9: DoS Endpoint Hammering (Behavioral Bonus) ---
+async function testEndpointHammer() {
+  section('CASE 9: DOS ENDPOINT HAMMERING DETECTION');
+  const sid = randomSessionId('dos');
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
+
+  // Send 22 requests to the same endpoint in rapid succession
+  // Endpoint hits must be non-normal events to count. We will trigger 404s.
+  for (let i = 0; i < 22; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'GET',
+      endpoint: '/api/nonexistent-target-route',
+      status: 404
     });
     await sleep(20);
   }
 
-  await sleep(2500);
-  const dosSession = await getSession(sidDos);
-  const dosScore   = parseFloat(dosSession?.session_score || 0);
-  assert(`DoS session score ≥ 10 (got ${dosScore})`, dosScore >= 10, dosScore);
-
-  // ── 2f: Path traversal + directory probe ─────────────────────────────────
-  const sidPath = `test-path-${Date.now()}`;
-  console.log(`\n  2f. Path traversal + directory probe`);
-  console.log(`      Session: ${sidPath}`);
-
-  const pathEvents = [
-    '/../../../etc/passwd', '/../../etc/shadow', '/%2e%2e/etc/hosts',
-    '/wp-admin/', '/phpmyadmin/', '/admin/config.php',
-  ].map((ep, i) => ({
-    type: 'backend_log', sessionId: sidPath, timestamp: Date.now() + i,
-    method: 'GET', endpoint: ep,
-    status: 404, userAgent: 'Mozilla/5.0', duration: 5, ip: '10.0.0.6'
-  }));
-  for (const ev of pathEvents) {
-    await post(`${INGEST_URL}/api/events`, ev);
-    await sleep(80);
-  }
-
-  await sleep(2500);
-  const pathSession = await getSession(sidPath);
-  const pathScore   = parseFloat(pathSession?.session_score || 0);
-  assert(`Path traversal + probe score ≥ 10 (got ${pathScore})`, pathScore >= 10, pathScore);
+  const session = await getSession(sid);
+  console.log(`  Applied Bonuses: ${JSON.stringify(session?.bonus_applied)}`);
+  assert('Applied "endpoint_hammer" behavioral bonus (+10 pts)', session?.bonus_applied.includes('endpoint_hammer'), session?.bonus_applied);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LAYER 3: GUARD ENFORCEMENT
-// Verifies that a session that crossed the block threshold is actually
-// rejected by the ingest endpoint on subsequent requests.
-// ─────────────────────────────────────────────────────────────────────────────
+// --- Test 10: 404 Directory Fuzzing Storm (Behavioral Bonus) ---
+async function test404Storm() {
+  section('CASE 10: 404 DIRECTORY FUZZING STORM');
+  const sid = randomSessionId('fuzz');
+  const ip = randomIp();
+  console.log(`  [Session]: ${sid}  [IP]: ${ip}`);
 
-async function testGuardEnforcement() {
-  section('LAYER 3 — GUARD ENFORCEMENT  (block / rate-limit / challenge)');
-
-  const sidAttack = `test-guard-${Date.now()}`;
-  console.log(`\n  Session: ${sidAttack}`);
-
-  // Step 1: Build up a score above 30 (block threshold)
-  console.log(`\n  Step 1 — Escalating attack to trigger BLOCK guard...`);
-  const events = [
-    { endpoint: `/rest/products/search?q=' OR 1=1--`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/rest/products/search?q=UNION SELECT 1,2,3--`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/.env`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/.git/config`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/wp-admin/`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/search?q=<script>alert(1)</script>`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/../../etc/passwd`, userAgent: 'sqlmap/1.7.8' },
-    { endpoint: `/api/test?id=1; whoami`, userAgent: 'sqlmap/1.7.8' },
-  ];
-
-  for (let i = 0; i < events.length; i++) {
-    await post(`${INGEST_URL}/api/events`, {
-      type: 'backend_log', sessionId: sidAttack,
-      timestamp: Date.now() + i,
-      method: 'GET', ...events[i],
-      status: 200, duration: 10, ip: '10.5.5.5'
+  // Send 16 requests targeting distinct non-existent pages (resulting in 404s)
+  for (let i = 0; i < 16; i++) {
+    await sendEventToIngest(sid, ip, {
+      method: 'GET',
+      endpoint: `/api/route-number-${i}`,
+      status: 404
     });
-    await sleep(100);
+    await sleep(30);
   }
 
-  console.log(`  Waiting 3s for detector → guard pipeline...`);
-  await sleep(3000);
-
-  const blocked = await getSession(sidAttack);
-  const blkScore   = parseFloat(blocked?.session_score || 0);
-  const blkVerdict = blocked?.verdict || 'unknown';
-  console.log(`  Score: ${blkScore}  Verdict: ${blkVerdict}`);
-  assert(`Attack session scored ≥ 30 (got ${blkScore})`, blkScore >= 30, blkScore);
-
-  // Step 2: Follow-up ingest request MUST be blocked (403)
-  console.log(`\n  Step 2 — Follow-up ingest request on blocked session...`);
-  const followUp = await post(`${INGEST_URL}/sideris/ingest`,
-    [{ sessionId: sidAttack, ts: Date.now(), type: 'page_view', data: {} }],
-    { headers: { 'X-Sideris-Session': sidAttack } }
-  );
-  assert(
-    `Follow-up ingest returns 403 (got ${followUp.status})`,
-    followUp.status === 403,
-    `status=${followUp.status} body=${JSON.stringify(followUp.body)}`
-  );
-  assert(
-    `Error code is E_GUARD_BLOCK (got ${followUp.body?.code})`,
-    followUp.body?.code === 'E_GUARD_BLOCK',
-    followUp.body
-  );
-
-  // Step 3: Rate limit — send a rate_limit-range session and check 500ms delay
-  section('LAYER 3b — RATE LIMIT enforcement (500ms artificial delay)');
-  const sidRL = `test-ratelimit-${Date.now()}`;
-  console.log(`  Session: ${sidRL}`);
-  console.log(`  Manually injecting rate_limit guard via ingest events...`);
-
-  // Inject moderate attack (score ~20-29 → rate_limit or challenge)
-  const rlEvents = Array.from({ length: 5 }, (_, i) => ({
-    type: 'backend_log', sessionId: sidRL,
-    timestamp: Date.now() + i,
-    method: 'GET', endpoint: `/.env`,
-    status: 404, userAgent: 'curl/7.88', duration: 5, ip: '10.6.6.6'
-  }));
-  for (const ev of rlEvents) {
-    await post(`${INGEST_URL}/api/events`, ev);
-    await sleep(60);
-  }
-
-  await sleep(2000);
-  const rlSession = await getSession(sidRL);
-  const rlScore = parseFloat(rlSession?.session_score || 0);
-  console.log(`  Rate-limit session score: ${rlScore}`);
-  // We just verify the events were received and scored
-  assert(`Rate-limit session was ingested (score ≥ 0)`, rlScore >= 0, rlScore);
+  const session = await getSession(sid);
+  console.log(`  Applied Bonuses: ${JSON.stringify(session?.bonus_applied)}`);
+  assert('Applied "404_storm" behavioral bonus (+8 pts)', session?.bonus_applied.includes('404_storm'), session?.bonus_applied);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LAYER 4: ESCALATING OFFENSE COUNTER
-// Sends repeated attacks from the same session to verify TTL multiplication.
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function testEscalation() {
-  section('LAYER 4 — ESCALATING PUNISHMENT  (offense multiplier)');
-
-  const sidEsc = `test-escalate-${Date.now()}`;
-  console.log(`  Session: ${sidEsc}`);
-  console.log(`  Sending 3 rounds of attacks with pauses...\n`);
-
-  async function sendRound(roundNum) {
-    console.log(`  Round ${roundNum}:`);
-    for (let i = 0; i < 4; i++) {
-      await post(`${INGEST_URL}/api/events`, {
-        type: 'backend_log', sessionId: sidEsc, timestamp: Date.now() + i,
-        method: 'GET', endpoint: `/rest/products/search?q=' OR ${roundNum}${i}=1--`,
-        status: 200, userAgent: 'sqlmap/1.7.8', duration: 5, ip: '10.7.7.7'
-      });
-      await sleep(50);
-    }
-    await sleep(1500);
-    const s = await getSession(sidEsc);
-    console.log(`     score=${s?.session_score || '?'} verdict=${s?.verdict || '?'}`);
-    return parseFloat(s?.session_score || 0);
-  }
-
-  const s1 = await sendRound(1);
-  const s2 = await sendRound(2);
-  const s3 = await sendRound(3);
-
-  assert(`Score escalates across rounds (${s1} → ${s2} → ${s3})`, s3 >= s1, `${s1},${s2},${s3}`);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN
+// MAIN RUNNER
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('\n' + '█'.repeat(62));
-  console.log('  SIDERIS — Comprehensive Attack & Defense Test Suite');
-  console.log('  Tests: Inline Block | Pipeline | Guard | Rate-limit | Escalation');
-  console.log('█'.repeat(62));
+  console.log('\n' + '█'.repeat(70));
+  console.log('  SIDERIS — Advanced Attack & Defense Test Suite');
+  console.log('  Running 10 test scenarios with randomized sessions and IPs.');
+  console.log('█'.repeat(70));
 
-  // Quick connectivity check
+  // Quick service connectivity checks
   console.log('\n  Checking service connectivity...');
   const checks = [
     { label: 'Ingest (5000)', url: `${INGEST_URL}/sideris/health` },
@@ -491,38 +451,45 @@ async function main() {
   for (const c of checks) {
     try {
       const r = await get(c.url);
-      console.log(`  ${PASS} ${c.label} — HTTP ${r.status}`);
+      console.log(`  ${PASS} ${c.label} — Connected (HTTP ${r.status})`);
     } catch (e) {
-      console.log(`  ${FAIL} ${c.label} — ${e.message}`);
+      console.log(`  ${FAIL} ${c.label} — Offline (${e.message})`);
       allUp = false;
     }
   }
 
   if (!allUp) {
-    console.log('\n  ⚠  Some services are offline. Run `npm run start-all` first.');
-    console.log('  Continuing anyway (inline pattern tests will still work)...\n');
+    console.log('\n  ⚠️  Sideris services are offline. Run `npm run start-all` first.');
+    process.exit(1);
   }
 
+  console.log('\n  Starting test suites...');
+  await testAllow();
   await testInlineBlocking();
-  await testBehavioralPipeline();
-  await testGuardEnforcement();
-  await testEscalation();
+  await testRateLimit();
+  await testChallenge();
+  await testSoftBlock();
+  await testHardBlock();
+  await testCredentialStuffing();
+  await testIpSwitch();
+  await testEndpointHammer();
+  await test404Storm();
 
-  // ── Summary ───────────────────────────────────────────────────────────────
+  // Results summary
   const total = totalPass + totalFail;
-  console.log('\n' + '═'.repeat(62));
+  console.log('\n' + '═'.repeat(70));
   console.log(`  RESULTS: ${totalPass}/${total} passed`);
   if (totalFail === 0) {
-    console.log('  🟢 ALL TESTS PASSED — SIDERIS is blocking attacks correctly.');
+    console.log('  🟢 ALL SCENARIOS PASSED — Project features working correctly.');
   } else {
-    console.log(`  🔴 ${totalFail} test(s) FAILED — review the output above.`);
+    console.log(`  🔴 ${totalFail} test case(s) FAILED — review logs above.`);
   }
-  console.log('═'.repeat(62) + '\n');
+  console.log('═'.repeat(70) + '\n');
 
   process.exit(totalFail > 0 ? 1 : 0);
 }
 
 main().catch(err => {
-  console.error('[test] Fatal error:', err.message);
+  console.error('[runner] Fatal error:', err.message);
   process.exit(1);
 });

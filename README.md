@@ -5,7 +5,7 @@ Real-time web attack detection and behavioral analysis system for security resea
 ## Architecture
 
 ```
-Juice Shop (:3000) + agent.js (injected via console)
+Juice Shop (:3000) + agent.js (injected automatically via WAF Proxy)
         ↓ beacon (fetch/sendBeacon)
   Sideris Ingest (:5000) → Redis Stream
         ↓
@@ -34,8 +34,8 @@ npm run start-all
 # 5. Open Juice Shop directly
 #    http://localhost:3000
 
-# 6. Inject the agent (F12 Console):
-(function(){var s=document.createElement('script');s.src='http://localhost:5000/sideris/agent.js';document.head.appendChild(s)})();
+# 6. Verify agent loads automatically in browser (F12 Console):
+#    SiderisAgent.getSessionId()
 
 # 7. Open dashboard
 #    http://localhost:5173  (Vite dev server)
@@ -57,7 +57,7 @@ npm run start-all
 ```
 SIDERIS 2.0/
 ├── src/
-│   ├── agent/agent.js         # Browser behavior collector (injected via console)
+│   ├── agent/agent.js         # Browser behavior collector (injected automatically by proxy)
 │   ├── ingest/server.js       # Event ingestion API + guard enforcement
 │   ├── detector/worker.js     # Redis stream consumer + risk scoring
 │   ├── guard/guard.js         # Defensive actions (block/challenge)

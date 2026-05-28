@@ -39,6 +39,50 @@ function ipv4ToInt(ip) {
   return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
 }
 
+// Expand IPv6 address to a standardized 32-character lowercase hex string
+function expandIpv6(ip) {
+  if (!ip.includes(':')) return null;
+  if (ip.startsWith('::ffff:')) return null;
+  const clean = ip.trim().toLowerCase();
+  const parts = clean.split('::');
+  if (parts.length > 2) return null;
+
+  const left = parts[0] ? parts[0].split(':').filter(Boolean) : [];
+  const right = parts[1] ? parts[1].split(':').filter(Boolean) : [];
+
+  const missing = 8 - (left.length + right.length);
+  if (missing < 0) return null;
+
+  const middle = Array(missing).fill('0');
+  const fullParts = [...left, ...middle, ...right];
+  if (fullParts.length !== 8) return null;
+
+  return fullParts.map(part => part.padStart(4, '0')).join('');
+}
+
+// Compare P bits of two IPv6 addresses
+function matchIpv6(clientIp, rangeIp, prefix) {
+  const clientHex = expandIpv6(clientIp);
+  const rangeHex = expandIpv6(rangeIp);
+
+  if (!clientHex || !rangeHex) return false;
+
+  const chars = Math.floor(prefix / 4);
+  if (clientHex.substring(0, chars) !== rangeHex.substring(0, chars)) {
+    return false;
+  }
+
+  const rem = prefix % 4;
+  if (rem > 0) {
+    const clientVal = parseInt(clientHex.charAt(chars), 16);
+    const rangeVal = parseInt(rangeHex.charAt(chars), 16);
+    const mask = (0xf << (4 - rem)) & 0xf;
+    return (clientVal & mask) === (rangeVal & mask);
+  }
+
+  return true;
+}
+
 // Normalize IP address (e.g., IPv6-mapped IPv4 -> IPv4)
 function normalizeIp(ip) {
   if (!ip) return '';
@@ -52,7 +96,7 @@ function normalizeIp(ip) {
   return clean;
 }
 
-// Match client IP against exact match or CIDR range
+// Match client IP against exact match or CIDR range (supports IPv4 and IPv6)
 function matchIp(clientIp, entry) {
   const normalizedClient = normalizeIp(clientIp);
   const normalizedEntry = normalizeIp(entry);
@@ -63,8 +107,16 @@ function matchIp(clientIp, entry) {
   if (normalizedEntry.includes('/')) {
     const [rangeIp, prefixStr] = normalizedEntry.split('/');
     const prefix = parseInt(prefixStr, 10);
-    if (isNaN(prefix) || prefix < 0 || prefix > 32) return false;
+    if (isNaN(prefix) || prefix < 0) return false;
 
+    // Check if IPv6 CIDR
+    if (rangeIp.includes(':') && normalizedClient.includes(':')) {
+      if (prefix > 128) return false;
+      return matchIpv6(normalizedClient, rangeIp, prefix);
+    }
+
+    // IPv4 CIDR
+    if (prefix > 32) return false;
     const clientInt = ipv4ToInt(normalizedClient);
     const rangeInt = ipv4ToInt(rangeIp);
 
@@ -74,8 +126,8 @@ function matchIp(clientIp, entry) {
     return (clientInt & mask) === (rangeInt & mask);
   }
 
-  // Exact match
-  return normalizedClient === normalizedEntry;
+  // Exact match (lowercased for case-insensitive IPv6 string matches)
+  return normalizedClient.toLowerCase() === normalizedEntry.toLowerCase();
 }
 
 // Record dashboard access session in Redis (with 24h expiration)

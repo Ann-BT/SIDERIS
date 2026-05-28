@@ -10,7 +10,9 @@
     "dashboard": "node src/dashboard/server.js",
     "proxy": "node src/proxy/server.js",
     "storage": "node src/storage/writer.js",
-    "start-all": "node scripts/start-all.js"
+    "start-all": "node scripts/start-all.js",
+    "tunnel": "bash scripts/tunnel.sh",
+    "tunnel-auth": "bash scripts/tunnel.sh auth"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
@@ -20,8 +22,5 @@
     "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.10.1",
     "pg": "^8.20.0"
-  },
-  "devDependencies": {
-    "kill-port": "^2.0.1"
   }
 }

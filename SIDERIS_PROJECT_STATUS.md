@@ -10,7 +10,7 @@ The system consists of these integrated components:
 
 | Component | Port | Role |
 |-----------|------|------|
-| **Sideris Agent** | N/A | Self-contained JavaScript beacon (`agent.js`) injected via console to monitor client-side behavior. |
+| **Sideris Agent** | N/A | Self-contained JavaScript beacon (`agent.js`) injected automatically by proxy to monitor client-side behavior. |
 | **Sideris Ingest** | 5000 | Data collection endpoint. Receives behavioral beacons, pushes to Redis Streams, enforces guard actions. |
 | **Sideris Detector** | N/A | Redis Streams consumer. Scores sessions for risk, emits alerts for high-risk sessions. |
 | **Sideris Guard** | N/A | Subscribes to alert channel. Enforces block/challenge/rate-limit actions with escalation tracking. |
@@ -87,5 +87,5 @@ Browser (Juice Shop :3000)
 - [x] Automated enforcement (Guard)
 - [x] Dashboard API
 - [x] Dashboard UI
-- [x] Console injection workflow
+- [x] Automatic proxy injection workflow
 - [x] Cross-origin delivery fix (fetch + text/plain parsing)

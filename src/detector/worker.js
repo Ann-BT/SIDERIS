@@ -177,9 +177,13 @@ async function persistEventScore(streamId, scoringResult) {
 // ── Guard directive: write to Redis ───────────────────────
 const CAPTCHA_GRACE_MS = 5 * 60 * 1000; // 5 min — matches guard.js
 
-async function applyGuard(sessionId, decision, highestScore, reason) {
+async function applyGuard(sessionId, decision, highestScore, reason, state) {
   const directive = getGuardDirective(decision.action);
   if (!directive) return;
+
+  if (directive === 'challenge' && state && state.captcha_solved) {
+    return;
+  }
 
   const guardKey = `sideris:guard:${sessionId}`;
   const current  = await redis.hget(guardKey, 'action');
@@ -225,6 +229,10 @@ async function applyGuard(sessionId, decision, highestScore, reason) {
 async function publishAlert(state, decision, bonuses) {
   // Only publish on level changes that matter (≥suspicious)
   if (decision.level < 2) return;
+
+  if (decision.action === 'captcha' && state.captcha_solved) {
+    return;
+  }
 
   const alertKey = `sideris:alert_sent:${state.session_id}:${decision.verdict}`;
   const alreadySent = await redis.exists(alertKey);
@@ -292,7 +300,7 @@ async function processMessage(streamId, rawFields) {
   persistEventScore(streamId, scoringResult);
 
   // 8. Apply guard directive to Redis
-  await applyGuard(sessionId, decision, state.highest_score, state.mitigation_reason || 'risk_threshold');
+  await applyGuard(sessionId, decision, state.highest_score, state.mitigation_reason || 'risk_threshold', state);
 
   // 9. Publish alert on threshold crossings
   await publishAlert(state, decision, newReasons);
@@ -330,9 +338,9 @@ async function startCommandSubscriber() {
     if (channel === 'sideris:commands') {
       try {
         const cmd = JSON.parse(message);
-        if (cmd.action === 'unblock' && cmd.session_id) {
+        if ((cmd.action === 'unblock' || cmd.action === 'clear_cache') && cmd.session_id) {
           tracker.clearCache(cmd.session_id);
-          console.log(`[worker] Cleared L1 cache for unblocked session: ${cmd.session_id}`);
+          console.log(`[worker] Cleared L1 cache for session: ${cmd.session_id}`);
         }
       } catch (err) {
         console.error('[worker] Command processing error:', err.message);

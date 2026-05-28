@@ -449,7 +449,7 @@ body::before {
 
 .session-list-header {
   display: grid;
-  grid-template-columns: 20px 1.2fr 0.8fr 120px 200px 135px 95px 90px;
+  grid-template-columns: 20px 0.8fr 1.2fr 120px 200px 135px 95px 90px;
   align-items: center;
   gap: 8px;
   padding: 0.5rem 1rem;
@@ -519,7 +519,7 @@ body::before {
 
 .session-summary {
   display: grid;
-  grid-template-columns: 20px 1.2fr 0.8fr 120px 200px 135px 95px 90px;
+  grid-template-columns: 20px 0.8fr 1.2fr 120px 200px 135px 95px 90px;
   align-items: center;
   gap: 8px;
   padding: 0.7rem 1rem;

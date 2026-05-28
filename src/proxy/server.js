@@ -24,6 +24,7 @@ const Redis        = require('ioredis');
 const path         = require('path');
 const fs           = require('fs');
 const dotenv       = require('dotenv');
+const pool         = require('../shared/pgPool');
 const CAPTCHA_PATH = path.resolve(__dirname, 'captcha.html');
 const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
 
@@ -69,9 +70,21 @@ function resolveSessionId(req) {
 }
 
 const app = express();
+app.set('trust proxy', true);
 
 // Parse cookies before any middleware uses them
 app.use(cookieParser());
+
+// Disable caching for HTML requests to prevent stale CAPTCHA template rendering
+app.use((req, res, next) => {
+  const accept = req.headers['accept'] || '';
+  if (accept.includes('text/html')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 
 // Capture request body for injection scanning WITHOUT consuming the stream.
 // We buffer the raw body then re-attach it so http-proxy-middleware can forward it.
@@ -117,206 +130,536 @@ app.get('/sideris/agent.js', (req, res) => {
 // ══════════════════════════════════════════════════════════
 function getCaptchaOverlay(sid) {
   return `
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-#sideris-captcha-overlay {
-  position:fixed;inset:0;z-index:2147483647;
-  display:flex;align-items:center;justify-content:center;
-  padding:1.5rem;
-  font-family:'IBM Plex Sans',system-ui,sans-serif;
-  background:rgba(61,35,20,0.72);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  animation:sdrFadeIn 0.35s ease;
-}
-@keyframes sdrFadeIn{from{opacity:0}to{opacity:1}}
-#sideris-captcha-overlay *{box-sizing:border-box;margin:0;padding:0}
-.sdr-card{
-  background:#FFFFFF;border-radius:18px;
-  border:1px solid #DDD0C4;
-  box-shadow:0 20px 60px rgba(61,35,20,0.35);
-  width:100%;max-width:460px;overflow:hidden;
-  animation:sdrSlideUp 0.4s cubic-bezier(0.16,1,0.3,1);
-}
-@keyframes sdrSlideUp{from{opacity:0;transform:translateY(28px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-.sdr-head{
-  background:#F2EBE0;border-bottom:1px solid #EDE4D8;
-  padding:1.4rem 1.75rem 1.2rem;
-  display:flex;align-items:center;gap:1rem;
-}
-.sdr-shield{
-  width:46px;height:46px;border-radius:12px;flex-shrink:0;
-  background:linear-gradient(135deg,#C8773A,#6F4E37);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.35rem;
-  box-shadow:0 3px 10px rgba(200,119,58,0.35);
-}
-.sdr-brand{font-size:0.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#C8773A;margin-bottom:3px}
-.sdr-title{font-size:1.15rem;font-weight:700;color:#3D2314;letter-spacing:-0.3px;line-height:1.2}
-.sdr-sub{font-size:0.73rem;color:#9A7B6A;margin-top:2px}
-.sdr-body{padding:1.6rem 1.75rem}
-.sdr-warn{
-  display:flex;gap:10px;align-items:flex-start;
-  background:rgba(184,134,11,0.08);border:1px solid rgba(184,134,11,0.28);
-  border-radius:8px;padding:.75rem .95rem;margin-bottom:1.4rem;
-}
-.sdr-warn-icon{font-size:.95rem;flex-shrink:0;margin-top:1px}
-.sdr-warn-text{font-size:.78rem;color:#6B5344;line-height:1.55}
-.sdr-warn-text strong{color:#B8860B}
-.sdr-sid-row{
-  display:flex;align-items:center;justify-content:space-between;
-  background:#F2EBE0;border:1px solid #EDE4D8;
-  border-radius:7px;padding:.5rem .85rem;margin-bottom:1.4rem;
-}
-.sdr-sid-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:1.2px;color:#B8A090}
-.sdr-sid-val{font-family:'IBM Plex Mono',monospace;font-size:.73rem;color:#6F4E37}
-.sdr-cap-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#9A7B6A;margin-bottom:.5rem}
-.sdr-cap-row{display:flex;gap:10px;align-items:center;margin-bottom:1.25rem}
-.sdr-canvas-wrap{
-  flex:1;border-radius:8px;overflow:hidden;
-  border:1px solid #DDD0C4;background:#F6EFE6;
-  position:relative;user-select:none;
-}
-#sdrCanvas{display:block;width:100%;height:68px}
-.sdr-noise{
-  position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(61,35,20,.018) 3px,rgba(61,35,20,.018) 4px);
-}
-.sdr-refresh{
-  width:38px;height:38px;border-radius:8px;flex-shrink:0;
-  border:1px solid #DDD0C4;background:#FFFFFF;
-  color:#6F4E37;font-size:1rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .18s;
-}
-.sdr-refresh:hover{background:#F2EBE0;border-color:rgba(200,119,58,.3);color:#C8773A}
-.sdr-refresh.sdr-spin{animation:sdrSpin .42s ease}
-@keyframes sdrSpin{to{transform:rotate(360deg)}}
-.sdr-inp-lbl{display:block;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#9A7B6A;margin-bottom:.45rem}
-.sdr-input{
-  width:100%;padding:.62rem .9rem;
-  border:1.5px solid #DDD0C4;border-radius:8px;
-  font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:500;
-  letter-spacing:4px;color:#3D2314;background:#FFFFFF;
-  outline:none;transition:border-color .18s,box-shadow .18s;
-}
-.sdr-input::placeholder{letter-spacing:1px;font-size:.82rem;color:#B8A090;font-family:'IBM Plex Sans',sans-serif}
-.sdr-input:focus{border-color:#C8773A;box-shadow:0 0 0 3px rgba(200,119,58,.12)}
-.sdr-input.sdr-err{border-color:#C0392B;box-shadow:0 0 0 3px rgba(192,57,43,.1);animation:sdrShake .35s}
-.sdr-input.sdr-ok {border-color:#2A7D46;box-shadow:0 0 0 3px rgba(42,125,70,.1)}
-@keyframes sdrShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.sdr-meta-row{display:flex;align-items:center;justify-content:space-between;margin-top:.5rem;margin-bottom:1.3rem}
-.sdr-hint{font-size:.67rem;color:#B8A090}
-.sdr-hint.sdr-h-err{color:#C0392B}
-.sdr-hint.sdr-h-ok{color:#2A7D46}
-.sdr-dots{display:flex;gap:5px}
-.sdr-dot{width:8px;height:8px;border-radius:50%;background:#E8DDD0;border:1px solid #DDD0C4;transition:all .2s}
-.sdr-dot.sdr-dot-used{background:#C0392B;border-color:rgba(192,57,43,.3)}
-.sdr-btn{
-  width:100%;padding:.78rem 1rem;
-  background:linear-gradient(135deg,#C8773A 0%,#6F4E37 100%);
-  color:#fff;border:none;border-radius:9px;
-  font-family:'IBM Plex Sans',sans-serif;font-size:.88rem;font-weight:600;
-  cursor:pointer;letter-spacing:.3px;
-  box-shadow:0 3px 14px rgba(200,119,58,.38);
-  transition:opacity .18s,transform .18s,box-shadow .18s;
-}
-.sdr-btn:hover:not(:disabled){opacity:.93;transform:translateY(-1px);box-shadow:0 6px 22px rgba(200,119,58,.44)}
-.sdr-btn:active:not(:disabled){transform:translateY(0)}
-.sdr-btn:disabled{opacity:.5;cursor:not-allowed}
-.sdr-success{display:none;flex-direction:column;align-items:center;text-align:center;padding:1.5rem 0 .5rem}
-.sdr-success.sdr-vis{display:flex;animation:sdrFadeIn .3s ease}
-.sdr-ok-ring{
-  width:58px;height:58px;border-radius:50%;
-  background:rgba(42,125,70,.1);border:2px solid rgba(42,125,70,.25);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.6rem;margin-bottom:.85rem;
-  animation:sdrPop .4s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes sdrPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
-.sdr-ok-title{font-size:1.05rem;font-weight:700;color:#2A7D46;margin-bottom:.3rem}
-.sdr-ok-sub{font-size:.78rem;color:#9A7B6A;margin-bottom:1.1rem}
-.sdr-prog-wrap{width:100%;background:#F2EBE0;border-radius:4px;height:4px;overflow:hidden}
-.sdr-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,#2A7D46,#3DAA60);border-radius:4px;transition:width 3s linear}
-.sdr-foot{
-  border-top:1px solid #EDE4D8;padding:.85rem 1.75rem;
-  display:flex;align-items:center;justify-content:space-between;
-  background:#F2EBE0;
-}
-.sdr-foot-badge{display:flex;align-items:center;gap:6px;font-size:.65rem;font-weight:600;color:#9A7B6A;letter-spacing:.3px}
-.sdr-live-dot{width:6px;height:6px;border-radius:50%;background:#1D6FA4;box-shadow:0 0 5px rgba(29,111,164,.5);animation:sdrBlink 2s infinite}
-@keyframes sdrBlink{0%,100%{opacity:1}50%{opacity:.25}}
-.sdr-foot-ts{font-size:.63rem;color:#B8A090;font-family:'IBM Plex Mono',monospace}
-</style>
-<div id="sideris-captcha-overlay">
-  <div class="sdr-card">
-    <div class="sdr-head">
-      <div class="sdr-shield"></div>
-      <div>
-        <div class="sdr-brand">SIDERIS Security</div>
-        <div class="sdr-title">Human Verification Required</div>
-        <div class="sdr-sub">Unusual activity detected on your session</div>
+<div id="sideris-captcha-container"></div>
+<script>
+(function() {
+  const container = document.getElementById('sideris-captcha-container');
+  if (!container) return;
+  const shadow = container.attachShadow({ mode: 'open' });
+
+  const html = \`
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+    
+    #sideris-captcha-overlay {
+      position: fixed; inset: 0; z-index: 2147483647;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      background: rgba(43, 24, 12, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      animation: sdrFadeIn 0.35s ease forwards;
+    }
+    @keyframes sdrFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    #sideris-captcha-overlay * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .sdr-card {
+      background: #FFFFFF;
+      border-radius: 20px;
+      border: 1px solid rgba(200, 119, 58, 0.18);
+      box-shadow: 0 25px 70px rgba(43, 24, 12, 0.45);
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: sdrSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes sdrSlideUp {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    
+    .sdr-head {
+      background: #F8F4EE;
+      border-bottom: 1px solid #EDE4D8;
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    
+    .sdr-shield {
+      width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+      background: linear-gradient(135deg, #D4884E, #8A5028);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(212, 136, 78, 0.35);
+    }
+    
+    .sdr-head-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .sdr-brand {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #B26A35;
+    }
+    
+    .sdr-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #3D2314;
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+    }
+    
+    .sdr-sub {
+      font-size: 0.78rem;
+      color: #8C6F5E;
+    }
+    
+    .sdr-body {
+      padding: 1.75rem;
+      background: #FFFFFF;
+    }
+    
+    .sdr-warn {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: rgba(184, 134, 11, 0.06);
+      border: 1px solid rgba(184, 134, 11, 0.2);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .sdr-warn-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    
+    .sdr-warn-text {
+      font-size: 0.8rem;
+      color: #6E5343;
+      line-height: 1.55;
+    }
+    .sdr-warn-text strong {
+      color: #8C6000;
+      font-weight: 600;
+    }
+    
+    .sdr-sid-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F8F4EE;
+      border: 1px solid #EDE4D8;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .sdr-sid-lbl {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #9C8576;
+    }
+    
+    .sdr-sid-val {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      color: #6F4E37;
+      font-weight: 500;
+    }
+    
+    .sdr-cap-lbl {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #8C6F5E;
+      margin-bottom: 0.6rem;
+    }
+    
+    .sdr-cap-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .sdr-canvas-wrap {
+      flex: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #E0D5C8;
+      background: #FDFBFA;
+      position: relative;
+      user-select: none;
+      height: 70px;
+      display: flex;
+      align-items: center;
+    }
+    
+    #sdrCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .sdr-noise {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(95, 62, 38, 0.015) 3px, rgba(95, 62, 38, 0.015) 4px);
+    }
+    
+    .sdr-refresh {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      border: 1px solid #E0D5C8;
+      background: #FFFFFF;
+      color: #8A5028;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    
+    .sdr-refresh:hover {
+      background: #F8F4EE;
+      border-color: #D4884E;
+      color: #B26A35;
+    }
+    
+    .sdr-refresh.sdr-spin svg {
+      animation: sdrSpin 0.5s ease;
+    }
+    @keyframes sdrSpin { to { transform: rotate(360deg); } }
+    
+    .sdr-inp-lbl {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #8C6F5E;
+      margin-bottom: 0.6rem;
+    }
+    
+    .sdr-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid #E0D5C8;
+      border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 6px;
+      color: #3D2314;
+      background: #FFFFFF;
+      outline: none;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .sdr-input::placeholder {
+      letter-spacing: 1px;
+      font-size: 0.85rem;
+      color: #BCAAA4;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 400;
+    }
+    
+    .sdr-input:focus {
+      border-color: #D4884E;
+      box-shadow: 0 0 0 3px rgba(212, 136, 78, 0.15), inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .sdr-input.sdr-err {
+      border-color: #E53935;
+      box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+      animation: sdrShake 0.4s ease;
+    }
+    
+    .sdr-input.sdr-ok {
+      border-color: #43A047;
+      box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.15);
+    }
+    
+    @keyframes sdrShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    
+    .sdr-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .sdr-hint {
+      font-size: 0.72rem;
+      color: #9C8576;
+    }
+    
+    .sdr-hint.sdr-h-err {
+      color: #D32F2F;
+      font-weight: 500;
+    }
+    
+    .sdr-hint.sdr-h-ok {
+      color: #2E7D32;
+      font-weight: 500;
+    }
+    
+    .sdr-dots {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .sdr-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #EDE4D8;
+      border: 1px solid #E0D5C8;
+      transition: all 0.25s ease;
+    }
+    
+    .sdr-dot.sdr-dot-used {
+      background: #D32F2F;
+      border-color: rgba(211, 47, 47, 0.3);
+      box-shadow: 0 0 6px rgba(211, 47, 47, 0.2);
+    }
+    
+    .sdr-btn {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: linear-gradient(135deg, #D4884E 0%, #8A5028 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 14px rgba(212, 136, 78, 0.35);
+      transition: all 0.25s ease;
+    }
+    
+    .sdr-btn:hover:not(:disabled) {
+      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(212, 136, 78, 0.45);
+    }
+    
+    .sdr-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    .sdr-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    
+    .sdr-success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 1.5rem 0 0.5rem;
+    }
+    
+    .sdr-success.sdr-vis {
+      display: flex;
+      animation: sdrFadeIn 0.3s ease forwards;
+    }
+    
+    .sdr-ok-ring {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(67, 160, 71, 0.1);
+      border: 2px solid rgba(67, 160, 71, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      animation: sdrPop 0.45s cubic-bezier(.34, 1.56, .64, 1) forwards;
+    }
+    @keyframes sdrPop {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    .sdr-ok-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #2E7D32;
+      margin-bottom: 0.3rem;
+    }
+    
+    .sdr-ok-sub {
+      font-size: 0.82rem;
+      color: #8C6F5E;
+      margin-bottom: 1.25rem;
+    }
+    
+    .sdr-prog-wrap {
+      width: 100%;
+      background: #F8F4EE;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+      border: 1px solid #EDE4D8;
+    }
+    
+    .sdr-prog-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #43A047, #66BB6A);
+      border-radius: 4px;
+      transition: width 3s linear;
+    }
+    
+    .sdr-foot {
+      border-top: 1px solid #EDE4D8;
+      padding: 1rem 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #F8F4EE;
+    }
+    
+    .sdr-foot-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #8C6F5E;
+      letter-spacing: 0.3px;
+    }
+    
+    .sdr-live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #1976D2;
+      box-shadow: 0 0 6px rgba(25, 118, 210, 0.5);
+      animation: sdrBlink 2s infinite;
+    }
+    @keyframes sdrBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    
+    .sdr-foot-ts {
+      font-size: 0.65rem;
+      color: #9C8576;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+  </style>
+  
+  <div id="sideris-captcha-overlay">
+    <div class="sdr-card">
+      <div class="sdr-head">
+        <div class="sdr-shield">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="sdr-head-text">
+          <div class="sdr-brand">SIDERIS Security</div>
+          <div class="sdr-title">Human Verification Required</div>
+          <div class="sdr-sub">Unusual activity detected on your session</div>
+        </div>
       </div>
-    </div>
-    <div class="sdr-body">
-      <div class="sdr-warn">
-        <span class="sdr-warn-icon"></span>
-        <span class="sdr-warn-text">Our system has flagged <strong>suspicious behavior patterns</strong> from your session. Complete the verification to continue. Repeated failures will result in a temporary block.</span>
-      </div>
-      <div class="sdr-sid-row">
-        <span class="sdr-sid-lbl">Session</span>
-        <span class="sdr-sid-val" id="sdrSid">${sid ? sid.substring(0,20) + '…' : '—'}</span>
-      </div>
-      <div id="sdrForm">
-        <div class="sdr-cap-lbl">Enter the code shown below</div>
-        <div class="sdr-cap-row">
-          <div class="sdr-canvas-wrap">
-            <canvas id="sdrCanvas" width="320" height="68"></canvas>
-            <div class="sdr-noise"></div>
+      <div class="sdr-body">
+        <div class="sdr-warn">
+          <span class="sdr-warn-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b8860b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <span class="sdr-warn-text">Our system has flagged <strong>suspicious behavior patterns</strong> from your session. Complete the verification to continue. Repeated failures will result in a temporary block.</span>
+        </div>
+        <div class="sdr-sid-row">
+          <span class="sdr-sid-lbl">Session</span>
+          <span class="sdr-sid-val" id="sdrSid"></span>
+        </div>
+        <div id="sdrForm">
+          <div class="sdr-cap-lbl">Enter the code shown below</div>
+          <div class="sdr-cap-row">
+            <div class="sdr-canvas-wrap">
+              <canvas id="sdrCanvas" width="320" height="70"></canvas>
+              <div class="sdr-noise"></div>
+            </div>
+            <button class="sdr-refresh" id="sdrRefresh" title="New code">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
           </div>
-          <button class="sdr-refresh" id="sdrRefresh" title="New code">New</button>
+          <label class="sdr-inp-lbl" for="sdrInput">Your answer</label>
+          <input id="sdrInput" class="sdr-input" type="text" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type here…" />
+          <div class="sdr-meta-row">
+            <span class="sdr-hint" id="sdrHint">Case-insensitive · 6 characters</span>
+            <div class="sdr-dots" id="sdrDots"></div>
+          </div>
+          <button class="sdr-btn" id="sdrBtn">Verify My Identity</button>
         </div>
-        <label class="sdr-inp-lbl" for="sdrInput">Your answer</label>
-        <input id="sdrInput" class="sdr-input" type="text" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type here…" />
-        <div class="sdr-meta-row">
-          <span class="sdr-hint" id="sdrHint">Case-insensitive · 6 characters</span>
-          <div class="sdr-dots" id="sdrDots"></div>
+        <div class="sdr-success" id="sdrSuccess">
+          <div class="sdr-ok-ring">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="sdr-ok-title">Verification Successful</div>
+          <div class="sdr-ok-sub">Resuming your session…</div>
+          <div class="sdr-prog-wrap"><div class="sdr-prog-fill" id="sdrProg"></div></div>
         </div>
-        <button class="sdr-btn" id="sdrBtn">Verify My Identity</button>
       </div>
-      <div class="sdr-success" id="sdrSuccess">
-        <div class="sdr-ok-ring">OK</div>
-        <div class="sdr-ok-title">Verification Successful</div>
-        <div class="sdr-ok-sub">Resuming your session…</div>
-        <div class="sdr-prog-wrap"><div class="sdr-prog-fill" id="sdrProg"></div></div>
+      <div class="sdr-foot">
+        <div class="sdr-foot-badge"><span class="sdr-live-dot"></span>SIDERIS Adaptive Guard · Active</div>
+        <span class="sdr-foot-ts" id="sdrTs"></span>
       </div>
-    </div>
-    <div class="sdr-foot">
-      <div class="sdr-foot-badge"><span class="sdr-live-dot"></span>SIDERIS Adaptive Guard · Active</div>
-      <span class="sdr-foot-ts" id="sdrTs"></span>
     </div>
   </div>
-</div>
-<script>
-(function(){
-  'use strict';
+  \`;
+
+  shadow.innerHTML = html;
+
   var MAX=4, code='', tries=0, locked=false;
-  var canvas=document.getElementById('sdrCanvas');
+  var canvas=shadow.getElementById('sdrCanvas');
   var ctx=canvas.getContext('2d');
-  var inp=document.getElementById('sdrInput');
-  var hint=document.getElementById('sdrHint');
-  var btn=document.getElementById('sdrBtn');
-  var ref=document.getElementById('sdrRefresh');
-  var dots=document.getElementById('sdrDots');
-  var ts=document.getElementById('sdrTs');
+  var inp=shadow.getElementById('sdrInput');
+  var hint=shadow.getElementById('sdrHint');
+  var btn=shadow.getElementById('sdrBtn');
+  var ref=shadow.getElementById('sdrRefresh');
+  var dots=shadow.getElementById('sdrDots');
+  var ts=shadow.getElementById('sdrTs');
+  
+  // Set session display
+  var fullSid = "${sid || ''}";
+  shadow.getElementById('sdrSid').textContent = fullSid ? fullSid.substring(0, 20) + '…' : '—';
+
   var CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   function rc(){return CHARS[Math.floor(Math.random()*CHARS.length)];}
   function gen(){return Array.from({length:6},rc).join('');}
   function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)';}
   function draw(c){
     var W=canvas.width,H=canvas.height;
-    ctx.fillStyle='#F6EFE6';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#FDFBFA';ctx.fillRect(0,0,W,H);
     ctx.strokeStyle='rgba(180,140,110,0.13)';ctx.lineWidth=0.5;
     for(var x=0;x<W;x+=16){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
     for(var y=0;y<H;y+=16){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
@@ -402,18 +745,17 @@ function getCaptchaOverlay(sid) {
     }
   }
   function showSuccess(){
-    document.getElementById('sdrForm').style.display='none';
-    var s=document.getElementById('sdrSuccess');
+    shadow.getElementById('sdrForm').style.display='none';
+    var s=shadow.getElementById('sdrSuccess');
     s.classList.add('sdr-vis');
-    requestAnimationFrame(function(){document.getElementById('sdrProg').style.width='100%';});
+    requestAnimationFrame(function(){shadow.getElementById('sdrProg').style.width='100%';});
     fetch('/sideris/captcha-verify',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({verified:true,session_id:"${sid || ''}"})
+      body:JSON.stringify({verified:true,session_id:fullSid})
     }).catch(function(){}).finally(function(){
       setTimeout(function(){
-        var overlay=document.getElementById('sideris-captcha-overlay');
-        if(overlay){overlay.style.transition='opacity .4s';overlay.style.opacity='0';setTimeout(function(){overlay.remove();},420);}
+        window.location.reload();
       },3200);
     });
   }
@@ -431,7 +773,8 @@ function getCaptchaOverlay(sid) {
   updateTs();setInterval(updateTs,1000);
   renderDots();fresh();
 })();
-</script>`;
+</script>
+`;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -445,8 +788,45 @@ app.post('/sideris/captcha-verify', async (req, res) => {
 
   if (sid) {
     try {
+      // 1. Fetch guard action to decrement dashboard metrics before deletion
+      const guardData = await guardRedis.hgetall(`sideris:guard:${sid}`);
+      if (guardData && guardData.action) {
+        if (guardData.action === 'block') {
+          await guardRedis.decr('sideris:metrics:guard:block');
+        } else if (guardData.action === 'challenge') {
+          await guardRedis.decr('sideris:metrics:guard:challenge');
+        } else if (guardData.action === 'rate_limit') {
+          await guardRedis.decr('sideris:metrics:guard:rate_limit');
+        }
+      }
+
+      // 2. Delete the Redis guard key
       await guardRedis.del(`sideris:guard:${sid}`);
       console.log(`[proxy] CAPTCHA verified — challenge cleared for session ${sid}`);
+
+      // 3. Mark the CAPTCHA as solved and set last mitigation to allow in Redis
+      const sessionKey = `sideris:session:${sid}`;
+      await guardRedis.hset(sessionKey,
+        'captcha_solved', '1',
+        'last_mitigation', 'allow'
+      );
+
+      // 4. Publish unblock synchronization message to worker threads (clears L1 cache)
+      await guardRedis.publish('sideris:commands', JSON.stringify({
+        action: 'unblock',
+        session_id: sid
+      }));
+
+      // 5. Sync unblock to Postgres
+      try {
+        await pool.query(`
+          UPDATE attack_sessions SET
+            last_mitigation = 'allow'
+          WHERE session_id = $1
+        `, [sid]);
+      } catch (pgErr) {
+        console.error('[proxy] PG unblock sync error:', pgErr.message);
+      }
     } catch (err) {
       console.error('[proxy] CAPTCHA verify redis error:', err.message);
     }
@@ -505,9 +885,21 @@ function scanPayload(url, body) {
   return null;
 }
 
+function isStaticAsset(urlPath) {
+  const ext = urlPath.split('?')[0].split('.').pop().toLowerCase();
+  const staticExtensions = ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'woff', 'woff2', 'ttf', 'eot', 'map', 'json'];
+  return staticExtensions.includes(ext) || urlPath.includes('/assets/');
+}
+
 app.use(async (req, res, next) => {
-  // Skip guard check for sideris internal routes
-  if (req.path.startsWith('/sideris/')) return next();
+  // Skip guard check for Sideris internal, dashboard, and dashboard-api routes
+  if (
+    req.path.startsWith('/sideris/') ||
+    req.path.startsWith('/dashboard') ||
+    req.path.startsWith('/dashboard-api')
+  ) {
+    return next();
+  }
 
   const session = resolveSessionId(req);
   const sid = session.id;
@@ -517,13 +909,38 @@ app.use(async (req, res, next) => {
     try {
       const action = await guardRedis.hget(`sideris:guard:${sid}`, 'action');
       if (action === 'block') {
-        return res.status(403).send(BLOCK_PAGE);
+        delete req.headers['if-none-match'];
+        delete req.headers['if-modified-since'];
+
+        const accept = req.headers['accept'] || '';
+        const isApi = req.path.startsWith('/api/') || req.path.startsWith('/rest/');
+        if (accept.includes('text/html') && !isApi) {
+          return res.status(403).send(BLOCK_PAGE);
+        } else if (isStaticAsset(req.path)) {
+          // Allow static assets so they can load/render for the block page
+          return next();
+        } else {
+          res.type('text/plain');
+          return res.status(403).send('Your session has been blocked due to detected malicious activity. Please reload the page.');
+        }
       }
       if (action === 'challenge') {
-        // Tag the request — the responseInterceptor will inject the overlay.
-        // Non-HTML requests (XHR/API) from a challenged session are rate-limited
-        // at the response level; the guard key stays until verified.
-        req._sideris_challenge_sid = sid;
+        delete req.headers['if-none-match'];
+        delete req.headers['if-modified-since'];
+
+        const accept = req.headers['accept'] || '';
+        const isApi = req.path.startsWith('/api/') || req.path.startsWith('/rest/');
+        if (accept.includes('text/html') && !isApi) {
+          // Tag the request — the responseInterceptor will inject the overlay.
+          req._sideris_challenge_sid = sid;
+        } else if (isStaticAsset(req.path)) {
+          // Allow static assets so the page and CAPTCHA overlay can load/render
+          return next();
+        } else {
+          // Block non-HTML (API/XHR) requests with 429 CAPTCHA Required
+          res.type('text/plain');
+          return res.status(429).send('CAPTCHA verification required. Please reload the page.');
+        }
       }
       if (action === 'rate_limit') {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -543,16 +960,6 @@ app.use(async (req, res, next) => {
 
     if (effectiveSid !== 'unknown') {
       try {
-        // 1. Set hard_block guard
-        await guardRedis.hset(`sideris:guard:${effectiveSid}`,
-          'action',     'block',
-          'block_type', 'hard',
-          'risk_score', '100',
-          'reason',     `Inline detection: ${detected}`,
-          'updated_at', String(Date.now())
-        );
-        await guardRedis.incr('sideris:metrics:guard:block');
-
         // 2. Update session state so the dashboard shows the attack
         const sessionKey = `sideris:session:${effectiveSid}`;
         const categoryMap = {
@@ -571,10 +978,14 @@ app.use(async (req, res, next) => {
         const urlCounts = existingUrlCounts ? JSON.parse(existingUrlCounts) : {};
         urlCounts[detected] = (urlCounts[detected] || 0) + 1;
 
-        // Fetch existing highest_score to ensure it is at least 100
+        // Fetch existing session score and highest score
+        const existingScoreStr = await guardRedis.hget(sessionKey, 'session_score');
+        const existingScore = parseFloat(existingScoreStr || '0');
+        const newScore = Math.max(existingScore + 30, 50);
+
         const existingHighestStr = await guardRedis.hget(sessionKey, 'highest_score');
         const existingHighest = parseFloat(existingHighestStr || '0');
-        const newHighest = Math.max(existingHighest, 100);
+        const newHighest = Math.max(existingHighest, newScore);
 
         // Fetch existing timeline timestamps
         const existingSuspStr = await guardRedis.hget(sessionKey, 'first_suspicious_at');
@@ -587,14 +998,24 @@ app.use(async (req, res, next) => {
 
         const existingHighestTimeStr = await guardRedis.hget(sessionKey, 'highest_score_at');
         let newHighestTime = parseInt(existingHighestTimeStr || '0', 10);
-        if (100 > existingHighest || !newHighestTime) {
+        if (newScore > existingHighest || !newHighestTime) {
           newHighestTime = Date.now();
         }
+
+        // 1. Set hard_block guard
+        await guardRedis.hset(`sideris:guard:${effectiveSid}`,
+          'action',     'block',
+          'block_type', 'hard',
+          'risk_score', String(newScore),
+          'reason',     `Inline detection: ${detected}`,
+          'updated_at', String(Date.now())
+        );
+        await guardRedis.incr('sideris:metrics:guard:block');
 
         // Write session state for dashboard
         await guardRedis.hset(sessionKey,
           'session_id',      effectiveSid,
-          'session_score',   '100',
+          'session_score',   String(newScore),
           'highest_score',   String(newHighest),
           'event_count',     String(parseInt(await guardRedis.hget(sessionKey, 'event_count') || '0', 10) + 1),
           'ip_address',      req.ip || '::1',
@@ -626,8 +1047,8 @@ app.use(async (req, res, next) => {
           rule: detected,
           category: cat,
           signal: `Inline detection: ${detected} in ${req.method} ${req.originalUrl}`,
-          score: '+100.0',
-          total: 100,
+          score: '+30.0',
+          total: newScore,
           timestamp: Date.now(),
           time: new Date().toISOString(),
         });
@@ -635,6 +1056,12 @@ app.use(async (req, res, next) => {
         await guardRedis.lpush(reasonKey, reasonEntry);
         await guardRedis.ltrim(reasonKey, 0, 99);
         await guardRedis.expire(reasonKey, 86400);
+
+        // Publish cache clearance message to worker threads to invalidate L1 cache
+        await guardRedis.publish('sideris:commands', JSON.stringify({
+          action: 'clear_cache',
+          session_id: effectiveSid
+        }));
 
         // 3. Also fire the event to ingest so it shows in the timeline
         fetch(INGEST_URL, {
@@ -654,6 +1081,11 @@ app.use(async (req, res, next) => {
       }
     }
 
+    const accept = req.headers['accept'] || '';
+    const isApi = req.path.startsWith('/api/') || req.path.startsWith('/rest/');
+    if (accept.includes('text/html') && !isApi) {
+      return res.status(403).send(BLOCK_PAGE);
+    }
     return res.status(403).json({ error: 'blocked', code: 'E_ATTACK_DETECTED', attack: detected });
   }
 
@@ -669,8 +1101,11 @@ app.use(async (req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
 
-  // Skip logging for internal sideris routes, socket.io polling, and static assets
-  const isInternal = req.path.startsWith('/sideris/');
+  // Skip logging for Sideris internal, dashboard, and dashboard-api routes, socket.io polling, and static assets
+  const isInternal =
+    req.path.startsWith('/sideris/') ||
+    req.path.startsWith('/dashboard') ||
+    req.path.startsWith('/dashboard-api');
   const isSocketIo = req.path.includes('/socket.io');
   const isStatic   = req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/i);
 
@@ -742,11 +1177,18 @@ const proxy = createProxyMiddleware({
         proxyReq.end();
       }
     },
-    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req) => {
+    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
       const contentType = proxyRes.headers['content-type'] || '';
+      const accept = req.headers['accept'] || '';
 
-      // Only modify text/html responses
-      if (!contentType.includes('text/html')) {
+      if (contentType.includes('text/html') && accept.includes('text/html')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+
+      // Only modify text/html responses when the client actually accepts/expects HTML
+      if (!contentType.includes('text/html') || !accept.includes('text/html')) {
         return responseBuffer; // pass binary/JSON/etc. unchanged
       }
 
@@ -795,6 +1237,24 @@ app.use('/sideris/ingest', createProxyMiddleware({
       }
     }
   }
+}));
+
+// Route: /dashboard-api/ -> Dashboard API (port 6001)
+app.use('/dashboard-api', createProxyMiddleware({
+  target: 'http://localhost:6001',
+  pathRewrite: { '^/dashboard-api': '' },
+  changeOrigin: true,
+  logLevel: 'silent',
+}));
+
+// Route: /dashboard/ -> Dashboard UI (port 5173)
+app.use('/dashboard', createProxyMiddleware({
+  target: 'http://localhost:5173',
+  pathRewrite: (path, req) => {
+    return path.startsWith('/dashboard') ? path : '/dashboard' + path;
+  },
+  changeOrigin: true,
+  logLevel: 'silent',
 }));
 
 app.use('/', proxy);

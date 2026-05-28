@@ -474,6 +474,9 @@
       xhr.addEventListener('load', function () {
         if (shouldInstrument(_url)) {
           detectLoginResponse(_url, xhr.status);
+          if ((xhr.status === 429 || xhr.status === 403) && !_url.includes('/sideris/')) {
+            window.location.reload();
+          }
         }
       });
 
@@ -524,6 +527,9 @@
     if (shouldInstrument(url)) {
       promise.then(function (resp) {
         detectLoginResponse(url, resp.status);
+        if ((resp.status === 429 || resp.status === 403) && !url.includes('/sideris/')) {
+          window.location.reload();
+        }
         return resp;
       }).catch(function () { /* ignore */ });
     }

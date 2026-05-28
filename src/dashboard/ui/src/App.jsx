@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import './index.css'
 
-const API = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:6001`
+const API = import.meta.env.VITE_API_URL || (window.location.pathname.startsWith('/dashboard')
+  ? `${window.location.protocol}//${window.location.host}/dashboard-api`
+  : `${window.location.protocol}//${window.location.hostname}:6001`)
 
 const CATEGORIES = [
   { key: 'authentication',  label: 'Authentication',  color: '#f59e0b' },
