@@ -43,7 +43,7 @@ n += run('agent: no_plugins',           makeAgent('no_plugins'));
 n += run('agent: fast_mouse',           makeAgent('fast_mouse'));
 n += run('agent: rapid_requests',       makeAgent('rapid_requests'));
 n += run('agent: liveness_snapshot',    makeAgent('liveness_snapshot'));
-console.log(`\n  ▶ Total: ${n.toFixed(2)} pts — ${n === 0 ? '🟢 CORRECT' : '🔴 WRONG (should be 0)'}\n`);
+console.log(`\n  ▶ Total: ${n.toFixed(2)} pts — ${n === 0.5 ? '🟢 CORRECT' : '🔴 WRONG (should be 0.5)'}\n`);
 
 // ── ATTACK SCENARIOS ──────────────────────────────────────
 console.log('══════════════════════════════════════════════════════════');

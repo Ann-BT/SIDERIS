@@ -121,16 +121,16 @@ const CATEGORY_MAP = {
 const IMPACT = {
   normal_browsing:     0,
   recon_404:           1,
-  http_method_abuse:   2,
+  http_method_abuse:   3,
   no_mouse_activity:   2,
-  auth_failure:        2,
+  auth_failure:        3,
   rapid_navigation:    2,
   instant_form_fill:   2,
   keystroke_burst:     2,
   directory_traversal: 3,
-  scanner_tool:        3,
-  file_exposure:       4,
-  cms_admin_probe:     3,
+  scanner_tool:        4,
+  file_exposure:       6,
+  cms_admin_probe:     8,
   xss:                 30,
   credential_stuffing: 4,
   password_spray:      4,
@@ -144,7 +144,7 @@ const IMPACT = {
   xxe:                 30,
   ssrf:                30,
   file_upload_exploit: 30,
-  headless_browser:    3,
+  headless_browser:    6,
 };
 
 // ══════════════════════════════════════════════════════════
@@ -315,11 +315,12 @@ function analyze(event) {
 // ── Helper: build result object ──────────────────────────
 function result(attackType, impact, confidence) {
   const cat = CATEGORY_MAP[attackType] || { category: 'normal', signal: 'Unknown' };
+  const actualImpact = IMPACT[attackType] !== undefined ? IMPACT[attackType] : impact;
   return {
     attack_type:     attackType,
     category:        cat.category,
     behavior_signal: cat.signal,
-    impact,
+    impact:          actualImpact,
     base_confidence: confidence,
   };
 }

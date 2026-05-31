@@ -37,10 +37,10 @@ function postData(url, data) {
   });
 }
 
-const mockAttack = Array(5).fill(0).map(() => ({
+const mockAttack = Array(20).fill(0).map(() => ({
     sessionId: "hacker-session-666",
     ts: Date.now(),
-    type: "no_mouse", // base risk +3. 5 of them = 15 total > block threshold
+    type: "no_mouse", // base risk +1.2. 20 of them = 24 + 10 (headless_confirmed bonus) = 34 > block threshold
     data: {}
 }));
 
