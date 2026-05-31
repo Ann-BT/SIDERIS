@@ -25,4 +25,4 @@ fi
 
 echo "Starting ngrok tunnel for Sideris WAF Proxy (port 4000)..."
 echo "Press Ctrl+C to stop the tunnel."
-$NGROK_BIN http 4000
+$NGROK_BIN http --domain=setting-cadillac-harmonica.ngrok-free.dev 4000

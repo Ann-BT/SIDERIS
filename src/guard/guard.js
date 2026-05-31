@@ -108,7 +108,7 @@ async function processAlert(payloadStr) {
     return;
   }
 
-  const { session_id, risk_score, reason } = payload;
+  const { session_id, risk_score, reason, ip_address } = payload;
   
   if (!session_id || typeof session_id !== 'string') return;
   if (!risk_score) return;
@@ -167,6 +167,23 @@ async function processAlert(payloadStr) {
 
   if (result === 1) {
     console.log(`[GUARD] ENFORCED: Session ${session_id} action=${intendedAction} score=${risk_score} ttl=${finalTtl}s (offense #${offenseCount})`);
+    if (intendedAction === 'block' && ip_address) {
+      const ipGuardKey = `sideris:guard:ip:${ip_address}`;
+      await redis.hset(ipGuardKey,
+        'action',       'block',
+        'reason',       reason || 'risk_threshold',
+        'risk_score',   risk_score.toString(),
+        'updated_at',   Date.now().toString(),
+        'block_type',   blockType,
+        'guard_source', 'automatic'
+      );
+      if (finalTtl > 0) {
+        await redis.expire(ipGuardKey, finalTtl);
+      } else {
+        await redis.persist(ipGuardKey);
+      }
+      console.log(`[GUARD] IP BLOCK ENFORCED: IP ${ip_address} action=block ttl=${finalTtl}s`);
+    }
   } else if (result === 2) {
     console.log(`[GUARD] CAPTCHA GRACE: Session ${session_id} block deferred — CAPTCHA challenge active, giving user time to verify (${CAPTCHA_GRACE_MS/1000}s window).`);
   } else {

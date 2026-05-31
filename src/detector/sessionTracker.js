@@ -62,7 +62,7 @@ const redis = new Redis(config.redisUrl);
 const CACHE_TTL = 1800; // 30 minutes in-memory cache
 const REDIS_TTL = 86400; // 24 hours in Redis
 const DECAY_INTERVAL = 30_000;
-const DECAY_FACTOR = 0.95;
+const DECAY_FACTOR = 0.99;
 
 const { THREAT_LEVELS } = require('../shared/severity');
 const { decide, getGuardDirective } = require('./decisionEngine');
@@ -381,6 +381,15 @@ function applyBonuses(state) {
 // ══════════════════════════════════════════════════════════
 async function update(sessionId, scoringResult, event) {
   const state = await getSession(sessionId);
+  if (event.inline_blocked) {
+    // Proxy already updated Redis session state, event_count, category_counts, url_counts, etc.
+    // We just return the loaded state without modifying it, and skip writing to risk_reasons list.
+    return {
+      state: { ...state },
+      bonusTotal: 0,
+      newReasons: [],
+    };
+  }
   const data = event.data || {};
   const { attack_type, category, behavior_signal, event_score } = scoringResult;
   const now = event.timestamp || Date.now();

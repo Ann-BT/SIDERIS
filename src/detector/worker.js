@@ -275,6 +275,11 @@ async function processMessage(streamId, rawFields) {
   // 3. Score → event_score = impact × confidence × persistence
   const scoringResult = scoring.compute(analyzed, sessionState);
 
+  // If the event was blocked inline by the proxy, override the event score to 50.0 for recording/persistence
+  if (event.inline_blocked) {
+    scoringResult.event_score = 50.0;
+  }
+
   // 4. Update session tracker (increments counters, applies bonuses, decays)
   const { state, newReasons } = await tracker.update(sessionId, scoringResult, event);
 

@@ -206,6 +206,7 @@ app.post('/api/events', async (req, res) => {
     timestamp:   event.timestamp  || Date.now(),
     source:      'backend',
     event_type:  event.type       || 'backend_log',
+    inline_blocked: event.inline_blocked || false,
     data: {
       method:    event.method,
       endpoint:  event.endpoint,

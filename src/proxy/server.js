@@ -27,6 +27,7 @@ const dotenv       = require('dotenv');
 const pool         = require('../shared/pgPool');
 const CAPTCHA_PATH = path.resolve(__dirname, 'captcha.html');
 const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
+const analyzer     = require('../detector/eventAnalyzer');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -903,10 +904,30 @@ app.use(async (req, res, next) => {
 
   const session = resolveSessionId(req);
   const sid = session.id;
+  const clientIp = req.ip || '::1';
 
   // ── Phase 1: Check existing guard ───────────────────────
-  if (sid && !sid.startsWith('prx-')) {
-    try {
+  try {
+    // 1. IP Block Guard Check
+    const ipAction = await guardRedis.hget(`sideris:guard:ip:${clientIp}`, 'action');
+    if (ipAction === 'block') {
+      delete req.headers['if-none-match'];
+      delete req.headers['if-modified-since'];
+
+      const accept = req.headers['accept'] || '';
+      const isApi = req.path.startsWith('/api/') || req.path.startsWith('/rest/');
+      if (accept.includes('text/html') && !isApi) {
+        return res.status(403).send(BLOCK_PAGE);
+      } else if (isStaticAsset(req.path)) {
+        return next();
+      } else {
+        res.type('text/plain');
+        return res.status(403).send('Your IP address has been blocked due to detected malicious activity. Please contact support.');
+      }
+    }
+
+    // 2. Session Guard Check
+    if (sid && !sid.startsWith('prx-')) {
       const action = await guardRedis.hget(`sideris:guard:${sid}`, 'action');
       if (action === 'block') {
         delete req.headers['if-none-match'];
@@ -945,9 +966,9 @@ app.use(async (req, res, next) => {
       if (action === 'rate_limit') {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-    } catch (err) {
-      console.error('[proxy] Guard check error:', err.message);
     }
+  } catch (err) {
+    console.error('[proxy] Guard check error:', err.message);
   }
 
   // ── Phase 2: Inline critical payload scan ───────────────
@@ -981,7 +1002,7 @@ app.use(async (req, res, next) => {
         // Fetch existing session score and highest score
         const existingScoreStr = await guardRedis.hget(sessionKey, 'session_score');
         const existingScore = parseFloat(existingScoreStr || '0');
-        const newScore = Math.max(existingScore + 30, 50);
+        const newScore = Math.max(existingScore + 50, 50);
 
         const existingHighestStr = await guardRedis.hget(sessionKey, 'highest_score');
         const existingHighest = parseFloat(existingHighestStr || '0');
@@ -1002,8 +1023,16 @@ app.use(async (req, res, next) => {
           newHighestTime = Date.now();
         }
 
-        // 1. Set hard_block guard
+        // 1. Set hard_block guard for Session and IP
         await guardRedis.hset(`sideris:guard:${effectiveSid}`,
+          'action',     'block',
+          'block_type', 'hard',
+          'risk_score', String(newScore),
+          'reason',     `Inline detection: ${detected}`,
+          'updated_at', String(Date.now())
+        );
+        const clientIpAddress = req.ip || '::1';
+        await guardRedis.hset(`sideris:guard:ip:${clientIpAddress}`,
           'action',     'block',
           'block_type', 'hard',
           'risk_score', String(newScore),
@@ -1043,11 +1072,28 @@ app.use(async (req, res, next) => {
         await guardRedis.expire(sessionKey, 86400);
 
         // Push the inline detection event directly to the risk_reasons list to ensure the timeline shows it immediately
+        const catObj = analyzer.CATEGORY_MAP[detected] || { category: 'injection', signal: 'Inline detection: ' + detected };
+        const signalBase = catObj.signal;
+
+        const parts = [];
+        if (req.query) {
+          const qStr = typeof req.query === 'object' ? JSON.stringify(req.query) : String(req.query);
+          parts.push(`query: ${qStr.substring(0, 150)}${qStr.length > 150 ? '...' : ''}`);
+        }
+        if (req.body) {
+          const bStr = typeof req.body === 'object' ? JSON.stringify(req.body) : String(req.body);
+          parts.push(`body: ${bStr.substring(0, 150)}${bStr.length > 150 ? '...' : ''}`);
+        }
+        let customSignal = signalBase;
+        if (parts.length > 0) {
+          customSignal = `${customSignal} [${parts.join(', ')}]`;
+        }
+
         const reasonEntry = JSON.stringify({
           rule: detected,
           category: cat,
-          signal: `Inline detection: ${detected} in ${req.method} ${req.originalUrl}`,
-          score: '+30.0',
+          signal: customSignal,
+          score: '+50.0',
           total: newScore,
           timestamp: Date.now(),
           time: new Date().toISOString(),
@@ -1074,6 +1120,7 @@ app.use(async (req, res, next) => {
             userAgent: req.headers['user-agent'] || 'unknown',
             duration: 0,
             body: req.body, query: req.query,
+            inline_blocked: true,
           })
         }).catch(() => {});
       } catch (err) {
@@ -1245,6 +1292,16 @@ app.use('/dashboard-api', createProxyMiddleware({
   pathRewrite: { '^/dashboard-api': '' },
   changeOrigin: true,
   logLevel: 'silent',
+  on: {
+    proxyReq: (proxyReq, req) => {
+      // Re-write the body if parsed by our raw-body middleware
+      if (req.rawBody && req.rawBody.length > 0) {
+        proxyReq.setHeader('Content-Length', req.rawBody.length);
+        proxyReq.write(req.rawBody);
+        proxyReq.end();
+      }
+    }
+  }
 }));
 
 // Route: /dashboard/ -> Dashboard UI (port 5173)

@@ -528,6 +528,13 @@ app.post('/unblock/:sessionId', async (req, res) => {
     // Remove the guard
     await redis.del(guardKey);
 
+    // Delete corresponding IP guard if present
+    const sessionKey = `sideris:session:${sessionId}`;
+    const ipAddress = await redis.hget(sessionKey, 'ip_address');
+    if (ipAddress) {
+      await redis.del(`sideris:guard:ip:${ipAddress}`);
+    }
+
     // Decrement block metric
     if (guardData.action === 'block') {
       await redis.decr('sideris:metrics:guard:block');
@@ -538,7 +545,6 @@ app.post('/unblock/:sessionId', async (req, res) => {
     }
 
     // Reset the live score and last mitigation in Redis (leave peak history intact)
-    const sessionKey = `sideris:session:${sessionId}`;
     await redis.hset(sessionKey,
       'session_score', '0.00',
       'last_mitigation', 'allow'

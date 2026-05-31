@@ -31,6 +31,14 @@ function App() {
   const [logsPaused, setLogsPaused] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [activeTab, setActiveTab] = useState('lifecycle')
+  const [theme, setTheme] = useState(() => localStorage.getItem('sideris-theme') || 'github-light')
+
+  useEffect(() => {
+    const classes = document.body.className.split(' ').filter(c => c && !c.startsWith('theme-'));
+    classes.push(`theme-${theme}`);
+    document.body.className = classes.join(' ');
+    localStorage.setItem('sideris-theme', theme);
+  }, [theme]);
 
   // Sorting state for Live Threat Sessions
   const [sortBy, setSortBy]   = useState('score')   // 'score' | 'critical' | 'very_high' | 'high' | 'suspicious' | 'normal'
@@ -319,6 +327,27 @@ function App() {
           <span className="header-subtitle">protecting : {metrics.targetUrl || '—'}</span>
         </div>
         <div className="header-right">
+          <div className="theme-select-container">
+            <span className="theme-select-label">Theme:</span>
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              className="theme-select-dropdown"
+            >
+              <option value="coffee">Coffee Cream</option>
+              <option value="catppuccin">Catppuccin Mocha</option>
+              <option value="catppuccin-latte">Catppuccin Latte</option>
+              <option value="github-light">GitHub Light</option>
+              <option value="solarized-light">Solarized Light</option>
+              <option value="one-dark">One Dark Pro</option>
+              <option value="one-light">One Light</option>
+              <option value="gruvbox-dark">Gruvbox Dark</option>
+              <option value="gruvbox-light">Gruvbox Light</option>
+              <option value="night-owl">Night Owl</option>
+              <option value="nord">Nord Arctic</option>
+              <option value="dracula">Dracula</option>
+            </select>
+          </div>
           <button className="btn-runtime-guide" onClick={() => setShowGuide(true)}>
             Runtime Defense Guide
           </button>
@@ -377,21 +406,33 @@ function App() {
 
         {/* Right Side: 2x2 Metrics Grid */}
         <div className="metrics-2x2-grid">
-          <div className="metric-card">
-             <h3>Events Processed</h3>
-             <div className="value">{metrics.processed.toLocaleString()}</div>
+          <div className="metric-card card-processed">
+            <div className="metric-card-header">
+              <h3>Events Processed</h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="metric-icon"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            </div>
+            <div className="value">{metrics.processed.toLocaleString()}</div>
           </div>
-          <div className="metric-card glass-block">
-             <h3>Active Blocks</h3>
-             <div className="value red">{metrics.blocks}</div>
+          <div className="metric-card card-block">
+            <div className="metric-card-header">
+              <h3>Active Blocks</h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="metric-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+            </div>
+            <div className="value red">{metrics.blocks}</div>
           </div>
-          <div className="metric-card glass-challenge">
-             <h3>Active Challenges</h3>
-             <div className="value yellow">{metrics.challenges}</div>
+          <div className="metric-card card-challenge">
+            <div className="metric-card-header">
+              <h3>Active Challenges</h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="metric-icon"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            </div>
+            <div className="value yellow">{metrics.challenges}</div>
           </div>
-          <div className="metric-card glass-ratelimit">
-             <h3>Rate Limits</h3>
-             <div className="value blue">{metrics.rate_limits}</div>
+          <div className="metric-card card-ratelimit">
+            <div className="metric-card-header">
+              <h3>Rate Limits</h3>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="metric-icon"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div className="value blue">{metrics.rate_limits}</div>
           </div>
         </div>
       </section>
@@ -764,7 +805,7 @@ function App() {
                             // UNBLOCK flow
                             unblockConfirm === s.session_id ? (
                               <div className="confirm-bar">
-                                <span className="confirm-text">Confirm unblock this session?</span>
+                                <span className="confirm-text">Confirm unblock this session & IP?</span>
                                 <button
                                   className="btn-confirm-yes"
                                   onClick={(e) => { e.stopPropagation(); handleUnblock(s.session_id) }}
@@ -783,7 +824,7 @@ function App() {
                                 className="btn-unblock"
                                 onClick={(e) => { e.stopPropagation(); setUnblockConfirm(s.session_id) }}
                               >
-                                🔓 Unblock Session
+                                🔓 Unblock Session & IP
                               </button>
                             )
                           ) : (
@@ -791,7 +832,7 @@ function App() {
                             <>
                               {blockConfirm === s.session_id ? (
                                 <div className="confirm-bar">
-                                  <span className="confirm-text">Confirm block this session?</span>
+                                  <span className="confirm-text">Confirm block this session & IP?</span>
                                   <button
                                     className="btn-confirm-block"
                                     onClick={(e) => { e.stopPropagation(); handleBlock(s.session_id) }}
@@ -810,7 +851,7 @@ function App() {
                                   className="btn-block"
                                   onClick={(e) => { e.stopPropagation(); setBlockConfirm(s.session_id) }}
                                 >
-                                  🚫 Block Session
+                                  🚫 Block Session & IP
                                 </button>
                               )}
 
