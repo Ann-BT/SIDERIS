@@ -156,8 +156,6 @@ function getCaptchaOverlay(sid) {
     
     #sideris-captcha-overlay * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
     }
     
     .sdr-card {
@@ -181,19 +179,6 @@ function getCaptchaOverlay(sid) {
       background: #f6f8fa;
       border-bottom: 1px solid #d0d7de;
       padding: 1.25rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    
-    .sdr-shield {
-      width: 42px; height: 42px; border-radius: 6px; flex-shrink: 0;
-      background: #24292f;
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid #d0d7de;
-    }
-    
-    .sdr-head-text {
       display: flex;
       flex-direction: column;
       gap: 2px;
@@ -225,23 +210,11 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-warn {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
       background: #fff8c5;
       border: 1px solid rgba(191, 135, 0, 0.35);
       border-radius: 6px;
       padding: 0.75rem 1rem;
       margin-bottom: 1.25rem;
-    }
-    
-    .sdr-warn-icon {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 2px;
-      color: #9a6700;
     }
     
     .sdr-warn-text {
@@ -300,7 +273,7 @@ function getCaptchaOverlay(sid) {
       background: #ffffff;
       position: relative;
       user-select: none;
-      height: 70px;
+      height: 48px;
       display: flex;
       align-items: center;
     }
@@ -319,8 +292,8 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-refresh {
-      width: 40px;
-      height: 40px;
+      height: 48px;
+      padding: 0 16px;
       border-radius: 6px;
       flex-shrink: 0;
       border: 1px solid #d0d7de;
@@ -330,6 +303,8 @@ function getCaptchaOverlay(sid) {
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 600;
       transition: all 0.2s ease;
     }
     
@@ -337,11 +312,6 @@ function getCaptchaOverlay(sid) {
       background: #eaeef2;
       border-color: #8c959f;
     }
-    
-    .sdr-refresh.sdr-spin svg {
-      animation: sdrSpin 0.5s ease;
-    }
-    @keyframes sdrSpin { to { transform: rotate(360deg); } }
     
     .sdr-inp-lbl {
       display: block;
@@ -473,29 +443,12 @@ function getCaptchaOverlay(sid) {
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding: 1rem 0 0.5rem;
+      padding: 1.5rem 0;
     }
     
     .sdr-success.sdr-vis {
       display: flex;
       animation: sdrFadeIn 0.3s ease forwards;
-    }
-    
-    .sdr-ok-ring {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: rgba(31, 136, 61, 0.1);
-      border: 2px solid rgba(31, 136, 61, 0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.75rem;
-      animation: sdrPop 0.45s cubic-bezier(.34, 1.56, .64, 1) forwards;
-    }
-    @keyframes sdrPop {
-      from { transform: scale(0.5); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
     }
     
     .sdr-ok-title {
@@ -569,21 +522,13 @@ function getCaptchaOverlay(sid) {
   <div id="sideris-captcha-overlay">
     <div class="sdr-card">
       <div class="sdr-head">
-        <div class="sdr-shield">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div class="sdr-head-text">
-          <div class="sdr-brand">SIDERIS Security</div>
-          <div class="sdr-title">Verification Required</div>
-          <div class="sdr-sub">Unusual activity detected on your session</div>
-        </div>
+        <div class="sdr-brand">SIDERIS Security</div>
+        <h1 class="sdr-title">Verification Required</h1>
+        <div class="sdr-sub">Unusual activity detected on your session</div>
       </div>
       <div class="sdr-body">
         <div class="sdr-warn">
-          <span class="sdr-warn-icon">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </span>
-          <span class="sdr-warn-text">Our system flagged <strong>suspicious behavior patterns</strong>. Complete this verification to continue. Repeated failures will temporary block access.</span>
+          <span class="sdr-warn-text">Our system flagged suspicious behavior patterns. Complete this verification to continue. Repeated failures will temporary block access.</span>
         </div>
         <div class="sdr-sid-row">
           <span class="sdr-sid-lbl">Session</span>
@@ -596,9 +541,7 @@ function getCaptchaOverlay(sid) {
               <canvas id="sdrCanvas"></canvas>
               <div class="sdr-noise"></div>
             </div>
-            <button class="sdr-refresh" id="sdrRefresh" title="New code">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            </button>
+            <button class="sdr-refresh" id="sdrRefresh" title="New code">Refresh</button>
           </div>
           <label class="sdr-inp-lbl" for="sdrInput">Your answer</label>
           <input id="sdrInput" class="sdr-input" type="text" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type code…" />
@@ -609,9 +552,6 @@ function getCaptchaOverlay(sid) {
           <button class="sdr-btn" id="sdrBtn">Verify My Identity</button>
         </div>
         <div class="sdr-success" id="sdrSuccess">
-          <div class="sdr-ok-ring">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1f883d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
           <div class="sdr-ok-title">Verification Successful</div>
           <div class="sdr-ok-sub">Resuming your session…</div>
           <div class="sdr-prog-wrap"><div class="sdr-prog-fill" id="sdrProg"></div></div>
@@ -648,7 +588,7 @@ function getCaptchaOverlay(sid) {
   function draw(c){
     // Match drawing buffer size to actual rendered CSS size to avoid any blurriness or distortion
     canvas.width = canvas.offsetWidth || 320;
-    canvas.height = canvas.offsetHeight || 70;
+    canvas.height = canvas.offsetHeight || 48;
     var W=canvas.width,H=canvas.height;
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
     ctx.strokeStyle='rgba(140,149,159,0.12)';ctx.lineWidth=0.5;
@@ -670,9 +610,9 @@ function getCaptchaOverlay(sid) {
     }
     var cw=W/c.length;
     c.split('').forEach(function(ch,i){
-      var x=cw*i+cw/2, y=H/2+9;
+      var x=cw*i+cw/2, y=H/2+7;
       var angle=(Math.random()-0.5)*0.38;
-      var size=24+Math.floor(Math.random()*5);
+      var size=20+Math.floor(Math.random()*4);
       var pals=[[212,12,18],[212,92,25],[354,70,30],[144,60,25]];
       var p=pals[Math.floor(Math.random()*pals.length)];
       ctx.save();
