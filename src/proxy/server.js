@@ -146,10 +146,10 @@ function getCaptchaOverlay(sid) {
       position: fixed; inset: 0; z-index: 2147483647;
       display: flex; align-items: center; justify-content: center;
       padding: 1.5rem;
-      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-      background: rgba(43, 24, 12, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+      background: rgba(246, 248, 250, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       animation: sdrFadeIn 0.35s ease forwards;
     }
     @keyframes sdrFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -161,12 +161,12 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-card {
-      background: #FFFFFF;
-      border-radius: 20px;
-      border: 1px solid rgba(200, 119, 58, 0.18);
-      box-shadow: 0 25px 70px rgba(43, 24, 12, 0.45);
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #d0d7de;
+      box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
       width: 100%;
-      max-width: 480px;
+      max-width: 440px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -178,19 +178,19 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-head {
-      background: #F8F4EE;
-      border-bottom: 1px solid #EDE4D8;
-      padding: 1.5rem 1.75rem;
+      background: #f6f8fa;
+      border-bottom: 1px solid #d0d7de;
+      padding: 1.25rem 1.5rem;
       display: flex;
       align-items: center;
-      gap: 1.25rem;
+      gap: 1rem;
     }
     
     .sdr-shield {
-      width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
-      background: linear-gradient(135deg, #D4884E, #8A5028);
+      width: 42px; height: 42px; border-radius: 6px; flex-shrink: 0;
+      background: #24292f;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(212, 136, 78, 0.35);
+      border: 1px solid #d0d7de;
     }
     
     .sdr-head-text {
@@ -200,40 +200,39 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-brand {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 2px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #57606a;
       text-transform: uppercase;
-      color: #B26A35;
+      letter-spacing: 0.5px;
     }
     
     .sdr-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #3D2314;
-      letter-spacing: -0.3px;
-      line-height: 1.2;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #24292f;
+      line-height: 1.3;
     }
     
     .sdr-sub {
       font-size: 0.78rem;
-      color: #8C6F5E;
+      color: #57606a;
     }
     
     .sdr-body {
-      padding: 1.75rem;
-      background: #FFFFFF;
+      padding: 1.5rem;
+      background: #ffffff;
     }
     
     .sdr-warn {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: flex-start;
-      background: rgba(184, 134, 11, 0.06);
-      border: 1px solid rgba(184, 134, 11, 0.2);
-      border-radius: 10px;
-      padding: 0.85rem 1rem;
-      margin-bottom: 1.5rem;
+      background: #fff8c5;
+      border: 1px solid rgba(191, 135, 0, 0.35);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
     }
     
     .sdr-warn-icon {
@@ -242,15 +241,16 @@ function getCaptchaOverlay(sid) {
       align-items: center;
       justify-content: center;
       margin-top: 2px;
+      color: #9a6700;
     }
     
     .sdr-warn-text {
-      font-size: 0.8rem;
-      color: #6E5343;
-      line-height: 1.55;
+      font-size: 0.78rem;
+      color: #24292f;
+      line-height: 1.5;
     }
     .sdr-warn-text strong {
-      color: #8C6000;
+      color: #9a6700;
       font-weight: 600;
     }
     
@@ -258,50 +258,46 @@ function getCaptchaOverlay(sid) {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #F8F4EE;
-      border: 1px solid #EDE4D8;
-      border-radius: 8px;
-      padding: 0.6rem 1rem;
-      margin-bottom: 1.5rem;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 1.25rem;
     }
     
     .sdr-sid-lbl {
-      font-size: 0.65rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: #9C8576;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #57606a;
     }
     
     .sdr-sid-val {
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
       font-size: 0.78rem;
-      color: #6F4E37;
-      font-weight: 500;
+      color: #24292f;
+      font-weight: 600;
     }
     
     .sdr-cap-lbl {
-      font-size: 0.7rem;
+      font-size: 0.78rem;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: #8C6F5E;
-      margin-bottom: 0.6rem;
+      color: #24292f;
+      margin-bottom: 0.5rem;
     }
     
     .sdr-cap-row {
       display: flex;
       gap: 12px;
       align-items: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
     
     .sdr-canvas-wrap {
       flex: 1;
-      border-radius: 10px;
+      border-radius: 6px;
       overflow: hidden;
-      border: 1px solid #E0D5C8;
-      background: #FDFBFA;
+      border: 1px solid #d0d7de;
+      background: #ffffff;
       position: relative;
       user-select: none;
       height: 70px;
@@ -319,29 +315,27 @@ function getCaptchaOverlay(sid) {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(95, 62, 38, 0.015) 3px, rgba(95, 62, 38, 0.015) 4px);
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(140, 149, 159, 0.02) 3px, rgba(140, 149, 159, 0.02) 4px);
     }
     
     .sdr-refresh {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
       flex-shrink: 0;
-      border: 1px solid #E0D5C8;
-      background: #FFFFFF;
-      color: #8A5028;
+      border: 1px solid #d0d7de;
+      background: #f6f8fa;
+      color: #24292f;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
     }
     
     .sdr-refresh:hover {
-      background: #F8F4EE;
-      border-color: #D4884E;
-      color: #B26A35;
+      background: #eaeef2;
+      border-color: #8c959f;
     }
     
     .sdr-refresh.sdr-spin svg {
@@ -351,52 +345,50 @@ function getCaptchaOverlay(sid) {
     
     .sdr-inp-lbl {
       display: block;
-      font-size: 0.7rem;
+      font-size: 0.78rem;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: #8C6F5E;
-      margin-bottom: 0.6rem;
+      color: #24292f;
+      margin-bottom: 0.5rem;
     }
     
     .sdr-input {
       width: 100%;
-      padding: 0.75rem 1rem;
-      border: 1.5px solid #E0D5C8;
-      border-radius: 10px;
-      font-family: 'IBM Plex Mono', monospace;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
       font-size: 1.1rem;
       font-weight: 600;
-      letter-spacing: 6px;
-      color: #3D2314;
-      background: #FFFFFF;
+      letter-spacing: 4px;
+      color: #24292f;
+      background: #ffffff;
       outline: none;
       transition: all 0.2s ease;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
     }
     
     .sdr-input::placeholder {
       letter-spacing: 1px;
       font-size: 0.85rem;
-      color: #BCAAA4;
-      font-family: 'IBM Plex Sans', sans-serif;
+      color: #8c959f;
+      font-family: -apple-system, sans-serif;
       font-weight: 400;
     }
     
     .sdr-input:focus {
-      border-color: #D4884E;
-      box-shadow: 0 0 0 3px rgba(212, 136, 78, 0.15), inset 0 2px 4px rgba(0,0,0,0.02);
+      border-color: #0969da;
+      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.075);
     }
     
     .sdr-input.sdr-err {
-      border-color: #E53935;
-      box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15);
+      border-color: #cf222e;
+      box-shadow: 0 0 0 3px rgba(207, 34, 46, 0.3);
       animation: sdrShake 0.4s ease;
     }
     
     .sdr-input.sdr-ok {
-      border-color: #43A047;
-      box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.15);
+      border-color: #1f883d;
+      box-shadow: 0 0 0 3px rgba(31, 136, 61, 0.3);
     }
     
     @keyframes sdrShake {
@@ -409,22 +401,22 @@ function getCaptchaOverlay(sid) {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 0.6rem;
-      margin-bottom: 1.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 1.25rem;
     }
     
     .sdr-hint {
       font-size: 0.72rem;
-      color: #9C8576;
+      color: #57606a;
     }
     
     .sdr-hint.sdr-h-err {
-      color: #D32F2F;
+      color: #cf222e;
       font-weight: 500;
     }
     
     .sdr-hint.sdr-h-ok {
-      color: #2E7D32;
+      color: #1f883d;
       font-weight: 500;
     }
     
@@ -434,44 +426,40 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #EDE4D8;
-      border: 1px solid #E0D5C8;
+      background: #eaeef2;
+      border: 1px solid #d0d7de;
       transition: all 0.25s ease;
     }
     
     .sdr-dot.sdr-dot-used {
-      background: #D32F2F;
-      border-color: rgba(211, 47, 47, 0.3);
-      box-shadow: 0 0 6px rgba(211, 47, 47, 0.2);
+      background: #cf222e;
+      border-color: #cf222e;
     }
     
     .sdr-btn {
       width: 100%;
-      padding: 0.85rem 1rem;
-      background: linear-gradient(135deg, #D4884E 0%, #8A5028 100%);
-      color: #FFFFFF;
-      border: none;
-      border-radius: 10px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 0.95rem;
+      padding: 0.6rem 1rem;
+      background-color: #1f883d;
+      color: #ffffff;
+      border: 1px solid rgba(27, 31, 36, 0.15);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
-      letter-spacing: 0.3px;
-      box-shadow: 0 4px 14px rgba(212, 136, 78, 0.35);
-      transition: all 0.25s ease;
+      transition: background-color 0.2s ease;
+      box-shadow: 0 1px 0 rgba(27, 31, 36, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
     
     .sdr-btn:hover:not(:disabled) {
-      opacity: 0.95;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(212, 136, 78, 0.45);
+      background-color: #1a7f37;
     }
     
     .sdr-btn:active:not(:disabled) {
-      transform: translateY(0);
+      background-color: #187733;
     }
     
     .sdr-btn:disabled {
@@ -485,7 +473,7 @@ function getCaptchaOverlay(sid) {
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding: 1.5rem 0 0.5rem;
+      padding: 1rem 0 0.5rem;
     }
     
     .sdr-success.sdr-vis {
@@ -494,15 +482,15 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-ok-ring {
-      width: 64px;
-      height: 64px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      background: rgba(67, 160, 71, 0.1);
-      border: 2px solid rgba(67, 160, 71, 0.25);
+      background: rgba(31, 136, 61, 0.1);
+      border: 2px solid rgba(31, 136, 61, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
       animation: sdrPop 0.45s cubic-bezier(.34, 1.56, .64, 1) forwards;
     }
     @keyframes sdrPop {
@@ -511,60 +499,59 @@ function getCaptchaOverlay(sid) {
     }
     
     .sdr-ok-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #2E7D32;
-      margin-bottom: 0.3rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1f883d;
+      margin-bottom: 0.25rem;
     }
     
     .sdr-ok-sub {
-      font-size: 0.82rem;
-      color: #8C6F5E;
-      margin-bottom: 1.25rem;
+      font-size: 0.78rem;
+      color: #57606a;
+      margin-bottom: 1rem;
     }
     
     .sdr-prog-wrap {
       width: 100%;
-      background: #F8F4EE;
-      border-radius: 4px;
-      height: 6px;
+      background: #f6f8fa;
+      border-radius: 3px;
+      height: 4px;
       overflow: hidden;
-      border: 1px solid #EDE4D8;
+      border: 1px solid #d0d7de;
     }
     
     .sdr-prog-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #43A047, #66BB6A);
-      border-radius: 4px;
+      background: #1f883d;
+      border-radius: 3px;
       transition: width 3s linear;
     }
     
     .sdr-foot {
-      border-top: 1px solid #EDE4D8;
-      padding: 1rem 1.75rem;
+      border-top: 1px solid #d0d7de;
+      padding: 0.75rem 1.5rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #F8F4EE;
+      background: #f6f8fa;
     }
     
     .sdr-foot-badge {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       font-size: 0.68rem;
-      font-weight: 600;
-      color: #8C6F5E;
-      letter-spacing: 0.3px;
+      font-weight: 500;
+      color: #57606a;
     }
     
     .sdr-live-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #1976D2;
-      box-shadow: 0 0 6px rgba(25, 118, 210, 0.5);
+      background: #0969da;
+      box-shadow: 0 0 4px rgba(9, 105, 218, 0.4);
       animation: sdrBlink 2s infinite;
     }
     @keyframes sdrBlink {
@@ -574,8 +561,8 @@ function getCaptchaOverlay(sid) {
     
     .sdr-foot-ts {
       font-size: 0.65rem;
-      color: #9C8576;
-      font-family: 'IBM Plex Mono', monospace;
+      color: #57606a;
+      font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
     }
   </style>
   
@@ -583,20 +570,20 @@ function getCaptchaOverlay(sid) {
     <div class="sdr-card">
       <div class="sdr-head">
         <div class="sdr-shield">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </div>
         <div class="sdr-head-text">
           <div class="sdr-brand">SIDERIS Security</div>
-          <div class="sdr-title">Human Verification Required</div>
+          <div class="sdr-title">Verification Required</div>
           <div class="sdr-sub">Unusual activity detected on your session</div>
         </div>
       </div>
       <div class="sdr-body">
         <div class="sdr-warn">
           <span class="sdr-warn-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b8860b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </span>
-          <span class="sdr-warn-text">Our system has flagged <strong>suspicious behavior patterns</strong> from your session. Complete the verification to continue. Repeated failures will result in a temporary block.</span>
+          <span class="sdr-warn-text">Our system flagged <strong>suspicious behavior patterns</strong>. Complete this verification to continue. Repeated failures will temporary block access.</span>
         </div>
         <div class="sdr-sid-row">
           <span class="sdr-sid-lbl">Session</span>
@@ -606,15 +593,15 @@ function getCaptchaOverlay(sid) {
           <div class="sdr-cap-lbl">Enter the code shown below</div>
           <div class="sdr-cap-row">
             <div class="sdr-canvas-wrap">
-              <canvas id="sdrCanvas" width="320" height="70"></canvas>
+              <canvas id="sdrCanvas"></canvas>
               <div class="sdr-noise"></div>
             </div>
             <button class="sdr-refresh" id="sdrRefresh" title="New code">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             </button>
           </div>
           <label class="sdr-inp-lbl" for="sdrInput">Your answer</label>
-          <input id="sdrInput" class="sdr-input" type="text" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type here…" />
+          <input id="sdrInput" class="sdr-input" type="text" maxlength="6" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type code…" />
           <div class="sdr-meta-row">
             <span class="sdr-hint" id="sdrHint">Case-insensitive · 6 characters</span>
             <div class="sdr-dots" id="sdrDots"></div>
@@ -623,7 +610,7 @@ function getCaptchaOverlay(sid) {
         </div>
         <div class="sdr-success" id="sdrSuccess">
           <div class="sdr-ok-ring">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1f883d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div class="sdr-ok-title">Verification Successful</div>
           <div class="sdr-ok-sub">Resuming your session…</div>
@@ -659,36 +646,39 @@ function getCaptchaOverlay(sid) {
   function gen(){return Array.from({length:6},rc).join('');}
   function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)';}
   function draw(c){
+    // Match drawing buffer size to actual rendered CSS size to avoid any blurriness or distortion
+    canvas.width = canvas.offsetWidth || 320;
+    canvas.height = canvas.offsetHeight || 70;
     var W=canvas.width,H=canvas.height;
-    ctx.fillStyle='#FDFBFA';ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle='rgba(180,140,110,0.13)';ctx.lineWidth=0.5;
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(140,149,159,0.12)';ctx.lineWidth=0.5;
     for(var x=0;x<W;x+=16){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
     for(var y=0;y<H;y+=16){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
     for(var i=0;i<5;i++){
       ctx.beginPath();
-      ctx.strokeStyle='rgba('+(111+i*8)+','+(78+i*5)+',55,'+(0.07+Math.random()*0.07)+')';
+      ctx.strokeStyle='rgba('+(36+i*15)+','+(41+i*20)+','+(47+i*25)+','+(0.06+Math.random()*0.06)+')';
       ctx.lineWidth=1+Math.random()*1.5;
       ctx.moveTo(0,H*Math.random());
       ctx.bezierCurveTo(W*0.25,H*Math.random(),W*0.75,H*Math.random(),W,H*Math.random());
       ctx.stroke();
     }
-    for(var d=0;d<55;d++){
+    for(var d=0;d<45;d++){
       ctx.beginPath();
       ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.4,0,Math.PI*2);
-      ctx.fillStyle='rgba(111,78,55,'+(0.07+Math.random()*0.12)+')';
+      ctx.fillStyle='rgba(87,96,106,'+(0.06+Math.random()*0.1)+')';
       ctx.fill();
     }
     var cw=W/c.length;
     c.split('').forEach(function(ch,i){
       var x=cw*i+cw/2, y=H/2+9;
       var angle=(Math.random()-0.5)*0.38;
-      var size=24+Math.floor(Math.random()*7);
-      var pals=[[22,55,18],[22,40,30],[26,55,38]];
+      var size=24+Math.floor(Math.random()*5);
+      var pals=[[212,12,18],[212,92,25],[354,70,30],[144,60,25]];
       var p=pals[Math.floor(Math.random()*pals.length)];
       ctx.save();
       ctx.translate(x,y);ctx.rotate(angle);
-      ctx.shadowColor='rgba(61,35,20,0.2)';ctx.shadowBlur=3;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
-      ctx.font=(Math.random()>.5?'700 ':'600 ')+size+"px 'IBM Plex Mono',monospace";
+      ctx.shadowColor='rgba(140,149,159,0.2)';ctx.shadowBlur=2;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
+      ctx.font=(Math.random()>.5?'700 ':'600 ')+size+"px ui-monospace,SFMono-Regular,SF Mono,Menlo,monospace";
       ctx.fillStyle=hsl(p[0],p[1],p[2]);
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(ch,0,0);
