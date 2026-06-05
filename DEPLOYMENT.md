@@ -1,4 +1,4 @@
-# 🛡️ SIDERIS Deployment & Configuration Guide
+# SIDERIS Deployment and Configuration Guide
 
 SIDERIS is a real-time web attack detection and behavioral analysis system that runs as an intelligent Web Application Firewall (WAF) Proxy in front of your web application.
 
@@ -6,7 +6,7 @@ This guide explains how to install, configure, and run SIDERIS to protect your e
 
 ---
 
-## 🏗️ Architecture & Traffic Flow
+## Architecture and Traffic Flow
 
 SIDERIS acts as a reverse proxy. It sits between the public internet and your real website server:
 
@@ -36,18 +36,18 @@ SIDERIS acts as a reverse proxy. It sits between the public internet and your re
 
 ---
 
-## ⚙️ Prerequisites
+## Prerequisites
 
 Ensure your host system has the following installed:
-* **Option A (Docker - Recommended)**: [Docker](https://docs.docker.com/get-docker/) and [Docker Compose v2](https://docs.docker.com/compose/install/).
+* **Option A (Docker - Recommended)**: Docker and Docker Compose v2.
 * **Option B (Native Node.js)**:
   * Node.js v20 or higher
-  * PostgreSQL v16 or higher (with [pgvector](https://github.com/pgvector/pgvector) installed)
+  * PostgreSQL v16 or higher (with pgvector installed)
   * Redis v7 or higher
 
 ---
 
-## 🚀 Deployment Option A: Docker Compose (Recommended)
+## Deployment Option A: Docker Compose (Recommended)
 
 This is the fastest way to deploy SIDERIS. It starts SIDERIS alongside preconfigured Redis and PostgreSQL containers.
 
@@ -82,7 +82,7 @@ SIDERIS will automatically:
 
 ---
 
-## 💻 Deployment Option B: Native Node.js Setup
+## Deployment Option B: Native Node.js Setup
 
 If you prefer to run SIDERIS directly on your host operating system:
 
@@ -110,7 +110,7 @@ npm run start-all
 
 ---
 
-## 🔗 Integrating with Your Production Web Stack
+## Integrating with Your Production Web Stack
 
 To put SIDERIS in front of your live site, you should place a production web server (like Nginx) in front of SIDERIS to handle SSL (HTTPS).
 
@@ -153,26 +153,27 @@ server {
 
 ---
 
-## 🛡️ Security Configuration Recommendations
+## Security Configuration Recommendations
 
 ### 1. Restricting Dashboard Access
-The SOC Dashboard contains raw behavioral and alert logs. **Never expose the dashboard publicly.** 
+The SOC Dashboard contains raw behavioral and alert logs. Never expose the dashboard publicly.
 Configure the allowed IP addresses or CIDR ranges in your `.env` file:
 ```ini
 DASHBOARD_ALLOWED_IPS=127.0.0.1,192.168.1.0/24,10.0.0.0/8
 ```
 
 ### 2. Guard Policy
-The Guard service automatically blocks or challenges clients whose session scores exceed specific threat levels. You can customize mitigation behaviors under `src/guard/guard.js`.
+The Guard service automatically blocks or challenges clients whose session scores exceed specific threat levels. You can customize mitigation behaviors under src/guard/guard.js.
 
 ---
 
-## 🧪 Verification & Troubleshooting
+## Verification and Troubleshooting
 
-1. **Verify Proxy**: Visit `http://yourdomain.com` (or `http://localhost:4000`). Your website should load normally.
+1. **Verify Proxy**: Visit http://yourdomain.com (or http://localhost:4000). Your website should load normally.
 2. **Verify Telemetry Agent**: Open your browser's Developer Tools (F12) Console and run:
    ```javascript
    SiderisAgent.getSessionId()
    ```
    If it returns a session string, the agent is injected and communicating successfully.
-3. **Verify Dashboard**: Navigate to the dashboard UI port (default `http://localhost:5173`). You should see active sessions, event metrics, and attack events being populated in real time.
+3. **Verify Dashboard**: Navigate to the dashboard UI port (default http://localhost:5173). You should see active sessions, event metrics, and attack events being populated in real time.
+

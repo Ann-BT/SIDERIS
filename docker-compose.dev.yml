@@ -1,11 +1,8 @@
-# ──────────────────────────────────────────────────────────
-# docker-compose.yml
-# SIDERIS 2.0 — Integrated with Medusa E-Commerce
-# ──────────────────────────────────────────────────────────
+# SIDERIS local development and testing configuration
 
 services:
 
-  # ── Redis — event stream + session state ───────────────
+  # Redis database for the event stream and session state
   redis:
     image: redis:7-alpine
     container_name: sideris-redis
@@ -21,7 +18,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── PostgreSQL — persistent SOC storage ────────────────
+  # PostgreSQL database for persistent security logs
   postgres:
     image: pgvector/pgvector:pg16
     container_name: sideris-postgres
@@ -40,7 +37,7 @@ services:
       timeout: 3s
       retries: 10
 
-  # ── Medusa E-Commerce Backend & Admin ──────────────────
+  # Medusa E-Commerce testing application
   medusa:
     build:
       context: ../medusa-test
@@ -59,7 +56,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── SIDERIS — WAF Proxy + telemetry backend + Dashboard ─
+  # SIDERIS core application containing proxy, ingest, and dashboard services
   sideris:
     build: .
     container_name: sideris-app
@@ -82,7 +79,7 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # ── Discourse — Modern Forum Application ───────────────
+  # Discourse forum testing application
   discourse:
     image: public.ecr.aws/bitnami/discourse:latest
     container_name: sideris-discourse
@@ -112,7 +109,7 @@ services:
       - ./scripts/discourse-wrapper.sh:/discourse-wrapper.sh
     restart: unless-stopped
 
-  # ── OWASP Juice Shop — Vulnerable web app for testing ─────
+  # OWASP Juice Shop testing application
   juiceshop:
     image: bkimminich/juice-shop:latest
     container_name: sideris-juiceshop
@@ -127,3 +124,4 @@ volumes:
     driver: local
   discourse_data:
     driver: local
+

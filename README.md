@@ -2,13 +2,13 @@
 
 Real-time web attack detection and behavioral analysis system for security research.
 
-## 🚀 Quick Links
+## Quick Links
 * **[Production Deployment Guide](./DEPLOYMENT.md)** — Learn how to set up SIDERIS to protect your live website in minutes.
 * **[Testing Guide](./docs/testing_guide.md)** — Scenarios and scripts for validating SIDERIS detections.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Juice Shop (:3000) + agent.js (injected automatically via WAF Proxy)
@@ -24,7 +24,7 @@ Juice Shop (:3000) + agent.js (injected automatically via WAF Proxy)
 
 ---
 
-## 🛠️ Local Development & Testing
+## Local Development and Testing
 
 SIDERIS includes a full developer test suite with vulnerable applications (OWASP Juice Shop, Discourse, and Medusa Commerce) to simulate real attack vectors.
 
@@ -50,7 +50,7 @@ Navigate to the React dashboard at:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 SIDERIS 2.0/
@@ -73,4 +73,5 @@ SIDERIS 2.0/
 ```
 
 See [TESTING.md](./TESTING.md) for detailed test instructions.
+
 

@@ -1,11 +1,8 @@
-# ──────────────────────────────────────────────────────────
-# docker-compose.yml
-# SIDERIS — Production Deployment Configuration
-# ──────────────────────────────────────────────────────────
+# SIDERIS production deployment configuration
 
 services:
 
-  # ── Redis — event stream + session state ───────────────
+  # Redis database for the event stream and session state
   redis:
     image: redis:7-alpine
     container_name: sideris-redis
@@ -21,7 +18,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── PostgreSQL — persistent SOC storage ────────────────
+  # PostgreSQL database for persistent security logs
   postgres:
     image: pgvector/pgvector:pg16
     container_name: sideris-postgres
@@ -40,12 +37,11 @@ services:
       timeout: 3s
       retries: 10
 
-  # ── SIDERIS — WAF Proxy + telemetry backend + Dashboard ─
+  # SIDERIS core application containing proxy, ingest, and dashboard services
   sideris:
     build: .
     container_name: sideris-app
-    # Uses host networking to easily proxy to local websites on the host
-    # and bind dashboard/proxy ports to the host interface.
+    # Host networking allows the container to proxy to your local website and bind ports directly
     network_mode: host
     environment:
       - REDIS_URL=${REDIS_URL:-redis://localhost:6379}
@@ -69,3 +65,4 @@ volumes:
     driver: local
   postgres_data:
     driver: local
+
