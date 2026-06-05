@@ -31,7 +31,7 @@
 ### Your website is being probed right now. Bots, scrapers, credential stuffers — they don't knock.
 ### SIDERIS answers the door for you. With a baseball bat.
 
-*⭐ If SIDERIS saved your server from a bad day, the star button is right up there. Our developer runs on dopamine and instant ramen.*
+*⭐ If SIDERIS saved your server from a bad day, the star button is right up there. I run on dopamine and instant ramen.*
 
 *💡 Click any section header badge to return to the top navigation.*
 
@@ -437,5 +437,5 @@ Free to use, modify, and deploy — personal projects, commercial websites, what
   <br><br>
   <a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>
   <br><br>
-  <i>⭐ Stars are free and they make developers unreasonably happy. Just saying.</i>
+  <i>⭐ Stars are free and they make me unreasonably happy. Just saying.</i>
 </div>
