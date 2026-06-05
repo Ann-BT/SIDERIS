@@ -1,6 +1,6 @@
 # Sideris 2.0
 
-Real-time web attack detection and behavioral analysis system for security research.
+SIDERIS (Sidecar Integrated Detection, Event Reporting, & Intelligence System) is a real-time web attack detection and behavioral analysis system for security research.
 
 ## Quick Links
 * **[Production Deployment Guide](./DEPLOYMENT.md)** — Learn how to set up SIDERIS to protect your live website in minutes.

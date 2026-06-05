@@ -1,6 +1,6 @@
 # SIDERIS Deployment and Configuration Guide
 
-SIDERIS is a real-time web attack detection and behavioral analysis system that runs as an intelligent Web Application Firewall (WAF) Proxy in front of your web application.
+SIDERIS (Sidecar Integrated Detection, Event Reporting, & Intelligence System) is a real-time web attack detection and behavioral analysis system that runs as an intelligent Web Application Firewall (WAF) Proxy in front of your web application.
 
 This guide explains how to install, configure, and run SIDERIS to protect your existing website.
 
