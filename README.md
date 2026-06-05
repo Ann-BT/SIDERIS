@@ -18,12 +18,6 @@
   <a href="https://github.com/Ann-BT/SIDERIS"><img src="https://img.shields.io/github/repo-size/Ann-BT/SIDERIS?style=for-the-badge&color=e0af68&labelColor=161b22&logo=git&logoColor=white"/></a>
 </p>
 
-<div align="center">
-<pre>
-<a href="#about">ᴀʙᴏᴜᴛ</a>  •  <a href="#quick-start">ǫᴜɪᴄᴋ sᴛᴀʀᴛ</a>  •  <a href="#architecture">ᴀʀᴄʜɪᴛᴇᴄᴛᴜʀᴇ</a>  •  <a href="#gallery">ɢᴀʟʟᴇʀʏ</a>  •  <a href="#configuration">ᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ</a>  •  <a href="#contact">ᴄᴏɴᴛᴀᴄᴛ</a>  •  <a href="#license">ʟɪᴄᴇɴsᴇ</a>
-</pre>
-</div>
-
 <br>
 
 <div align="center">
