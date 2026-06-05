@@ -1,9 +1,7 @@
-// ──────────────────────────────────────────────────────────
 // src/shared/config.js
 // Centralized configuration for all Sideris servers.
 // Reads from .env, validates required variables, exports
 // ports, paths, and the target URL.
-// ──────────────────────────────────────────────────────────
 
 const path = require('path');
 const dotenv = require('dotenv');
@@ -11,7 +9,7 @@ const dotenv = require('dotenv');
 // Load .env from project root
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// ── Required env var validation ──────────────────────────
+// Required env var validation
 const REQUIRED = ['INGEST_PORT', 'DASHBOARD_PORT', 'REDIS_URL'];
 
 for (const key of REQUIRED) {
@@ -22,7 +20,7 @@ for (const key of REQUIRED) {
   }
 }
 
-// ── Exported configuration ───────────────────────────────
+// Exported configuration
 const config = {
   // Server ports
   ingestPort: parseInt(process.env.INGEST_PORT, 10),

@@ -8,7 +8,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
 
 (async () => {
-  // ── 1. Event score breakdown for recent events ────────────
+  // 1. Event score breakdown for recent events
   const events = await pool.query(`
     SELECT session_id, source, event_type, attack_type,
            impact, confidence, persistence, event_score, timestamp
@@ -32,7 +32,7 @@ const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
     )
   );
 
-  // ── 2. Session score summary ──────────────────────────────
+  // 2. Session score summary
   const sessions = await pool.query(`
     SELECT s.session_id, s.session_score, s.verdict,
            s.event_count, s.ip_address,
@@ -58,7 +58,7 @@ const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
     )
   );
 
-  // ── 3. Attack type distribution ───────────────────────────
+  // 3. Attack type distribution
   const types = await pool.query(`
     SELECT attack_type, COUNT(*) as cnt,
            AVG(event_score) as avg_score,

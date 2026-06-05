@@ -18,7 +18,7 @@ function run(label, event, session = {}) {
   return r.event_score;
 }
 
-// ── NORMAL BROWSING (any app) ─────────────────────────────
+// NORMAL BROWSING (any app)
 console.log('\n══════════════════════════════════════════════════════════');
 console.log('  NORMAL BROWSING (any web app) — expect ALL 0 pts');
 console.log('══════════════════════════════════════════════════════════\n');
@@ -45,7 +45,7 @@ n += run('agent: rapid_requests',       makeAgent('rapid_requests'));
 n += run('agent: liveness_snapshot',    makeAgent('liveness_snapshot'));
 console.log(`\n  ▶ Total: ${n.toFixed(2)} pts — ${n === 0.5 ? '🟢 CORRECT' : '🔴 WRONG (should be 0.5)'}\n`);
 
-// ── ATTACK SCENARIOS ──────────────────────────────────────
+// ATTACK SCENARIOS
 console.log('══════════════════════════════════════════════════════════');
 console.log('  ATTACK SCENARIOS — expect HIGH scores');
 console.log('══════════════════════════════════════════════════════════\n');

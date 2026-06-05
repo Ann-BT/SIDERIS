@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/detector/eventAnalyzer.js
 // Sideris 2.0 — Event Analyzer (Category-Aware Edition)
 //
@@ -15,12 +14,9 @@
 //
 // 18+ detection rules, each with:
 //   rule_name, condition, category, impact (1-5), confidence (0–1.5)
-// ──────────────────────────────────────────────────────────
 'use strict';
 
-// ══════════════════════════════════════════════════════════
 // §1 — PAYLOAD ATTACK PATTERNS
-// ══════════════════════════════════════════════════════════
 
 // SQL Injection
 const SQL_PAT = /(UNION[\s\/\*]+SELECT|'\s*OR\s*'|OR\s+1\s*=\s*1|--\s*$|#\s*$|DROP\s+TABLE|INSERT\s+INTO|EXEC\s*\(|WAITFOR\s+DELAY|BENCHMARK\s*\(|CHAR\s*\(|CONCAT\s*\(|SLEEP\s*\(|LOAD_FILE\s*\(|INTO\s+OUTFILE)/i;
@@ -49,9 +45,7 @@ const SSRF_PAT = /(https?:\/\/(127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d
 // Path / Directory Traversal
 const DIR_PAT = /(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e\/|%2e%2e%5c|\.\.%2f|\.\.%5c)/i;
 
-// ══════════════════════════════════════════════════════════
 // §2 — TOOL & BEHAVIORAL FINGERPRINTS
-// ══════════════════════════════════════════════════════════
 
 // Known attack tool User-Agents
 const SCANNER_UA_PAT = /(sqlmap|nikto|nessus|openvas|nmap|masscan|burpsuite|burp\s*suite|zaproxy|owasp[\s-]?zap|w3af|acunetix|appscan|netsparker|vega|webscarab|wfuzz|dirb|gobuster|dirbuster|feroxbuster|ffuf|nuclei|metasploit|havij|pangolin|arachni|skipfish|grabber|wapiti|commix|droopescan|joomscan|wpscan|shodan|censys|xsser|beef)/i;
@@ -68,13 +62,11 @@ const ABUSED_METHODS = new Set(['TRACE', 'CONNECT', 'PROPFIND', 'PROPPATCH', 'MK
 // Auth-related endpoints (generic patterns)
 const AUTH_ENDPOINT_PAT = /\/(login|signin|sign-in|auth|authenticate|token|oauth|api\/login|rest\/user\/login|api\/auth|session)/i;
 
-// ══════════════════════════════════════════════════════════
 // §3 — ATTACK CATEGORY MAP
 // Maps each attack_type → category + human behavior_signal
-// ══════════════════════════════════════════════════════════
 
 const CATEGORY_MAP = {
-  // ── injection ──
+  // injection
   sql_injection:       { category: 'injection',       signal: 'SQL payload in parameter (UNION/OR/SLEEP)' },
   xss:                 { category: 'injection',       signal: 'XSS payload (<script>, onerror=, eval)' },
   cmd_injection:       { category: 'injection',       signal: 'Shell metachar + command in input' },
@@ -83,12 +75,12 @@ const CATEGORY_MAP = {
   ssrf:                { category: 'injection',       signal: 'Internal IP or file:// in parameter' },
   file_upload_exploit: { category: 'injection',       signal: 'Shell-extension file upload (.php, .jsp)' },
 
-  // ── authentication ──
+  // authentication
   auth_failure:        { category: 'authentication',  signal: 'Failed login (401/403 on auth endpoint)' },
   credential_stuffing: { category: 'authentication',  signal: 'Rapid login attempts (same IP, varied users)' },
   password_spray:      { category: 'authentication',  signal: 'Same password across multiple usernames' },
 
-  // ── fuzzing ──
+  // fuzzing
   scanner_tool:        { category: 'fuzzing',         signal: 'Attack tool User-Agent detected' },
   recon_404:           { category: 'fuzzing',         signal: 'Non-existent path accessed (404)' },
   file_exposure:       { category: 'fuzzing',         signal: 'Sensitive file access (.env, .git, .bak)' },
@@ -96,28 +88,26 @@ const CATEGORY_MAP = {
   directory_traversal: { category: 'fuzzing',         signal: 'Path traversal (../ sequences)' },
   http_method_abuse:   { category: 'fuzzing',         signal: 'Unusual HTTP method (TRACE, PROPFIND)' },
 
-  // ── bot ──
+  // bot
   headless_browser:    { category: 'bot',             signal: 'navigator.webdriver = true (headless)' },
   rapid_navigation:    { category: 'bot',             signal: '10+ pages loaded in 5 seconds' },
   instant_form_fill:   { category: 'bot',             signal: 'Form submitted < 800ms from focus' },
   keystroke_burst:     { category: 'bot',             signal: '>10 keystrokes in 500ms (inhuman speed)' },
   no_mouse_activity:   { category: 'bot',             signal: 'No mouse movement detected (bot)' },
 
-  // ── dos ──
+  // dos
   request_flood:       { category: 'dos',             signal: 'Extremely high request rate (>50/min)' },
   endpoint_hammer:     { category: 'dos',             signal: 'Same endpoint hit >20 times in 60s' },
 
-  // ── session_abuse ──
+  // session_abuse
   session_ip_change:   { category: 'session_abuse',   signal: 'Session used from different IP' },
   abnormal_navigation: { category: 'session_abuse',   signal: 'Jumped to privileged page without auth flow' },
 
-  // ── benign ──
+  // benign
   normal_browsing:     { category: 'normal',          signal: 'Normal user activity' },
 };
 
-// ══════════════════════════════════════════════════════════
 // §4 — IMPACT TABLE (1-5 scale)
-// ══════════════════════════════════════════════════════════
 const IMPACT = {
   normal_browsing:     0,
   recon_404:           1,
@@ -147,10 +137,8 @@ const IMPACT = {
   headless_browser:    6,
 };
 
-// ══════════════════════════════════════════════════════════
 // §5 — AGENT EVENT MAP
 // Maps client-side behavioral event_types → attack_types
-// ══════════════════════════════════════════════════════════
 const AGENT_MAP = {
   headless_browser:  { type: 'headless_browser',    confidence: 1.3 },
   rapid_navigation:  { type: 'rapid_navigation',    confidence: 0.9 },
@@ -160,15 +148,13 @@ const AGENT_MAP = {
   no_mouse:          { type: 'no_mouse_activity',    confidence: 0.6 },
 };
 
-// ══════════════════════════════════════════════════════════
 // §6 — MAIN ANALYSIS FUNCTION
-// ══════════════════════════════════════════════════════════
 function analyze(event) {
   const source    = event.source     || 'unknown';
   const eventType = event.event_type || '';
   const data      = event.data       || {};
 
-  // ── Agent (client-side behavioral) events ─────────────
+  // Agent (client-side behavioral) events
   if (source === 'agent') {
     const mapped = AGENT_MAP[eventType];
     if (mapped) {
@@ -191,7 +177,7 @@ function analyze(event) {
     };
   }
 
-  // ── Backend (proxy access log) events ─────────────────
+  // Backend (proxy access log) events
   if (source === 'backend' && eventType === 'backend_log') {
     const endpoint  = data.endpoint  || '';
     const path      = endpoint.split('?')[0].toLowerCase();
@@ -204,70 +190,70 @@ function analyze(event) {
     const bodyStr   = typeof data.body  === 'string' ? data.body  : JSON.stringify(data.body   || '');
     const payload   = queryStr + ' ' + bodyStr + ' ' + endpoint;
 
-    // ── RULE 1: sql_injection ──────────────────────────
+    // RULE 1: sql_injection
     // IF: SQL keywords (UNION SELECT, OR 1=1, SLEEP, BENCHMARK) in query/body/URL
     // category=injection, impact=5, confidence=1.3
     if (SQL_PAT.test(payload)) {
       return result('sql_injection', 5, 1.3);
     }
 
-    // ── RULE 2: xss ───────────────────────────────────
+    // RULE 2: xss
     // IF: <script>, onerror=, javascript:, eval() in query/body/URL
     // category=injection, impact=4, confidence=1.2
     if (XSS_PAT.test(payload)) {
       return result('xss', 4, 1.2);
     }
 
-    // ── RULE 3: cmd_injection ─────────────────────────
+    // RULE 3: cmd_injection
     // IF: Shell metachar (;|`$()) followed by system command in input
     // category=injection, impact=5, confidence=1.2
     if (CMD_PAT.test(payload) || CMD_PAT.test(decodeURIComponent(payload).replace(/\+/g, ' '))) {
       return result('cmd_injection', 5, 1.2);
     }
 
-    // ── RULE 4: ssti ──────────────────────────────────
+    // RULE 4: ssti
     // IF: Template syntax {{7*7}}, ${…}, <%=…%> in input
     // category=injection, impact=5, confidence=1.0
     if (SSTI_PAT.test(payload)) {
       return result('ssti', 5, 1.0);
     }
 
-    // ── RULE 5: xxe ──────────────────────────────────
+    // RULE 5: xxe
     // IF: <!DOCTYPE with nested entity or SYSTEM file:// in body
     // category=injection, impact=5, confidence=1.0
     if (XXE_PAT.test(payload)) {
       return result('xxe', 5, 1.0);
     }
 
-    // ── RULE 6: ssrf ─────────────────────────────────
+    // RULE 6: ssrf
     // IF: Internal IP (127.x, 10.x, 192.168.x) or file:// in parameter
     // category=injection, impact=5, confidence=1.0
     if (SSRF_PAT.test(payload)) {
       return result('ssrf', 5, 1.0);
     }
 
-    // ── RULE 7: directory_traversal ───────────────────
+    // RULE 7: directory_traversal
     // IF: ../ or ..\\ or %2e%2e%2f sequences in endpoint
     // category=fuzzing, impact=3, confidence=1.0
     if (DIR_PAT.test(endpoint)) {
       return result('directory_traversal', 3, 1.0);
     }
 
-    // ── RULE 8: scanner_tool ─────────────────────────
+    // RULE 8: scanner_tool
     // IF: User-Agent matches known tool (sqlmap, nikto, ffuf, nuclei…)
     // category=fuzzing, impact=3, confidence=1.3
     if (SCANNER_UA_PAT.test(userAgent)) {
       return result('scanner_tool', 3, 1.3);
     }
 
-    // ── RULE 9: file_exposure ────────────────────────
+    // RULE 9: file_exposure
     // IF: Request to .env, .git/config, wp-config.php, phpinfo, .bak, etc.
     // category=fuzzing, impact=4, confidence=1.0
     if (SENSITIVE_FILE_PAT.test(path) || SENSITIVE_FILE_PAT.test(endpoint)) {
       return result('file_exposure', 4, 1.0);
     }
 
-    // ── RULE 10: file_upload_exploit ──────────────────
+    // RULE 10: file_upload_exploit
     // IF: POST with filename containing .php, .jsp, .sh, .py, .cgi extension
     // category=injection, impact=5, confidence=1.2
     if (method === 'POST') {
@@ -277,21 +263,21 @@ function analyze(event) {
       }
     }
 
-    // ── RULE 11: cms_admin_probe ─────────────────────
+    // RULE 11: cms_admin_probe
     // IF: Request to /wp-admin, /phpmyadmin, /cpanel, /adminer on non-CMS app
     // category=fuzzing, impact=3, confidence=1.0
     if (CMS_ADMIN_PAT.test(path)) {
       return result('cms_admin_probe', 3, 1.0);
     }
 
-    // ── RULE 12: http_method_abuse ───────────────────
+    // RULE 12: http_method_abuse
     // IF: method IN (TRACE, CONNECT, PROPFIND, PROPPATCH, MKCOL…)
     // category=fuzzing, impact=2, confidence=1.0
     if (ABUSED_METHODS.has(method)) {
       return result('http_method_abuse', 2, 1.0);
     }
 
-    // ── RULE 13: auth_failure ────────────────────────
+    // RULE 13: auth_failure
     // IF: status IN (401, 403) AND endpoint matches auth pattern
     // OR: status IN (401, 403) on any endpoint
     // category=authentication, impact=3, confidence depends on endpoint match
@@ -300,7 +286,7 @@ function analyze(event) {
       return result('auth_failure', 3, isAuthEndpoint ? 1.2 : 0.8);
     }
 
-    // ── RULE 14: recon_404 ───────────────────────────
+    // RULE 14: recon_404
     // IF: status == 404
     // category=fuzzing, impact=1 (individual), scored via bonus accumulation
     if (status === 404) {
@@ -312,7 +298,7 @@ function analyze(event) {
   return result('normal_browsing', 0, 0.5);
 }
 
-// ── Helper: build result object ──────────────────────────
+// Helper: build result object
 function result(attackType, impact, confidence) {
   const cat = CATEGORY_MAP[attackType] || { category: 'normal', signal: 'Unknown' };
   const actualImpact = IMPACT[attackType] !== undefined ? IMPACT[attackType] : impact;

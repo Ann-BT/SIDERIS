@@ -1,11 +1,9 @@
-// ──────────────────────────────────────────────────────────
 // src/guard/guard.js
 // Sideris 2.0 — Guard Mode Service (Phase 3)
 //
 // Subscribes to the sideris:alerts Pub/Sub channel.
-// Evaluates payload risks to determine protective actions 
+// Evaluates payload risks to determine protective actions
 // (block > rate_limit > challenge) and enforces them atomically.
-// ──────────────────────────────────────────────────────────
 
 const Redis = require('ioredis');
 const config = require('../shared/config');
@@ -31,9 +29,9 @@ const ACTION_THRESHOLDS = [
 // don't escalate to block for this duration. Gives the user time to solve.
 const CAPTCHA_GRACE_MS = 5 * 60 * 1000; // 5 minutes
 
-// ── Lua Atomicity Script ──────────────────────────────────
+// Lua Atomicity Script
 // This script ensures priority logic is completely atomic.
-// It receives: 
+// It receives:
 // KEYS[1] = guard key ('sideris:guard:{id}')
 // KEYS[2] = metrics key ('sideris:metrics:guard:{action}')
 // ARGV[1] = intended action (e.g. 'block')
@@ -43,8 +41,8 @@ const CAPTCHA_GRACE_MS = 5 * 60 * 1000; // 5 minutes
 // ARGV[5] = timestamp
 // ARGV[6] = calculated TTL
 //
-// It checks if current action in Hash has a higher weight. 
-// If so, it aborts. If it succeeds, it sets Hash, sets TTL, 
+// It checks if current action in Hash has a higher weight.
+// If so, it aborts. If it succeeds, it sets Hash, sets TTL,
 // and increments the metric natively inside the lock.
 
 const LUA_ENFORCE_GUARD = `
@@ -91,13 +89,12 @@ const LUA_ENFORCE_GUARD = `
 
 `;
 
-
 redis.defineCommand('enforceGuard', {
   numberOfKeys: 2,
   lua: LUA_ENFORCE_GUARD
 });
 
-// ── Processing Logic ──────────────────────────────────────
+// Processing Logic
 
 async function processAlert(payloadStr) {
   let payload;
@@ -192,7 +189,7 @@ async function processAlert(payloadStr) {
   }
 }
 
-// ── Startup Loop ──────────────────────────────────────────
+// Startup Loop
 
 async function startGuard() {
   console.log(`[guard] Initializing Sideris Defense Subsystem...`);

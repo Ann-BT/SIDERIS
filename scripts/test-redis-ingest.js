@@ -1,11 +1,9 @@
-// ──────────────────────────────────────────────────────────
 // scripts/test-redis-ingest.js
 // Sideris 2.0 — Post-Refactor Integration Test
 //
 // Sends a mock batch of events to the ingest endpoint, then
 // connects to Redis to retrieve and verify them.
 // To run: node scripts/test-redis-ingest.js
-// ──────────────────────────────────────────────────────────
 
 const http = require('http');
 const Redis = require('ioredis');

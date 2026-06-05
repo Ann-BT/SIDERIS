@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/storage/writer.js
 // Sideris 2.0 — PostgreSQL Storage Writer
 //
@@ -12,7 +11,6 @@
 //
 // The writer is idempotent: it uses ON CONFLICT DO NOTHING /
 // DO UPDATE so it is safe to restart without duplicating data.
-// ──────────────────────────────────────────────────────────
 
 'use strict';
 
@@ -26,28 +24,26 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const config = require('../shared/config');
 
-// ── Constants ─────────────────────────────────────────────
+// Constants
 const STREAM_NAME    = config.streamName    || 'sideris:events';
 const STORAGE_GROUP  = 'sideris_storage';
 const CONSUMER_NAME  = `writer-${os.hostname()}-${process.pid}`;
 const BLOCK_MS       = 5000;   // block time for XREADGROUP
 const BATCH_SIZE     = 50;     // messages per poll
 
-// ── PostgreSQL connection pool ────────────────────────────
+// PostgreSQL connection pool
 const pool = new Pool({ connectionString: config.postgresUrl });
 
 pool.on('error', (err) => {
   console.error('[writer] PG pool error:', err.message);
 });
 
-// ── Redis reader client ───────────────────────────────────
+// Redis reader client
 const redis = new Redis(config.redisUrl);
 redis.on('error', (err) => console.error('[writer] Redis error:', err.message));
 
-// ══════════════════════════════════════════════════════════
 // SCHEMA BOOTSTRAP
 // Creates tables if they do not exist.
-// ══════════════════════════════════════════════════════════
 
 async function initSchema() {
   await pool.query(`
@@ -141,9 +137,7 @@ async function initSchema() {
   console.log('[writer] Schema ready: attack_sessions, attack_events');
 }
 
-// ══════════════════════════════════════════════════════════
 // CONSUMER GROUP BOOTSTRAP
-// ══════════════════════════════════════════════════════════
 
 async function initConsumerGroup() {
   try {
@@ -155,10 +149,8 @@ async function initConsumerGroup() {
   }
 }
 
-// ══════════════════════════════════════════════════════════
 // FIELD EXTRACTOR
 // Stream entries use flat key=value pairs; extract them all.
-// ══════════════════════════════════════════════════════════
 
 function extractFields(rawFields) {
   const fields = {};
@@ -168,10 +160,8 @@ function extractFields(rawFields) {
   return fields;
 }
 
-// ══════════════════════════════════════════════════════════
 // UPSERT SESSION
 // Insert or update the session row with latest known values.
-// ══════════════════════════════════════════════════════════
 
 async function upsertSession(client, payload, sessionId) {
   const ip        = payload.data?.ip        || payload.ingest_ip || null;
@@ -192,10 +182,8 @@ async function upsertSession(client, payload, sessionId) {
   `, [sessionId, ts, ip, userAgent]);
 }
 
-// ══════════════════════════════════════════════════════════
 // INSERT EVENT
 // Insert one event row, skipping if stream_id already exists.
-// ══════════════════════════════════════════════════════════
 
 async function insertEvent(client, streamId, payload) {
   const sessionId = payload.session_id || 'unknown';
@@ -213,9 +201,7 @@ async function insertEvent(client, streamId, payload) {
   `, [streamId, sessionId, ts, source, eventType, JSON.stringify(data)]);
 }
 
-// ══════════════════════════════════════════════════════════
 // PROCESS ONE MESSAGE
-// ══════════════════════════════════════════════════════════
 
 async function processMessage(streamId, rawFields) {
   const fields = extractFields(rawFields);
@@ -247,9 +233,7 @@ async function processMessage(streamId, rawFields) {
   }
 }
 
-// ══════════════════════════════════════════════════════════
 // MAIN CONSUMER LOOP
-// ══════════════════════════════════════════════════════════
 
 async function startWriter() {
   console.log(`[writer] Starting storage consumer: ${CONSUMER_NAME}`);
@@ -294,7 +278,7 @@ async function startWriter() {
   }
 }
 
-// ── Drain any unacknowledged pending messages ─────────────
+// Drain any unacknowledged pending messages
 async function drainPending() {
   try {
     const pending = await redis.xpending(
@@ -323,9 +307,7 @@ async function drainPending() {
   }
 }
 
-// ══════════════════════════════════════════════════════════
 // GRACEFUL SHUTDOWN
-// ══════════════════════════════════════════════════════════
 
 async function shutdown() {
   console.log('[writer] Shutting down gracefully...');

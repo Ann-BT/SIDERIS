@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/detector/worker.js
 // Sideris 2.0 — Detection Worker (Orchestrator)
 //
@@ -10,7 +9,6 @@
 //
 // This file is intentionally thin. All logic lives in the
 // four modules it delegates to.
-// ──────────────────────────────────────────────────────────
 'use strict';
 
 const Redis          = require('ioredis');
@@ -22,7 +20,7 @@ const scoring        = require('./scoringEngine');
 const tracker        = require('./sessionTracker');
 const { decide, getGuardDirective, isHardBlock } = require('./decisionEngine');
 
-// ── Redis clients ─────────────────────────────────────────
+// Redis clients
 const redis     = new Redis(config.redisUrl);
 const publisher = new Redis(config.redisUrl);
 let subscriberClient = null;
@@ -30,7 +28,7 @@ let subscriberClient = null;
 redis.on('error',     err => console.error('[worker] Redis error:',     err.message));
 publisher.on('error', err => console.error('[worker] Publisher error:', err.message));
 
-// ── Constants ─────────────────────────────────────────────
+// Constants
 const STREAM_NAME   = config.streamName    || 'sideris:events';
 const GROUP_NAME    = config.consumerGroup || 'sideris_group';
 const CONSUMER_NAME = `${os.hostname()}-${process.pid}`;
@@ -38,7 +36,7 @@ const ALERT_CHANNEL = config.alertChannel  || 'sideris:alerts';
 const SESSION_TTL   = config.sessionTtlSec || 1800;
 const PROCESSED_TTL = 3600;
 
-// ── Bootstrap: create consumer group ─────────────────────
+// Bootstrap: create consumer group
 async function initStream() {
   try {
     await redis.xgroup('CREATE', STREAM_NAME, GROUP_NAME, '$', 'MKSTREAM');
@@ -52,14 +50,14 @@ async function initStream() {
   }
 }
 
-// ── Extract flat fields from stream entry ─────────────────
+// Extract flat fields from stream entry
 function extractFields(rawFields) {
   const out = {};
   for (let i = 0; i < rawFields.length; i += 2) out[rawFields[i]] = rawFields[i + 1];
   return out;
 }
 
-// ── PostgreSQL: update attack_sessions ────────────────────
+// PostgreSQL: update attack_sessions
 async function persistSession(state, decision) {
   try {
     await pool.query(`
@@ -144,7 +142,7 @@ async function persistSession(state, decision) {
   }
 }
 
-// ── PostgreSQL: update attack_events scoring columns ──────
+// PostgreSQL: update attack_events scoring columns
 async function persistEventScore(streamId, scoringResult) {
   try {
     // Retry once — the storage writer may not have inserted the row yet
@@ -174,7 +172,7 @@ async function persistEventScore(streamId, scoringResult) {
   }
 }
 
-// ── Guard directive: write to Redis ───────────────────────
+// Guard directive: write to Redis
 const CAPTCHA_GRACE_MS = 5 * 60 * 1000; // 5 min — matches guard.js
 
 async function applyGuard(sessionId, decision, highestScore, reason, state) {
@@ -224,8 +222,7 @@ async function applyGuard(sessionId, decision, highestScore, reason, state) {
   await redis.incr(`sideris:metrics:guard:${directive}`);
 }
 
-
-// ── Alert publisher ───────────────────────────────────────
+// Alert publisher
 async function publishAlert(state, decision, bonuses) {
   // Only publish on level changes that matter (≥suspicious)
   if (decision.level < 2) return;
@@ -255,7 +252,7 @@ async function publishAlert(state, decision, bonuses) {
   console.log(`[ALERT] ${decision.verdict.toUpperCase()}: session=${state.session_id.substring(0,8)}... score=${state.session_score} action=${decision.action}`);
 }
 
-// ── Core pipeline for one event ───────────────────────────
+// Core pipeline for one event
 async function processMessage(streamId, rawFields) {
   const fields = extractFields(rawFields);
 
@@ -322,7 +319,7 @@ async function processMessage(streamId, rawFields) {
   await redis.incr('sideris:metrics:processed');
 }
 
-// ── Dead letter recovery ──────────────────────────────────
+// Dead letter recovery
 function startDeadLetterRecovery() {
   setInterval(async () => {
     try {
@@ -362,7 +359,7 @@ async function startCommandSubscriber() {
   });
 }
 
-// ── Main consumer loop ────────────────────────────────────
+// Main consumer loop
 async function startWorker() {
   console.log(`[worker] Starting: ${CONSUMER_NAME}`);
   console.log(`[worker] Pipeline: eventAnalyzer → scoringEngine → sessionTracker → decisionEngine`);
@@ -411,7 +408,7 @@ async function startWorker() {
   }
 }
 
-// ── Graceful shutdown ─────────────────────────────────────
+// Graceful shutdown
 async function shutdown() {
   console.log('[worker] Shutting down...');
   await redis.quit();

@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/ingest/server.js
 // Sideris 2.0 — Ingest Server (Phase 3)
 //
@@ -7,7 +6,6 @@
 // with server timestamp and client IP, writes raw events
 // to events.jsonl and normalized events to normalized.jsonl.
 // Also serves agent.js statically and exposes a health check.
-// ──────────────────────────────────────────────────────────
 
 const express = require('express');
 const cors = require('cors');
@@ -23,12 +21,10 @@ const PORT = config.ingestPort;
 const redis = new Redis(config.redisUrl);
 redis.on('error', (err) => console.error('[ingest] Redis error:', err.message));
 
-// ══════════════════════════════════════════════════════════
 // CORS CONFIGURATION
 // Only the proxy (and its configured origin) may post to ingest.
 // Reflecting any origin with credentials=true was a security hole —
 // an attacker could post fake telemetry from any site.
-// ══════════════════════════════════════════════════════════
 
 // Build the set of allowed origins:
 //   1. The explicit proxy origin from env (PROXY_ORIGIN)
@@ -62,10 +58,7 @@ app.use(cors(corsOptions));
 // Handle OPTIONS preflight explicitly
 app.options('*', cors(corsOptions));
 
-
-// ══════════════════════════════════════════════════════════
 // BODY PARSING
-// ══════════════════════════════════════════════════════════
 
 // Parse standard application/json bodies
 app.use(express.json({ limit: config.bodyLimit }));
@@ -86,9 +79,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ══════════════════════════════════════════════════════════
 // GUARD LAYER (PHASE 3)
-// ══════════════════════════════════════════════════════════
 
 app.use(async (req, res, next) => {
   // If we don't have Redis active, skip to allow processing or let internal errors handle it
@@ -137,11 +128,9 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// ══════════════════════════════════════════════════════════
 // ENDPOINTS
-// ══════════════════════════════════════════════════════════
 
-// ── POST /sideris/ingest — receive beacon batches ────────
+// POST /sideris/ingest — receive beacon batches
 app.post('/sideris/ingest', async (req, res) => {
   if (redis.status !== 'ready') {
     return res.status(503).json({ ok: false, error: 'Service Unavailable - Redis not connected' });
@@ -209,8 +198,7 @@ app.post('/sideris/ingest', async (req, res) => {
   }
 });
 
-
-// ── POST /api/events — receive backend access logs from proxy ─
+// POST /api/events — receive backend access logs from proxy
 app.post('/api/events', async (req, res) => {
   if (redis.status !== 'ready') {
     return res.status(503).json({ ok: false, error: 'Service Unavailable - Redis not connected' });
@@ -260,8 +248,7 @@ app.post('/api/events', async (req, res) => {
   }
 });
 
-
-// ── GET /sideris/agent.js — serve agent script ──────────
+// GET /sideris/agent.js — serve agent script
 const agentPath = path.resolve(__dirname, '../agent/agent.js');
 
 app.get('/sideris/agent.js', (req, res) => {
@@ -273,7 +260,7 @@ app.get('/sideris/agent.js', (req, res) => {
   res.sendFile(agentPath);
 });
 
-// ── GET /sideris/health — health check ──────────────────
+// GET /sideris/health — health check
 app.get('/sideris/health', (req, res) => {
   res.json({
     status: redis.status === 'ready' ? 'ok' : 'degraded',
@@ -282,7 +269,7 @@ app.get('/sideris/health', (req, res) => {
   });
 });
 
-// ── POST /sideris/challenge/verify — recovery route ─────
+// POST /sideris/challenge/verify — recovery route
 // Simulates a captcha or challenge successful verification
 app.post('/sideris/challenge/verify', async (req, res) => {
   const { session_id, token } = req.body;
@@ -307,9 +294,7 @@ app.post('/sideris/challenge/verify', async (req, res) => {
   res.json({ ok: true, message: 'Challenge verified. Restrictions lifted.' });
 });
 
-// ══════════════════════════════════════════════════════════
 // STARTUP
-// ══════════════════════════════════════════════════════════
 
 // Ensure logs directory exists
 fs.mkdirSync(config.logsDir, { recursive: true });

@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/agent/agent.js
 // Sideris 2.0 — Client-Side Behavior Collector
 //
@@ -8,7 +7,6 @@
 //
 // Injected into every Juice Shop page by the proxy server.
 // Exposes window.SiderisAgent public API.
-// ──────────────────────────────────────────────────────────
 
 (function () {
   'use strict';
@@ -17,9 +15,7 @@
   if (window.__sideris_initialized) return;
   window.__sideris_initialized = true;
 
-  // ══════════════════════════════════════════════════════════
   // §1 — CONFIGURATION
-  // ══════════════════════════════════════════════════════════
 
   var INGEST_URL = window.SIDERIS_INGEST_URL || '/sideris/ingest';
   var FLUSH_INTERVAL_MS = 5000;
@@ -36,9 +32,7 @@
     /\/sockjs-node\//
   ];
 
-  // ══════════════════════════════════════════════════════════
   // §2 — THRESHOLDS (baked in from normalizer.js)
-  // ══════════════════════════════════════════════════════════
 
   var FAST_MOUSE_PX_PER_MS = 800;
   var RAPID_CLICK_COUNT = 10;
@@ -52,9 +46,7 @@
   var RAPID_REQUESTS_COUNT = 20;
   var RAPID_REQUESTS_WINDOW_MS = 10000;
 
-  // ══════════════════════════════════════════════════════════
   // §3 — SUSPICIOUS PATTERN REGEXES
-  // ══════════════════════════════════════════════════════════
 
   var PATTERNS = {
     sqlInjection: /(\b(SELECT|UNION|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC)\b|OR\s+1\s*=\s*1|'\s*(OR|AND)\s+'|--\s*$|;\s*(DROP|SELECT|INSERT)|\/\*.*\*\/|WAITFOR\s+DELAY|BENCHMARK\s*\(|CHAR\s*\(|CONCAT\s*\()/i,
@@ -63,9 +55,7 @@
     adminEndpoint: /\/(admin|administrator|wp-admin|wp-login|phpmyadmin|cpanel|manager|console|dashboard\/admin|_admin|administration)/i
   };
 
-  // ══════════════════════════════════════════════════════════
   // §4 — SESSION MANAGEMENT
-  // ══════════════════════════════════════════════════════════
 
   var seq = 0;
   var lastActivityTs = Date.now();
@@ -79,7 +69,7 @@
     });
   }
 
-  // ── Cookie helper ─────────────────────────────────────
+  // Cookie helper
   function writeSiderisCookie(sid) {
     // Expires in 30 minutes (same as session idle timeout)
     var expires = new Date(Date.now() + SESSION_IDLE_MS).toUTCString();
@@ -130,9 +120,7 @@
   // Initialize session on load
   var sessionId = getSessionId();
 
-  // ══════════════════════════════════════════════════════════
   // §5 — DEVICE FINGERPRINT
-  // ══════════════════════════════════════════════════════════
 
   function getFingerprint() {
     var fp = {
@@ -185,9 +173,7 @@
 
   var fingerprint = getFingerprint();
 
-  // ══════════════════════════════════════════════════════════
   // §6 — PATTERN DETECTION HELPERS
-  // ══════════════════════════════════════════════════════════
 
   function detectPatterns(text) {
     if (!text || typeof text !== 'string') return [];
@@ -204,9 +190,7 @@
     return detectPatterns(decodeURIComponent(url || ''));
   }
 
-  // ══════════════════════════════════════════════════════════
   // §7 — NORMALIZATION (baked-in from normalizer.js)
-  // ══════════════════════════════════════════════════════════
 
   function normalizeBehavior(raw) {
     if (!raw || !raw.type) return null;
@@ -243,9 +227,7 @@
     return normalized;
   }
 
-  // ══════════════════════════════════════════════════════════
   // §8 — EVENT QUEUE & DELIVERY
-  // ══════════════════════════════════════════════════════════
 
   var eventQueue = [];
   var flushTimer = null;
@@ -333,7 +315,7 @@
     }
   }
 
-  // ── localStorage retry buffer ──────────────────────────
+  // localStorage retry buffer
 
   function bufferToLocalStorage(events) {
     try {
@@ -412,9 +394,7 @@
     if (document.visibilityState === 'hidden') flush(true);
   });
 
-  // ══════════════════════════════════════════════════════════
   // §9 — XHR / FETCH MONKEY-PATCH
-  // ══════════════════════════════════════════════════════════
 
   function isExcludedUrl(url) {
     for (var i = 0; i < EXCLUDED_URL_PATTERNS.length; i++) {
@@ -434,7 +414,7 @@
     return isSameOrigin(url) && !isExcludedUrl(url);
   }
 
-  // ── Request timestamp tracker for rapid_requests ───────
+  // Request timestamp tracker for rapid_requests
   var requestTimestamps = [];
 
   function trackRequest(url) {
@@ -454,7 +434,7 @@
     }
   }
 
-  // ── Patch XMLHttpRequest ───────────────────────────────
+  // Patch XMLHttpRequest
   var OriginalXHR = window.XMLHttpRequest;
   function PatchedXHR() {
     var xhr = new OriginalXHR();
@@ -510,7 +490,7 @@
   PatchedXHR.DONE = 4;
   window.XMLHttpRequest = PatchedXHR;
 
-  // ── Patch fetch ────────────────────────────────────────
+  // Patch fetch
   var originalFetch = window.fetch;
   window.fetch = function (input, init) {
     var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
@@ -550,9 +530,7 @@
     return promise;
   };
 
-  // ══════════════════════════════════════════════════════════
   // §10 — LOGIN DETECTION
-  // ══════════════════════════════════════════════════════════
 
   var LOGIN_URL_PATTERN = /\/(login|auth|signin|rest\/user\/login)/i;
 
@@ -565,18 +543,16 @@
     }
   }
 
-  // ══════════════════════════════════════════════════════════
   // §11 — EVENT COLLECTORS
-  // ══════════════════════════════════════════════════════════
 
-  // ── session_start ──────────────────────────────────────
+  // session_start
   enqueue('session_start', {
     entryUrl: location.href,
     referrer: document.referrer,
     sessionId: sessionId
   });
 
-  // ── page_view ──────────────────────────────────────────
+  // page_view
   var pageViewTimestamps = [];
 
   function emitPageView() {
@@ -639,7 +615,7 @@
     wrapHistoryMethod('replaceState');
   })();
 
-  // ── page_timing ────────────────────────────────────────
+  // page_timing
   window.addEventListener('load', function () {
     setTimeout(function () {
       try {
@@ -656,7 +632,7 @@
     }, 100); // Slight delay to ensure timing data is populated
   });
 
-  // ── form_submit ────────────────────────────────────────
+  // form_submit
   var formSessions = new Map(); // Track firstFocusTs per form
 
   document.addEventListener('submit', function (e) {
@@ -709,7 +685,7 @@
     });
   }, true);
 
-  // ── field_change ───────────────────────────────────────
+  // field_change
   document.addEventListener('change', function (e) {
     var field = e.target;
     if (!field || !field.tagName) return;
@@ -730,7 +706,7 @@
     });
   }, true);
 
-  // ── field focus tracking for instant_form_fill ─────────
+  // field focus tracking for instant_form_fill
   document.addEventListener('focus', function (e) {
     var field = e.target;
     if (!field || !field.tagName) return;
@@ -746,7 +722,7 @@
     }
   }, true);
 
-  // ── paste ──────────────────────────────────────────────
+  // paste
   document.addEventListener('paste', function (e) {
     var textLength = 0;
     var suspicious = [];
@@ -762,7 +738,7 @@
     });
   }, true);
 
-  // ── keystroke_burst + fast_typing ──────────────────────
+  // keystroke_burst + fast_typing
   var keystrokeTimestamps = [];
   var keystrokeBurstWindow = 500; // ms
   var keystrokeBurstThreshold = 10;
@@ -809,7 +785,7 @@
     }
   }, true);
 
-  // ── mouse tracking (speed + liveness) ──────────────────
+  // mouse tracking (speed + liveness)
   var lastMouseX = null;
   var lastMouseY = null;
   var lastMouseTs = null;
@@ -846,7 +822,7 @@
     lastMouseTs = now;
   });
 
-  // ── rapid_click ────────────────────────────────────────
+  // rapid_click
   var clickTimestamps = [];
 
   document.addEventListener('click', function () {
@@ -868,7 +844,7 @@
     }
   }, true);
 
-  // ── rapid_scroll ───────────────────────────────────────
+  // rapid_scroll
   var scrollCount = 0;
   var lastScrollTs = null;
   var scrollAccumulator = 0;
@@ -896,7 +872,7 @@
     lastScrollTs = now;
   });
 
-  // ── liveness_snapshot ──────────────────────────────────
+  // liveness_snapshot
   // Emit every 30 seconds
   setInterval(function () {
     enqueue('liveness_snapshot', {
@@ -906,7 +882,7 @@
     });
   }, 30000);
 
-  // ── devtools_change ────────────────────────────────────
+  // devtools_change
   var devtoolsOpen = false;
 
   function checkDevtools() {
@@ -925,7 +901,7 @@
 
   setInterval(checkDevtools, 2000);
 
-  // ── headless_browser + no_plugins detection ────────────
+  // headless_browser + no_plugins detection
   // Run once on init
   (function detectHeadless() {
     // Check navigator.webdriver
@@ -953,9 +929,7 @@
     }
   })();
 
-  // ══════════════════════════════════════════════════════════
   // §12 — PUBLIC API
-  // ══════════════════════════════════════════════════════════
 
   window.SiderisAgent = {
     /**
@@ -991,9 +965,7 @@
     }
   };
 
-  // ══════════════════════════════════════════════════════════
   // §13 — STARTUP LOG
-  // ══════════════════════════════════════════════════════════
 
   console.log(
     '%c[Sideris Agent]%c initialized | session=' + sessionId.substring(0, 8) + '...',

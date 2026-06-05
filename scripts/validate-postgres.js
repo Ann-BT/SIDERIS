@@ -10,7 +10,7 @@ const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
 const TARGET = '17d3a403-d7ac-40fd-92cf-795c735e6d8d';
 
 (async () => {
-  // ── A. Tables ─────────────────────────────────────────────
+  // A. Tables
   const tables = await pool.query(`
     SELECT table_name FROM information_schema.tables
     WHERE table_schema = 'public' ORDER BY table_name
@@ -18,14 +18,14 @@ const TARGET = '17d3a403-d7ac-40fd-92cf-795c735e6d8d';
   console.log('\n=== A. Tables ===');
   tables.rows.forEach(r => console.log('  ✓', r.table_name));
 
-  // ── B. Row counts ─────────────────────────────────────────
+  // B. Row counts
   const evtCount = await pool.query('SELECT COUNT(*) FROM attack_events');
   const sesCount = await pool.query('SELECT COUNT(*) FROM attack_sessions');
   console.log('\n=== B. Row Counts ===');
   console.log('  attack_events  :', evtCount.rows[0].count);
   console.log('  attack_sessions:', sesCount.rows[0].count);
 
-  // ── C. Source breakdown ───────────────────────────────────
+  // C. Source breakdown
   const sources = await pool.query(`
     SELECT source, COUNT(*) AS cnt
     FROM attack_events GROUP BY source ORDER BY source
@@ -33,7 +33,7 @@ const TARGET = '17d3a403-d7ac-40fd-92cf-795c735e6d8d';
   console.log('\n=== C. Events by Source ===');
   sources.rows.forEach(r => console.log('  ' + r.source.padEnd(10) + ':', r.cnt));
 
-  // ── D. Session integrity check ────────────────────────────
+  // D. Session integrity check
   const sessionCheck = await pool.query(`
     SELECT source, COUNT(*) AS cnt,
            MIN(timestamp) AS first, MAX(timestamp) AS last
@@ -57,7 +57,7 @@ const TARGET = '17d3a403-d7ac-40fd-92cf-795c735e6d8d';
     : '❌ NO (only one source found so far)'
   );
 
-  // ── E. Timeline (first 12 events) ────────────────────────
+  // E. Timeline (first 12 events)
   const timeline = await pool.query(`
     SELECT timestamp, source, event_type
     FROM attack_events WHERE session_id = $1
@@ -72,7 +72,7 @@ const TARGET = '17d3a403-d7ac-40fd-92cf-795c735e6d8d';
     )
   );
 
-  // ── F. Top sessions with joint event counts ───────────────
+  // F. Top sessions with joint event counts
   const sessions = await pool.query(`
     SELECT s.session_id, s.event_count, s.ip_address,
            s.final_risk_score, s.verdict,
@@ -97,7 +97,7 @@ const TARGET = '17d3a403-d7ac-40fd-92cf-795c735e6d8d';
     )
   );
 
-  // ── G. Indexes ────────────────────────────────────────────
+  // G. Indexes
   const indexes = await pool.query(`
     SELECT indexname FROM pg_indexes
     WHERE tablename IN ('attack_events','attack_sessions')

@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/dashboard/server.js
 // Sideris 2.0 — Metrics & Dashboard API
 //
@@ -8,7 +7,6 @@
 //   GET  /metrics           — aggregate counters
 //   POST /unblock/:sessionId — SOC manual unblock
 //   POST /block/:sessionId   — SOC manual block
-// ──────────────────────────────────────────────────────────
 
 const express = require('express');
 const cors = require('cors');
@@ -26,9 +24,7 @@ const PORT = config.dashboardPort || 8080;
 app.use(cors());
 app.use(express.json());
 
-// ══════════════════════════════════════════════════════════
 // IP ALLOWLIST MIDDLEWARE (SECURE CONTROLS)
-// ══════════════════════════════════════════════════════════
 
 // Convert IPv4 string to 32-bit unsigned integer
 function ipv4ToInt(ip) {
@@ -251,9 +247,7 @@ async function scanKeys(pattern, maxCount = null) {
   });
 }
 
-// ══════════════════════════════════════════════════════════
 // GET /sessions — enriched session data for dashboard
-// ══════════════════════════════════════════════════════════
 //
 // Response shape per session:
 // {
@@ -265,7 +259,6 @@ async function scanKeys(pattern, maxCount = null) {
 //   risk_reasons: [ { rule, category, signal, score, total, timestamp, time } ],
 //   last_seen, user_agent
 // }
-// ══════════════════════════════════════════════════════════
 app.get('/sessions', async (req, res) => {
   try {
     const keys = await scanKeys('sideris:session:*', null);
@@ -395,9 +388,7 @@ app.get('/sessions', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // GET /dashboard-users — active/blocked dashboard accesses
-// ══════════════════════════════════════════════════════════
 app.get('/dashboard-users', async (req, res) => {
   try {
     const keys = await scanKeys('sideris:dashboard:user:*', null);
@@ -418,9 +409,7 @@ app.get('/dashboard-users', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // GET /guards — all active guard directives
-// ══════════════════════════════════════════════════════════
 app.get('/guards', async (req, res) => {
   try {
     const keys = await scanKeys('sideris:guard:*', null);
@@ -476,9 +465,7 @@ app.get('/guards', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // GET /metrics — aggregate counters
-// ══════════════════════════════════════════════════════════
 app.get('/metrics', async (req, res) => {
   try {
     const targetKeys = [
@@ -504,11 +491,9 @@ app.get('/metrics', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // POST /unblock/:sessionId — SOC manual unblock
 //
 // Removes guard directive, writes audit log, decrements block metric.
-// ══════════════════════════════════════════════════════════
 app.post('/unblock/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const { reason } = req.body || {};
@@ -595,11 +580,9 @@ app.post('/unblock/:sessionId', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // POST /block/:sessionId — SOC manual block
 //
 // Creates a hard_block guard directive, writes audit log.
-// ══════════════════════════════════════════════════════════
 app.post('/block/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const { reason } = req.body || {};
@@ -674,13 +657,11 @@ app.post('/block/:sessionId', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // POST /challenge/:sessionId — SOC manual CAPTCHA challenge
 //
 // Issues a CAPTCHA challenge guard directive. The proxy will
 // inject the CAPTCHA overlay into the next HTML response from
 // the session, prompting human verification.
-// ══════════════════════════════════════════════════════════
 app.post('/challenge/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const { reason } = req.body || {};
@@ -767,12 +748,10 @@ app.post('/challenge/:sessionId', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // GET /logs — live access log stream
 //
 // Reads latest entries from the sideris:events Redis stream.
 // Level is derived from HTTP status code.
-// ══════════════════════════════════════════════════════════
 app.get('/logs', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 100, 500);
@@ -805,7 +784,6 @@ app.get('/logs', async (req, res) => {
       const sessionId = payload.session_id || obj.session_id || '';
       const sid = sessionId.slice(0, 12);
 
-
       let level = 'INFO';
       if (status >= 500) level = 'ERROR';
       else if (status === 403) level = 'CRITICAL';
@@ -826,9 +804,7 @@ app.get('/logs', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // GET /session-logs/:sessionId — export raw session log
-// ══════════════════════════════════════════════════════════
 app.get('/session-logs/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   if (!sessionId) return res.status(400).json({ error: 'Missing sessionId' });
@@ -892,10 +868,7 @@ app.get('/session-logs/:sessionId', async (req, res) => {
   }
 });
 
-
-// ══════════════════════════════════════════════════════════
 // STARTUP
-// ══════════════════════════════════════════════════════════
 app.listen(PORT, () => {
   console.log(`[dashboard] Sideris Metrics API running on http://localhost:${PORT}`);
   

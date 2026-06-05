@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/detector/scoringEngine.js
 // Sideris 2.0 — Scoring Engine (Category-Aware)
 //
@@ -16,10 +15,9 @@
 //   - Benign types are never boosted
 //
 // Pure function — no I/O.
-// ──────────────────────────────────────────────────────────
 'use strict';
 
-// ── Confidence levels ──────────────────────────────────────
+// Confidence levels
 const CONFIDENCE = {
   WEAK_ANOMALY:    0.5,
   UNUSUAL:         0.8,
@@ -28,7 +26,7 @@ const CONFIDENCE = {
   CONFIRMED:       1.5,
 };
 
-// ── Persistence multipliers ────────────────────────────────
+// Persistence multipliers
 const PERSISTENCE = {
   ONE_TIME:   1.0,
   REPEATED:   1.3,
@@ -36,13 +34,13 @@ const PERSISTENCE = {
   FLOOD:      2.0,
 };
 
-// ── Types that never get FLOOD multiplier ──────────────────
+// Types that never get FLOOD multiplier
 const BENIGN_TYPES = new Set(['normal_browsing', 'recon_404']);
 
-// ── Types that use special counters for persistence ────────
+// Types that use special counters for persistence
 const AUTH_TYPES = new Set(['auth_failure', 'credential_stuffing', 'password_spray']);
 
-// ── Determine persistence from session state ───────────────
+// Determine persistence from session state
 //
 // Logic:
 //   IF attack is real (not benign) AND rps > 10  → FLOOD (2.0)
@@ -83,8 +81,7 @@ function getPersistence(attackType, sessionState) {
   return PERSISTENCE.ONE_TIME;
 }
 
-
-// ── Refine confidence using session context ────────────────
+// Refine confidence using session context
 //
 // Logic:
 //   - Benign types: confidence is never boosted
@@ -118,7 +115,7 @@ function getConfidence(base, attackType, sessionState) {
   return parseFloat(conf.toFixed(2));
 }
 
-// ── Main compute function ─────────────────────────────────
+// Main compute function
 //
 // Input:  analyzed  = { attack_type, category, behavior_signal, impact, base_confidence }
 //         session   = current session state from sessionTracker

@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/detector/decisionEngine.js
 // Sideris 2.0 — Decision Engine
 //
@@ -12,10 +11,9 @@
 //   score < 10   → NORMAL    → allow       (no enforcement)
 //
 // Pure function — no I/O.
-// ──────────────────────────────────────────────────────────
 'use strict';
 
-// ── Decision thresholds ──────────────────────────────────
+// Decision thresholds
 const THRESHOLDS = [
   { min: 50, verdict: 'critical',   action: 'hard_block',  level: 5 },
   { min: 30, verdict: 'very_high',  action: 'soft_block',  level: 4 },
@@ -39,7 +37,7 @@ function decide(sessionScore) {
   return { verdict: 'normal', action: 'allow', level: 1, score: 0 };
 }
 
-// ── Maps action → guard directive stored in Redis ─────────
+// Maps action → guard directive stored in Redis
 // soft_block and hard_block both result in 'block' guard
 // but the TTL and unblock policy differ:
 //   hard_block: no auto-expire, requires SOC manual unblock

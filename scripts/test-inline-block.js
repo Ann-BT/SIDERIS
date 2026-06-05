@@ -29,7 +29,7 @@ const tests = [
   { label: "Script tag XSS", url: "/search?q=<script>alert(1)</script>", body: null },
   { label: "Event handler XSS", url: "/api/test", body: {name: '<img onerror=alert(1) src=x>'} },
   
-  // Path traversal  
+  // Path traversal
   { label: "Path traversal", url: "/download?file=../../etc/passwd", body: null },
   
   // SSRF

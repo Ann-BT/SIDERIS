@@ -8,7 +8,7 @@ const http = require('http');
 const INGEST   = 'http://localhost:5000';
 const DASH     = 'http://localhost:6001';
 
-// ── HTTP helper ──────────────────────────────────────────
+// HTTP helper
 function post(url, body) {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
@@ -39,7 +39,7 @@ function get(url) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ── Send events for a session ──────────────────────────
+// Send events for a session
 async function sendEvents(sessionId, events) {
   for (const ev of events) {
     await post(`${INGEST}/api/events`, {
@@ -51,7 +51,7 @@ async function sendEvents(sessionId, events) {
   }
 }
 
-// ── Get session from dashboard ─────────────────────────
+// Get session from dashboard
 async function getSession(sessionId) {
   try {
     const all = await get(`${DASH}/sessions`);
@@ -59,12 +59,12 @@ async function getSession(sessionId) {
   } catch { return null; }
 }
 
-// ── Test runner ────────────────────────────────────────
+// Test runner
 async function run() {
   const sep = '═'.repeat(62);
   const now = Date.now();
 
-  // ── PHASE 1: Normal browsing ─────────────────────────
+  // PHASE 1: Normal browsing
   const sid1 = `test-normal-${now}`;
   console.log(`\n${sep}`);
   console.log('  PHASE 1 — NORMAL BROWSING  (should stay at 0 pts)');
@@ -97,7 +97,7 @@ async function run() {
   console.log(`\n  ✅ Result: session_score=${score1}  verdict=${verdict1}`);
   console.log(score1 === 0 ? '  🟢 CORRECT — normal browsing scored 0' : '  🔴 WRONG — should be 0');
 
-  // ── PHASE 2: Attack simulation ───────────────────────
+  // PHASE 2: Attack simulation
   const sid2 = `test-attack-${now}`;
   console.log(`\n${sep}`);
   console.log('  PHASE 2 — ATTACK SIMULATION  (should score HIGH)');

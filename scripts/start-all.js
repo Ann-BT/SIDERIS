@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // scripts/start-all.js
 // Sideris 2.0 — Convenience Launcher
 //
@@ -6,7 +5,6 @@
 // sequentially with staggered delays. Checks all ports are
 // free before starting.
 // Launch order: ingest → detector → guard → dashboard.
-// ──────────────────────────────────────────────────────────
 
 const { spawn } = require('child_process');
 const net = require('net');
@@ -67,9 +65,7 @@ const servers = [
 
 const children = [];
 
-// ══════════════════════════════════════════════════════════
 // PORT CONFLICT CHECK
-// ══════════════════════════════════════════════════════════
 
 function checkPort(port) {
   return new Promise((resolve, reject) => {
@@ -120,9 +116,7 @@ async function checkAllPorts() {
   }
 }
 
-// ══════════════════════════════════════════════════════════
 // SERVER LAUNCHER
-// ══════════════════════════════════════════════════════════
 
 function startServer(serverDef) {
   return new Promise((resolve) => {
@@ -172,9 +166,7 @@ function startServer(serverDef) {
   });
 }
 
-// ══════════════════════════════════════════════════════════
 // MAIN
-// ══════════════════════════════════════════════════════════
 
 async function main() {
   console.log('\n  ╔═══════════════════════════════════════╗');
@@ -205,9 +197,7 @@ async function main() {
   console.log('  └──────────────────────────────────────────────────────┘\n');
 }
 
-// ══════════════════════════════════════════════════════════
 // GRACEFUL SHUTDOWN
-// ══════════════════════════════════════════════════════════
 
 process.on('SIGINT', () => {
   console.log('\n  Shutting down all servers...');

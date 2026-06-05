@@ -50,7 +50,7 @@ async function run() {
   const sidNormal = 'test-normal-' + ts;
   const sidAttack = 'test-attack-' + ts;
 
-  // ── PHASE 1: Normal Browsing ──────────────────────────
+  // PHASE 1: Normal Browsing
   console.log('\n' + '═'.repeat(58));
   console.log('  PHASE 1 — NORMAL BROWSING  (expect score ≈ 0)');
   console.log('═'.repeat(58));
@@ -94,7 +94,7 @@ async function run() {
     console.log('  (Session not in dashboard yet — see [SCORE] lines in start-all terminal)');
   }
 
-  // ── PHASE 2: Attack Simulation ────────────────────────
+  // PHASE 2: Attack Simulation
   console.log('\n' + '═'.repeat(58));
   console.log('  PHASE 2 — ATTACK SIMULATION  (expect HIGH score)');
   console.log('═'.repeat(58));

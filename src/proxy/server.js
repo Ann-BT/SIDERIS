@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/proxy/server.js
 // Sideris 2.0 — Backend Access Log Proxy + Agent Injector
 //
@@ -14,7 +13,6 @@
 // This ensures EVERY request — including native browser
 // navigation that bypasses XHR patching — carries a session ID
 // and is correlated with the correct agent session.
-// ──────────────────────────────────────────────────────────
 
 'use strict';
 
@@ -39,13 +37,13 @@ const INGEST_URL = INGEST_HOST + '/api/events';
 // agent.js is served from our own source tree
 const AGENT_PATH = path.resolve(__dirname, '../agent/agent.js');
 
-// ── Snippet injected into every HTML <head> ───────────────
+// Snippet injected into every HTML <head>
 // Points the agent at the relative endpoint /sideris/ingest.
-// This routes telemetry traffic through the proxy itself, avoiding exposing 
+// This routes telemetry traffic through the proxy itself, avoiding exposing
 // the ingest port (5000) to the public internet and avoiding CORS issues.
 const AGENT_SNIPPET = '<script src="/sideris/agent.js" defer></script>';
 
-// ── Lightweight unique ID for fallback sessions ────────────
+// Lightweight unique ID for fallback sessions
 // Uses a UUID v4 format (same as agent) so there is no visual
 // difference between proxy-seeded sessions and agent sessions.
 function generateProxyId() {
@@ -58,7 +56,7 @@ function generateProxyId() {
   });
 }
 
-// ── Detect browser vs server-side requests ─────────────────
+// Detect browser vs server-side requests
 // Next.js SSR, Node.js fetch, curl, crawlers, etc. have no browser
 // cookie and will always generate a new session per request.
 // We only create tracked sessions for real browser clients.
@@ -71,7 +69,7 @@ function isBrowserRequest(req) {
   return !botPattern.test(ua);
 }
 
-// ── Session ID resolver ──────────────────────────────
+// Session ID resolver
 // Priority: cookie → header → generated (browser only)
 function resolveSessionId(req) {
   // 1. Cookie (set by proxy on HTML response + refreshed by agent.js)
@@ -139,11 +137,9 @@ app.use((req, res, next) => {
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // ROUTE: /sideris/agent.js — serve agent script directly
 // Must be registered BEFORE the proxy middleware so it is
 // handled locally and not forwarded to Juice Shop.
-// ══════════════════════════════════════════════════════════
 
 app.get('/sideris/agent.js', (req, res) => {
   if (!fs.existsSync(AGENT_PATH)) {
@@ -154,12 +150,10 @@ app.get('/sideris/agent.js', (req, res) => {
   res.sendFile(AGENT_PATH);
 });
 
-// ══════════════════════════════════════════════════════════
 // SERVER-SIDE CAPTCHA GENERATION
 // Generates a 6-char code, stores it in Redis with a 5-min TTL,
 // and returns a distorted SVG image. The client NEVER sees the
 // code — only the rendered image.
-// ══════════════════════════════════════════════════════════
 const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function generateCaptchaCode() {
@@ -255,10 +249,8 @@ app.get('/sideris/captcha-image', async (req, res) => {
   res.send(svg);
 });
 
-// ══════════════════════════════════════════════════════════
 // CAPTCHA OVERLAY — injected into HTML responses for challenged
 // sessions. Full-screen modal; no redirect required.
-// ══════════════════════════════════════════════════════════
 function getCaptchaOverlay(sid) {
   return `
 <div id="sideris-captcha-container"></div>
@@ -807,10 +799,8 @@ function getCaptchaOverlay(sid) {
 `;
 }
 
-// ══════════════════════════════════════════════════════════
 // ROUTE: POST /sideris/captcha-verify — clear challenge guard
 // Called by the CAPTCHA page JS after successful verification.
-// ══════════════════════════════════════════════════════════
 app.post('/sideris/captcha-verify', async (req, res) => {
   const sid = req.body?.session_id ||
     (req.cookies && req.cookies.sideris_sid) ||
@@ -890,12 +880,9 @@ app.post('/sideris/captcha-verify', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ══════════════════════════════════════════════════════════
 // GUARD ENFORCEMENT + INLINE ATTACK BLOCKING
 // Phase 1: Check existing Redis guard (from previous blocks)
 // Phase 2: Scan URL + body for critical attack patterns
-// ══════════════════════════════════════════════════════════
-
 
 const BLOCK_PAGE = `<!DOCTYPE html>
 <html><head><title>Access Denied — SIDERIS</title>
@@ -916,7 +903,7 @@ const BLOCK_PAGE = `<!DOCTYPE html>
   <p>If you believe this is an error, contact the security team.</p>
 </div></body></html>`;
 
-// ── Critical attack patterns for inline detection ─────────
+// Critical attack patterns for inline detection
 
 const CRITICAL_PATTERNS = [
   { name: 'sql_injection', re: /(UNION[\s\/\*]+SELECT|'\s*OR\s*['"\d]|OR\s+1\s*=\s*1|--\s*$|DROP\s+TABLE|INSERT\s+INTO|EXEC\s*\(|WAITFOR\s+DELAY|BENCHMARK\s*\(|SLEEP\s*\(|LOAD_FILE\s*\(|INTO\s+OUTFILE)/i },
@@ -961,7 +948,7 @@ app.use(async (req, res, next) => {
   req._sideris_session_id = sid;
   req._sideris_no_cookie   = !req.cookies?.sideris_sid;
 
-  // ── Phase 1: Check existing guard ───────────────────────
+  // Phase 1: Check existing guard
   try {
     // 1. IP Block Guard Check
     const ipAction = await guardRedis.hget(`sideris:guard:ip:${clientIp}`, 'action');
@@ -1026,7 +1013,7 @@ app.use(async (req, res, next) => {
     console.error('[proxy] Guard check error:', err.message);
   }
 
-  // ── Phase 2: Inline critical payload scan ───────────────
+  // Phase 2: Inline critical payload scan
   // Detect injection attacks in real-time and block BEFORE
   // the request reaches Juice Shop. No async pipeline delay.
   const detected = scanPayload(req.originalUrl, req.body);
@@ -1194,11 +1181,9 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// ══════════════════════════════════════════════════════════
 // LOGGING MIDDLEWARE
 // Records start time and attaches res.on("finish") listener.
 // All logging and event sending happens ONLY inside finish.
-// ══════════════════════════════════════════════════════════
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -1260,12 +1245,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// ══════════════════════════════════════════════════════════
 // PROXY — created ONCE at top-level.
 // Uses responseInterceptor to inject the agent snippet into
 // HTML responses. All other responses are passed through
 // unchanged (binary-safe buffer return).
-// ══════════════════════════════════════════════════════════
 
 const proxy = createProxyMiddleware({
   target:      TARGET_URL,
@@ -1300,7 +1283,7 @@ const proxy = createProxyMiddleware({
 
       let html = responseBuffer.toString('utf8');
 
-      // ── Seed the sideris_sid cookie via inline script ──────
+      // Seed the sideris_sid cookie via inline script
       // Injected as an inline (non-deferred) script so it runs BEFORE
       // agent.js (which is defer'd). This ensures the very first page
       // load already has a persistent session cookie set, eliminating
@@ -1330,7 +1313,7 @@ const proxy = createProxyMiddleware({
         html = AGENT_SNIPPET + '\n' + html;
       }
 
-      // ── CAPTCHA overlay injection ────────────────────────
+      // CAPTCHA overlay injection
       // If this session is under challenge, inject the full-screen
       // CAPTCHA modal before </body>. The overlay freezes the page
       // until the user solves it. Non-HTML bot requests are still
@@ -1368,7 +1351,7 @@ const storefrontProxy = createProxyMiddleware({
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
 
-        // ── Server-side session cookie (bypasses CSP entirely) ──────
+        // Server-side session cookie (bypasses CSP entirely)
         // res.append adds to existing Set-Cookie headers from upstream
         // rather than replacing them, so Discourse's own session cookies
         // (like _t, _forum_session) are preserved alongside ours.
@@ -1387,7 +1370,7 @@ const storefrontProxy = createProxyMiddleware({
 
       let html = responseBuffer.toString('utf8');
 
-      // ── Extract CSP nonce from upstream headers ─────────────────
+      // Extract CSP nonce from upstream headers
       // Discourse uses 'strict-dynamic' + per-request nonce, which blocks
       // any inline or external script that doesn't carry the same nonce.
       // We extract it so we can add it to our injected scripts.
@@ -1396,7 +1379,7 @@ const storefrontProxy = createProxyMiddleware({
       const cspNonce = nonceMatch ? nonceMatch[1] : '';
       const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : '';
 
-      // ── Inline cookie seed script (belt-and-suspenders backup) ──
+      // Inline cookie seed script (belt-and-suspenders backup)
       // Server-side Set-Cookie above is the primary mechanism.
       // This JS fallback handles edge cases (e.g. if headers get dropped).
       if (req._sideris_session_id) {
@@ -1417,7 +1400,7 @@ const storefrontProxy = createProxyMiddleware({
         }
       }
 
-      // ── Agent.js injection with CSP nonce ────────────────────────
+      // Agent.js injection with CSP nonce
       // Add the nonce so agent.js is allowed under 'strict-dynamic' CSP.
       const agentSnippet = cspNonce
         ? `<script src="/sideris/agent.js" nonce="${cspNonce}" defer></script>`
@@ -1446,9 +1429,7 @@ const storefrontProxy = createProxyMiddleware({
   }
 });
 
-// ══════════════════════════════════════════════════════════
 // ROUTE: /sideris/ingest — proxy agent telemetry to ingest server internally
-// ══════════════════════════════════════════════════════════
 app.use('/sideris/ingest', createProxyMiddleware({
   target: INGEST_HOST,
   changeOrigin: true,
@@ -1490,9 +1471,7 @@ app.use(['/sockjs', '/websocket'], sockjsProxy);
 // Route: Storefront default fallback for HTML and static assets
 app.use('/', storefrontProxy);
 
-// ══════════════════════════════════════════════════════════
 // STARTUP
-// ══════════════════════════════════════════════════════════
 
 const server = app.listen(PROXY_PORT, () => {
   console.log(`[proxy] Sideris Proxy running on    http://localhost:${PROXY_PORT}`);

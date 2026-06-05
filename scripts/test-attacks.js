@@ -1,5 +1,4 @@
 // scripts/test-attacks.js
-// ─────────────────────────────────────────────────────────────────────────────
 // SIDERIS Comprehensive Attack & Defense Test Suite (Rewritten)
 //
 // Tests all defense layers, actions, and behavioral bonuses:
@@ -8,7 +7,6 @@
 //   Layer 3 — Behavioral Correlation Bonuses (Credential Stuffing, IP Switch, Endpoint Hammer, 404 Storm)
 //
 // Generates randomized session names and client IP addresses for each test.
-// ─────────────────────────────────────────────────────────────────────────────
 'use strict';
 
 const http  = require('http');
@@ -39,7 +37,7 @@ function randomIp() {
   return `192.168.${Math.floor(Math.random() * 254) + 1}.${Math.floor(Math.random() * 254) + 1}`;
 }
 
-// ── HTTP Request Helpers ──────────────────────────────────────────────────────
+// HTTP Request Helpers
 
 function request(method, rawUrl, { headers = {}, body = null } = {}) {
   return new Promise((resolve, reject) => {
@@ -139,9 +137,7 @@ async function sendEventToIngest(sid, ip, details) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // TEST SUITES
-// ─────────────────────────────────────────────────────────────────────────────
 
 // --- Test 1: Benign Browsing (Action: Allow) ---
 async function testAllow() {
@@ -429,9 +425,7 @@ async function test404Storm() {
   assert('Applied "404_storm" behavioral bonus (+8 pts)', session?.bonus_applied.includes('404_storm'), session?.bonus_applied);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN RUNNER
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
   console.log('\n' + '█'.repeat(70));

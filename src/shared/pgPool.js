@@ -1,7 +1,5 @@
-// ──────────────────────────────────────────────────────────
 // src/shared/pgPool.js
 // Shared PostgreSQL connection pool for all Sideris workers.
-// ──────────────────────────────────────────────────────────
 'use strict';
 
 const { Pool } = require('pg');

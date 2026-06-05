@@ -1,4 +1,3 @@
-// ──────────────────────────────────────────────────────────
 // src/detector/sessionTracker.js
 // Sideris 2.0 — Session Tracker (Category-Aware)
 //
@@ -17,26 +16,26 @@
 //   last_seen,               // epoch ms
 //   verdict,                 // current verdict string
 //
-//   // ── Category counts ──
+// // ── Category counts
 //   category_counts: {
 //     authentication: N, injection: N, fuzzing: N,
 //     bot: N, dos: N, session_abuse: N
 //   },
 //
-//   // ── Per-type counters ──
+// // ── Per-type counters
 //   url_counts: { sql_injection: 3, xss: 1, ... },
 //
-//   // ── Auth tracking ──
+// // ── Auth tracking
 //   login_attempts,          // total login-endpoint hits
 //   failed_login_count,      // 401/403 on auth endpoints
 //   unique_usernames,        // distinct usernames attempted
 //
-//   // ── Rate tracking ──
+// // ── Rate tracking
 //   requests_per_second,     // from agent telemetry
 //   request_timestamps,      // last 60s of request times (for rate calc)
 //   endpoint_hits: { "/api/login": 25, ... },
 //
-//   // ── Detection flags ──
+// // ── Detection flags
 //   scanner_detected,
 //   scan_detected,
 //   exploit_detected,
@@ -45,14 +44,13 @@
 //   unique_payloads,
 //   mouse_moves,
 //
-//   // ── Bonus dedup ──
+// // ── Bonus dedup
 //   bonus_applied,           // array of bonus keys already applied
 //
-//   // ── Behavior log ──
+// // ── Behavior log
 //   // Stored separately in Redis List: sideris:session:{id}:risk_reasons
 //   // Each entry: { rule, category, signal, score, timestamp }
 // }
-// ──────────────────────────────────────────────────────────
 'use strict';
 
 const Redis = require('ioredis');
@@ -69,16 +67,14 @@ const { decide, getGuardDirective } = require('./decisionEngine');
 
 redis.on('error', err => console.error('[sessionTracker] Redis:', err.message));
 
-// ── L1 in-memory cache ─────────────────────────────────────
+// L1 in-memory cache
 const cache = new Map(); // sessionId → state
 
-// ══════════════════════════════════════════════════════════
 // BONUS RULES — applied once per session per key
 // These detect compound behavioral patterns that confirm
 // attack intent beyond individual events.
-// ══════════════════════════════════════════════════════════
 const BONUS_RULES = [
-  // ── Authentication bonuses ──
+  // Authentication bonuses
   {
     key: 'brute_force',
     check: s => s.failed_login_count >= 15,
@@ -101,7 +97,7 @@ const BONUS_RULES = [
     category: 'authentication',
   },
 
-  // ── Fuzzing bonuses ──
+  // Fuzzing bonuses
   {
     key: '404_storm',
     check: s => (s.count_404 || 0) >= 15,
@@ -124,7 +120,7 @@ const BONUS_RULES = [
     category: 'fuzzing',
   },
 
-  // ── Injection bonuses ──
+  // Injection bonuses
   {
     key: 'scan_exploit_combo',
     check: s => s.scan_detected && s.exploit_detected,
@@ -144,7 +140,7 @@ const BONUS_RULES = [
     category: 'injection',
   },
 
-  // ── Bot bonuses ──
+  // Bot bonuses
   {
     key: 'bot_speed',
     check: s => s.event_count > 20 && (s.requests_per_second || 0) > 10 && (s.mouse_moves || 0) === 0,
@@ -163,7 +159,7 @@ const BONUS_RULES = [
     category: 'bot',
   },
 
-  // ── DoS bonuses ──
+  // DoS bonuses
   {
     key: 'dos_flood',
     check: s => {
@@ -188,7 +184,7 @@ const BONUS_RULES = [
     category: 'dos',
   },
 
-  // ── Session abuse bonuses ──
+  // Session abuse bonuses
   {
     key: 'session_ip_switch',
     check: s => (s.known_ips || []).length >= 2,
@@ -198,7 +194,7 @@ const BONUS_RULES = [
   },
 ];
 
-// ── Fresh session template ─────────────────────────────────
+// Fresh session template
 function freshSession(sessionId) {
   return {
     session_id: sessionId,
@@ -252,9 +248,7 @@ function freshSession(sessionId) {
   };
 }
 
-// ══════════════════════════════════════════════════════════
 // REDIS SERIALIZATION
-// ══════════════════════════════════════════════════════════
 function toRedisFields(s) {
   return [
     'session_score', s.session_score.toFixed(2),
@@ -342,7 +336,7 @@ async function saveToRedis(state) {
   catch (err) { console.error('[sessionTracker] Redis save error:', err.message); }
 }
 
-// ── Get or create session ──────────────────────────────────
+// Get or create session
 async function getSession(sessionId) {
   if (cache.has(sessionId)) return cache.get(sessionId);
 
@@ -359,7 +353,7 @@ async function getSession(sessionId) {
   }
 }
 
-// ── Apply behavior bonuses (idempotent) ────────────────────
+// Apply behavior bonuses (idempotent)
 function applyBonuses(state) {
   let bonusTotal = 0;
   const newReasons = [];
@@ -376,9 +370,7 @@ function applyBonuses(state) {
   return { bonusTotal, newReasons };
 }
 
-// ══════════════════════════════════════════════════════════
 // UPDATE — process one scored event into session state
-// ══════════════════════════════════════════════════════════
 async function update(sessionId, scoringResult, event) {
   const state = await getSession(sessionId);
   if (event.inline_blocked) {
@@ -394,11 +386,11 @@ async function update(sessionId, scoringResult, event) {
   const { attack_type, category, behavior_signal, event_score } = scoringResult;
   const now = event.timestamp || Date.now();
 
-  // ── Basic counters ──
+  // Basic counters
   state.event_count++;
   state.last_seen = now;
 
-  // ── IP tracking (session abuse detection) ──
+  // IP tracking (session abuse detection)
   const eventIp = data.ip || event.ingest_ip || null;
   if (eventIp) {
     if (!state.ip_address) state.ip_address = eventIp;
@@ -408,15 +400,15 @@ async function update(sessionId, scoringResult, event) {
   }
   state.user_agent = state.user_agent || data.userAgent || null;
 
-  // ── Category counts ──
+  // Category counts
   if (category && category !== 'normal' && state.category_counts.hasOwnProperty(category)) {
     state.category_counts[category]++;
   }
 
-  // ── Per-type counters ──
+  // Per-type counters
   state.url_counts[attack_type] = (state.url_counts[attack_type] || 0) + 1;
 
-  // ── Auth tracking ──
+  // Auth tracking
   if (attack_type === 'auth_failure' || attack_type === 'credential_stuffing' || attack_type === 'password_spray') {
     state.login_attempts++;
     state.failed_login_count++;
@@ -428,13 +420,13 @@ async function update(sessionId, scoringResult, event) {
     }
   }
 
-  // ── 404 counter ──
+  // 404 counter
   if (attack_type === 'recon_404') state.count_404++;
 
-  // ── Scanner flag ──
+  // Scanner flag
   if (attack_type === 'scanner_tool') state.scanner_detected = true;
 
-  // ── Scan / exploit flags ──
+  // Scan / exploit flags
   if (['directory_traversal', 'cms_admin_probe', 'recon_404', 'file_exposure', 'scanner_tool', 'http_method_abuse'].includes(attack_type)) {
     state.scan_detected = true;
   }
@@ -442,7 +434,7 @@ async function update(sessionId, scoringResult, event) {
     state.exploit_detected = true;
   }
 
-  // ── Rate tracking (rolling 60-second window) ──
+  // Rate tracking (rolling 60-second window)
   // Only count NON-NORMAL events to avoid false DoS detection
   // from normal Juice Shop background polling (304s, config fetches, etc.)
   if (attack_type !== 'normal_browsing') {
@@ -450,7 +442,7 @@ async function update(sessionId, scoringResult, event) {
     const cutoff = now - 60000;
     state.request_timestamps = state.request_timestamps.filter(t => t > cutoff);
 
-    // ── Endpoint hit counter (for DoS endpoint_hammer detection) ──
+    // Endpoint hit counter (for DoS endpoint_hammer detection)
     const endpoint = data.endpoint || '';
     if (endpoint) {
       const path = endpoint.split('?')[0];
@@ -458,7 +450,7 @@ async function update(sessionId, scoringResult, event) {
     }
   }
 
-  // ── Payload variation ──
+  // Payload variation
   const isBenign = ['normal_browsing', 'recon_404', 'auth_failure'].includes(attack_type);
   if (!isBenign) {
     const payloadStr = JSON.stringify(data.query || data.body || '');
@@ -470,19 +462,19 @@ async function update(sessionId, scoringResult, event) {
     }
   }
 
-  // ── Agent-provided real-time metrics ──
+  // Agent-provided real-time metrics
   if (event.source === 'agent') {
     if (data.rps != null) state.requests_per_second = data.rps;
     if (data.mouseMoves != null) state.mouse_moves = data.mouseMoves;
   }
 
-  // ── Add event score to session ──
+  // Add event score to session
   state.session_score = parseFloat((state.session_score + event_score).toFixed(2));
 
-  // ── Apply behavior bonuses (idempotent) ──
+  // Apply behavior bonuses (idempotent)
   const { bonusTotal, newReasons } = applyBonuses(state);
 
-  // ── Timestamps & State Machine updates ──
+  // Timestamps & State Machine updates
   if (state.session_score >= 10) {
     if (!state.first_suspicious_at || state.first_suspicious_at === 0) {
       state.first_suspicious_at = now;
@@ -495,7 +487,7 @@ async function update(sessionId, scoringResult, event) {
   }
 
   const decision = decide(state.session_score);
-  // ── Sync verdict into session state so Redis hash stays accurate ──
+  // Sync verdict into session state so Redis hash stays accurate
   state.verdict = decision.verdict;
   if (decision && decision.action && decision.action !== 'allow') {
     if (!state.first_mitigated_at || state.first_mitigated_at === 0) {
@@ -519,7 +511,7 @@ async function update(sessionId, scoringResult, event) {
     }
   }
 
-  // ── Persist risk reason to Redis list (for timeline in dashboard) ──
+  // Persist risk reason to Redis list (for timeline in dashboard)
   if (event_score > 0 || newReasons.length > 0) {
     let customSignal = behavior_signal || '';
     if (attack_type !== 'normal_browsing') {
@@ -556,7 +548,7 @@ async function update(sessionId, scoringResult, event) {
     }
   }
 
-  // ── Save updated state ──
+  // Save updated state
   cache.set(sessionId, state);
   await saveToRedis(state);
 
@@ -567,10 +559,8 @@ async function update(sessionId, scoringResult, event) {
   };
 }
 
-// ══════════════════════════════════════════════════════════
 // DECAY TIMER — score × 0.95 every 30 seconds
 // Also evicts sessions idle longer than TTL.
-// ══════════════════════════════════════════════════════════
 function startDecayTimer() {
   setInterval(async () => {
     const now = Date.now();
@@ -586,7 +576,7 @@ function startDecayTimer() {
           state.captcha_solved = false;
         }
 
-        // ── Guard release on score decay ──────────────────
+        // Guard release on score decay
         // If score has decayed into the safe zone (< 10) and the session
         // currently has a non-permanent guard directive, release it.
         // Hard blocks (score ever crossed 50) are exempt \u2014 those require
