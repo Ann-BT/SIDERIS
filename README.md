@@ -142,18 +142,58 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 </p>
 <br>
 
-### 1. Security Operations Center (SOC) Dashboard
-This React-based interface lists active sessions, visualizes live risk scores, breaks down threat categories, and allows analysts to manually block or unblock sessions.
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>1. Automatic Telemetry Injection</b><br>
+      <i>The WAF reverse proxy intercepts traffic and injects <code>agent.js</code> seamlessly without site modifications.</i>
+      <br><br>
+      <img src="./screenshots/agent_injection.png" alt="Agent Injection" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>2. Adaptive CAPTCHA Challenge</b><br>
+      <i>Suspicious sessions trigger a server-generated captcha overlay to verify human presence.</i>
+      <br><br>
+      <img src="./screenshots/captcha.png" alt="CAPTCHA Challenge" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>3. Hard Block Screen</b><br>
+      <i>Malicious request patterns or manual blocks result in an immediate proxy level connection lockout.</i>
+      <br><br>
+      <img src="./screenshots/blocked_screen.png" alt="Block Screen" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>4. SOC Dashboard Live Streams</b><br>
+      <i>The React interface aggregates live sessions, color-coded risk indexes, and active connection metadata.</i>
+      <br><br>
+      <img src="./screenshots/dashboard.png" alt="SOC Dashboard" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>5. Forensic Session Timeline</b><br>
+      <i>Detailed inspection of triggered signature rules, timing heuristics, and analyst block overrides.</i>
+      <br><br>
+      <img src="./screenshots/session_detail.png" alt="Forensic Timeline" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>6. Active Defense Matrix</b><br>
+      <i>Filter, search, and audit all active rate limits, challenges, and blocks currently enforced on Redis.</i>
+      <br><br>
+      <img src="./screenshots/defense_matrix.png" alt="Defense Matrix" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+</table>
+
+<br>
 
 <p align="center">
-  <img src="./screenshots/dashboard.png" alt="SIDERIS SOC Dashboard" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de;"/>
-</p>
-
-### 2. Adaptive Guard Challenge overlay
-Suspicious sessions are prompted with a server-generated verification overlay. Successful completion resets active guards and restores access.
-
-<p align="center">
-  <img src="./screenshots/captcha.png" alt="SIDERIS CAPTCHA Overlay" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de;"/>
+  <b>7. Dynamic Scoring & Guide Modal</b><br>
+  <i>In-dashboard modal displaying scoring formulas, cooling decay metrics, and SIDERIS's 13 correlation rules.</i>
+  <br><br>
+  <img src="./screenshots/runtime_guide.png" alt="Scoring Guide Modal" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
