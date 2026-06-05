@@ -96,7 +96,17 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
 
 <br>
 
-**The SOC Dashboard** is where you watch the chaos unfold in real time. Multiple themes included because security analysts deserve nice things too.
+### Protected Client Storefront
+SIDERIS intercepts traffic to your web application (such as this Medusa 2.0 e-commerce storefront), injecting behavioral telemetry and blocking threats in the browser before they hit your database.
+
+<p align="center">
+  <img src="./screenshots/storefront.png" alt="SIDERIS Demo Storefront" width="100%" style="border-radius: 12px; border: 1px solid #d0d7de; box-shadow: 0 4px 15px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+### The SOC Dashboard
+The SOC Dashboard is where you watch the chaos unfold in real time. Multiple themes included because security analysts deserve nice things too.
 
 <table>
   <tr>
@@ -104,13 +114,13 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
       <b>🔴 Hard Block Screen</b><br>
       <i>When a session crosses the point of no return — malicious patterns, manual SOC override, or automated escalation — they get this. No negotiation.</i>
       <br><br>
-      <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>⚠️ Adaptive CAPTCHA Challenge</b><br>
       <i>Suspicious but not guilty yet? SIDERIS serves a CAPTCHA overlay mid-session. Pass it and your score resets. Fail it and... see left.</i>
       <br><br>
-      <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
@@ -125,13 +135,13 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
       <b>👁️ Live Sessions Feed</b><br>
       <i>All active visitor sessions with color-coded threat score bars. Green is calm. Red means someone's having a very bad time shortly.</i>
       <br><br>
-      <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>🔍 Session Deep Dive</b><br>
       <i>Click any session to expand it — peak scores, triggering conditions, full timeline, and manual SOC override buttons if you want to get personally involved.</i>
       <br><br>
-      <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
@@ -146,13 +156,13 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
       <b>🎯 Active Defense Matrix</b><br>
       <i>Every Redis-enforced countermeasure in one panel — active rate-limits, pending CAPTCHAs, IP bans. Your current hit list.</i>
       <br><br>
-      <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>🏆 Top Offenders Leaderboard</b><br>
       <i>Ranked list of the most aggressive source IPs. Total events, peak threat score, attack patterns. A hall of shame, essentially.</i>
       <br><br>
-      <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
@@ -167,13 +177,13 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
       <b>📊 Operational Metrics</b><br>
       <i>Live counters for total events processed, active blocks, active challenges, and active rate-limits. The numbers that tell you how bad your day is going.</i>
       <br><br>
-      <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>🗄️ Session History Database</b><br>
       <i>All past sessions archived in PostgreSQL. Searchable, filterable, auditable. Great for incident reports. Better for "I told you so" moments.</i>
       <br><br>
-      <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
@@ -188,20 +198,26 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
       <b>📟 Live Logs Console</b><br>
       <i>Real-time scrolling terminal showing raw events from ingestion, guard, and proxy services. Basically Matrix rain but useful.</i>
       <br><br>
-      <img src="./screenshots/live_logs.png" alt="Live Logs Console" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>🔐 Dashboard Access Log</b><br>
       <i>Every connection attempt to the SOC dashboard itself — allowed or blocked. Yes, SIDERIS audits access to its own control panel. Turtles all the way down.</i>
       <br><br>
-      <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
 
 <br>
 
-**Extra goodies.**
+**Extra goodies.** Customize your dashboard theme or view the built-in reference manual using the controls in the top header.
+
+<p align="center">
+  <img src="./screenshots/header_controls.png" alt="Dashboard Header Controls" style="border-radius: 6px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 48px;"/>
+</p>
+
+<br>
 
 <table>
   <tr>
@@ -209,13 +225,13 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
       <b>🎨 Theme Selector</b><br>
       <i>Tokyo Night, Catppuccin, Dracula, Nord, and more. Because if you're going to stare at threat dashboards all day, it might as well look good.</i>
       <br><br>
-      <img src="./screenshots/theme_picker.png" alt="Theme Selector" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/theme_picker.png" alt="Theme Selector" style="max-width: 280px; width: 100%; border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>📖 Runtime Scoring Guide</b><br>
       <i>In-dashboard reference for the threat scoring system — escalation tiers, scoring equations, decay factors, and the 13 correlation rules. RTFM, but the FM is built in.</i>
       <br><br>
-      <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
