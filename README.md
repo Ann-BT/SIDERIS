@@ -27,8 +27,8 @@
 <br>
 
 <div align="center">
-  <h3>🛡️ If SIDERIS helps protect your website, please support the project by leaving a Star! 🛡️</h3>
-  <i>💡 Tip: Click any section header badge or the "Back to Top" buttons to return to the top navigation.</i>
+  <h3>If SIDERIS successfully prevented your server from bursting into flames today, consider leaving a Star. Our developer needs the dopamine.</h3>
+  <i>💡 Tip: Click any section header badge to return to the top navigation.</i>
 </div>
 
 <br>
@@ -60,7 +60,6 @@ Because hoping your users will play nice is not a security strategy.
 > SIDERIS operates transparently. Simply run SIDERIS in front of your website server and point your public traffic to it.
 
 <br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="quick-start"></a>
@@ -95,7 +94,6 @@ docker compose up -d --build
 Access your website at `http://your-server-ip:4000`. You are now protected.
 
 <br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="architecture"></a>
@@ -132,7 +130,6 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 6. Persistent logs and security events are archived in **PostgreSQL** for analysis on the React-based **SOC Dashboard** (`:5173`).
 
 <br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="gallery"></a>
@@ -231,8 +228,6 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 
 
 
-<br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="configuration"></a>
@@ -255,7 +250,6 @@ SIDERIS parameters can be customized via `.env` file variables:
 For advanced settings and native (non-Docker) setup, check the **[Deployment and Configuration Guide](./DEPLOYMENT.md)**.
 
 <br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="contact"></a>
@@ -270,7 +264,6 @@ For inquiries, support, or security discussions:
 * **Facebook**: [Ann-BT / Merlin the Great Mage](https://www.facebook.com/merlinthegreatmage)
 
 <br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="license"></a>
@@ -282,5 +275,4 @@ For inquiries, support, or security discussions:
 
 SIDERIS is open-source software licensed under the **[MIT License](./LICENSE)**. Free to download, modify, and deploy for personal or commercial websites.
 
-<br>
-<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
+
