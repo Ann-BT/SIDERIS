@@ -4,8 +4,14 @@
 
 <div align="center">
 <pre>
-<a href="#about">ABOUT</a>  •  <a href="#architecture">ARCHITECTURE</a>  •  <a href="#setup">SETUP</a>  •  <a href="#gallery">GALLERY</a>  •  <a href="#configuration">CONFIGURATION</a>  •  <a href="#license">LICENSE</a>
+<a href="#about">ABOUT</a>  •  <a href="#quick-start">QUICK START</a>  •  <a href="#architecture">ARCHITECTURE</a>  •  <a href="#gallery">GALLERY</a>  •  <a href="#configuration">CONFIGURATION</a>  •  <a href="#license">LICENSE</a>
 </pre>
+</div>
+
+<br>
+
+<div align="center">
+  <h3>If SIDERIS helps protect your website, please support the project by leaving a Star!</h3>
 </div>
 
 <br>
@@ -15,12 +21,53 @@
 
 SIDERIS (Sidecar Integrated Detection, Event Reporting, and Intelligence System) is a real-time web application firewall (WAF) and client-side behavioral analysis proxy. 
 
-SIDERIS sits in front of your website like a reverse proxy with severe trust issues. It intercepts user traffic, automatically injects a client-side telemetry agent into served HTML, statefully scores user behavior in real time, and dynamically enforces active guard actions (like rate-limiting, CAPTCHAs, or IP blocks) when risk thresholds are crossed.
+SIDERIS sits in front of your website like a reverse proxy with severe trust issues. It intercepts user traffic, automatically injects a client-side telemetry agent into served HTML, statefully scores user behavior in real time, and dynamically enforces progressive defenses (like rate-limiting, CAPTCHAs, or IP blocks) when risk thresholds are crossed.
 
 Because hoping your users will play nice is not a security strategy.
 
+---
+
+### Why Webmasters Choose SIDERIS
+
+* **Works With Any Stack**: Whether your website is built on WordPress, PHP, Laravel, Node.js, Python, Ruby, or is just static HTML, SIDERIS runs as a standalone sidecar.
+* **Zero Application Code Changes**: You do not need to install plugins or rewrite a single line of backend database or application code.
+* **Protects Against Zero-Days**: By statefully monitoring behavioral telemetry (such as typing patterns, mouse tracking, and browser environment signals) rather than relying only on signature databases, it stops sophisticated bots and manual attacks that bypass traditional WAFs.
+
+---
+
 > [!IMPORTANT]
-> SIDERIS operates transparently. It requires zero modifications to your backend application or database codebase. Simply run SIDERIS in front of your server and let it handle the defense.
+> SIDERIS operates transparently. Simply run SIDERIS in front of your website server and point your public traffic to it.
+
+<br>
+<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
+
+<a id="quick-start"></a>
+<br>
+<h2 align="center">60-SECOND QUICK START</h2>
+
+To deploy SIDERIS in front of your website right now:
+
+### 1. Download SIDERIS
+```bash
+git clone https://github.com/Ann-BT/SIDERIS.git
+cd SIDERIS
+```
+
+### 2. Configure Environment
+Create your config file:
+```bash
+cp .env.example .env
+```
+Open `.env` in a text editor and update:
+* `TARGET_URL`: Point this to your existing website (e.g., `http://localhost:8080`).
+* `PROXY_PORT`: The public port where users will now access your site through SIDERIS (default `4000`).
+
+### 3. Run SIDERIS
+```bash
+docker compose up -d --build
+```
+
+Access your website at `http://your-server-ip:4000`. You are now protected.
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
@@ -54,66 +101,6 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 4. Telemetry is streamed into **Redis** for real-time scoring.
 5. High-risk actions trigger the **Guard Service** to apply mitigations (rate-limiting, challenges) immediately.
 6. Persistent logs and security events are archived in **PostgreSQL** for analysis on the React-based **SOC Dashboard** (`:5173`).
-
-<br>
-<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
-
-<a id="setup"></a>
-<br>
-<h2 align="center">SETUP AND DEPLOYMENT</h2>
-
-Start by installing the necessary dependencies depending on your deployment choice.
-
-#### 📦 DEPENDENCIES
-
-| | Requirements |
-|--:|:---|
-| **Option A (Docker)** | Docker, Docker Compose v2 |
-| **Option B (Native)** | Node.js v20+, PostgreSQL v16+ (with pgvector), Redis v7+ |
-
-<br>
-
-#### 🚀 DEPLOYMENT OPTION A: DOCKER COMPOSE (RECOMMENDED)
-
-This starts SIDERIS alongside preconfigured Redis and PostgreSQL containers.
-
-1. Copy the environment template:
-```bash
-cp .env.example .env
-```
-
-2. Configure your target URL and ports in `.env`.
-
-3. Build and launch SIDERIS:
-```bash
-docker compose up -d --build
-```
-
-<br>
-
-#### 💻 DEPLOYMENT OPTION B: NATIVE NODE.JS SETUP
-
-If you prefer to run SIDERIS directly on your host operating system:
-
-1. Install dependencies:
-```bash
-# Install backend dependencies
-npm install
-
-# Install dashboard UI dependencies
-cd src/dashboard/ui && npm install
-cd ../../../
-```
-
-2. Run the interactive configuration utility to generate `.env`:
-```bash
-npm run setup
-```
-
-3. Start all backend services:
-```bash
-npm run start-all
-```
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
@@ -152,6 +139,8 @@ SIDERIS parameters can be customized via `.env` file variables:
 | `REDIS_URL` | `redis://localhost:6379` | Connection string for your Redis stream database |
 | `POSTGRES_URL` | `postgresql://sideris:sideris...` | Connection string for your PostgreSQL SOC database |
 | `DASHBOARD_ALLOWED_IPS` | `127.0.0.1,::1` | Access list of IPs authorized to load the SOC dashboard |
+
+For advanced settings and native (non-Docker) setup, check the **[Deployment and Configuration Guide](./DEPLOYMENT.md)**.
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
