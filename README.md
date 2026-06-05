@@ -4,7 +4,7 @@
 
 <div align="center">
 <pre>
-<a href="#about">ABOUT</a>  •  <a href="#quick-start">QUICK START</a>  •  <a href="#architecture">ARCHITECTURE</a>  •  <a href="#gallery">GALLERY</a>  •  <a href="#configuration">CONFIGURATION</a>  •  <a href="#license">LICENSE</a>
+<a href="#about">ABOUT</a>  •  <a href="#quick-start">QUICK START</a>  •  <a href="#architecture">ARCHITECTURE</a>  •  <a href="#gallery">GALLERY</a>  •  <a href="#configuration">CONFIGURATION</a>  •  <a href="#contact">CONTACT</a>  •  <a href="#license">LICENSE</a>
 </pre>
 </div>
 
@@ -145,8 +145,20 @@ For advanced settings and native (non-Docker) setup, check the **[Deployment and
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
+<a id="contact"></a>
+<br>
+<h2 align="center">CONTACT</h2>
+
+For inquiries, support, or security discussions:
+* **Email**: [anbt.personal@gmail.com](mailto:anbt.personal@gmail.com)
+* **Facebook**: [Ann-BT / Merlin the Great Mage](https://www.facebook.com/merlinthegreatmage)
+
+<br>
+<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
+
 <a id="license"></a>
 <br>
 <h2 align="center">LICENSE</h2>
 
 SIDERIS is open-source software licensed under the **[MIT License](./LICENSE)**. Free to download, modify, and deploy for personal or commercial websites.
+
