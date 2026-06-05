@@ -96,50 +96,40 @@ If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearc
 
 <br>
 
-### Protected Client Storefront
-SIDERIS intercepts traffic to your web application (such as this Medusa 2.0 e-commerce storefront), injecting behavioral telemetry and blocking threats in the browser before they hit your database.
+### SIDERIS in Action: The Security Flow
 
+Here is the step-by-step flow of how SIDERIS protects your site and how you manage it:
+
+#### Step 1: The Normal Client Experience
+To the public, your website (e.g., this Medusa 2.0 storefront) loads and functions completely normally. SIDERIS intercepts the HTML response to inject `agent.js` silently in the background. The visitor notices zero lag or visible changes.
 <p align="center">
-  <img src="./screenshots/storefront.png" alt="SIDERIS Demo Storefront" width="100%" style="border-radius: 12px; border: 1px solid #d0d7de; box-shadow: 0 4px 15px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/storefront.png" alt="Normal Client Storefront" width="600" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-### The SOC Dashboard
-The SOC Dashboard is where you watch the chaos unfold in real time. Multiple themes included because security analysts deserve nice things too.
-
-<table>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>🔴 Hard Block Screen</b><br>
-      <i>When a session crosses the point of no return — malicious patterns, manual SOC override, or automated escalation — they get this. No negotiation.</i>
-      <br><br>
-      <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>⚠️ Adaptive CAPTCHA Challenge</b><br>
-      <i>Suspicious but not guilty yet? SIDERIS serves a CAPTCHA overlay mid-session. Pass it and your score resets. Fail it and... see left.</i>
-      <br><br>
-      <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-</table>
+#### Step 2: Real-Time Telemetry & SOC Dashboard
+As visitors interact with your site (typing, clicking, moving the mouse), behavior telemetry is streamed to the ingestion endpoint. On the **SOC Dashboard**, you watch the live event stream, active sessions, and behavioral threat scores update in real time.
+<p align="center">
+  <img src="./screenshots/banner.png" alt="SIDERIS SOC Dashboard" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 <br>
 
-**Live Sessions Monitor** — every active visitor on your website, color-coded by threat level, updated in real time.
+#### Step 3: Session Resolution & Deep Dive
+Every active visitor session is listed in the live feed and color-coded by threat level. Administrators can click any session to expand it, revealing peak threat scores, triggering heuristics, and full client telemetry logs.
 
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
       <b>👁️ Live Sessions Feed</b><br>
-      <i>All active visitor sessions with color-coded threat score bars. Green is calm. Red means someone's having a very bad time shortly.</i>
+      <i>All active visitor sessions with color-coded threat score bars. Green is calm. Red means someone is behaving suspiciously.</i>
       <br><br>
       <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
       <b>🔍 Session Deep Dive</b><br>
-      <i>Click any session to expand it — peak scores, triggering conditions, full timeline, and manual SOC override buttons if you want to get personally involved.</i>
+      <i>Click any session to expand it — peak scores, triggering conditions, full timeline, and manual SOC override buttons.</i>
       <br><br>
       <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
@@ -148,7 +138,30 @@ The SOC Dashboard is where you watch the chaos unfold in real time. Multiple the
 
 <br>
 
-**Threat Intelligence** — know your enemies by name (well, by IP).
+#### Step 4: Automated Countermeasures & Challenges
+When a session's threat score crosses specific thresholds, SIDERIS escalates mitigations automatically without changing a single line of your application code.
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>⚠️ Adaptive CAPTCHA Challenge</b><br>
+      <i>Suspicious but not guilty yet? SIDERIS serves a CAPTCHA overlay mid-session. Pass it and your score resets. Fail it and... see right.</i>
+      <br><br>
+      <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>🔴 Hard Block Screen</b><br>
+      <i>When a session crosses the point of no return — malicious patterns, manual SOC override, or automated escalation — they get this. No negotiation.</i>
+      <br><br>
+      <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+</table>
+
+<br>
+
+#### Step 5: Threat Intelligence & Countermeasures
+Manage the active blocklist, rate limits, and review your top attackers:
 
 <table>
   <tr>
@@ -169,7 +182,8 @@ The SOC Dashboard is where you watch the chaos unfold in real time. Multiple the
 
 <br>
 
-**Analytics & History** — because what happened yesterday matters too.
+#### Step 6: Long-Term Analytics & Auditing
+Look back at past event patterns and connection histories:
 
 <table>
   <tr>
@@ -190,7 +204,14 @@ The SOC Dashboard is where you watch the chaos unfold in real time. Multiple the
 
 <br>
 
-**Dashboard internals** — for when you want to know what SIDERIS itself is doing.
+#### Step 7: Service Diagnostics & Customization
+Monitor service logs, audit control panel access, change dashboard themes, or view the built-in scoring reference manual using the header controls.
+
+<p align="center">
+  <img src="./screenshots/header_controls.png" alt="Dashboard Header Controls" width="220" style="border-radius: 6px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+</p>
+
+<br>
 
 <table>
   <tr>
@@ -207,19 +228,6 @@ The SOC Dashboard is where you watch the chaos unfold in real time. Multiple the
       <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
-</table>
-
-<br>
-
-**Extra goodies.** Customize your dashboard theme or view the built-in reference manual using the controls in the top header.
-
-<p align="center">
-  <img src="./screenshots/header_controls.png" alt="Dashboard Header Controls" style="border-radius: 6px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-height: 48px;"/>
-</p>
-
-<br>
-
-<table>
   <tr>
     <td width="50%" align="center" valign="top">
       <b>🎨 Theme Selector</b><br>
