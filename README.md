@@ -145,44 +145,86 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
-      <b>1. Automatic Telemetry Injection</b><br>
-      <i>The WAF reverse proxy intercepts traffic and injects <code>agent.js</code> seamlessly without site modifications.</i>
+      <b>1. Automatic Telemetry Injection (Client-Side)</b><br>
+      <i>The WAF reverse proxy automatically injects the passive <code>agent.js</code> tracker into any website's HTML body.</i>
       <br><br>
-      <img src="./screenshots/agent_injection.png" alt="Agent Injection" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/agent_injection.png" alt="Telemetry Injection" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
-      <b>2. Adaptive CAPTCHA Challenge</b><br>
-      <i>Suspicious sessions trigger a server-generated captcha overlay to verify human presence.</i>
+      <b>2. Adaptive CAPTCHA Challenge (Client-Side)</b><br>
+      <i>Suspicious sessions are automatically prompted with a verification overlay, resetting their risk score upon success.</i>
       <br><br>
-      <img src="./screenshots/captcha.png" alt="CAPTCHA Challenge" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>3. Hard Block Screen</b><br>
-      <i>Malicious request patterns or manual blocks result in an immediate proxy level connection lockout.</i>
-      <br><br>
-      <img src="./screenshots/blocked_screen.png" alt="Block Screen" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>4. SOC Dashboard Live Streams</b><br>
-      <i>The React interface aggregates live sessions, color-coded risk indexes, and active connection metadata.</i>
-      <br><br>
-      <img src="./screenshots/dashboard.png" alt="SOC Dashboard" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center" valign="top">
-      <b>5. Forensic Session Timeline</b><br>
-      <i>Detailed inspection of triggered signature rules, timing heuristics, and analyst block overrides.</i>
+      <b>3. Hard Block Screen (Client-Side)</b><br>
+      <i>Malicious request patterns or manual blocks result in an immediate connection lockout returning a custom block screen.</i>
       <br><br>
-      <img src="./screenshots/session_detail.png" alt="Forensic Timeline" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
     <td width="50%" align="center" valign="top">
-      <b>6. Active Defense Matrix</b><br>
-      <i>Filter, search, and audit all active rate limits, challenges, and blocks currently enforced on Redis.</i>
+      <b>4. Multi-Flavor Theme Selection</b><br>
+      <i>Seamlessly switch dashboard styles between Tokyo Night, Catppuccin, Dracula, Nord, and other custom themes.</i>
       <br><br>
-      <img src="./screenshots/defense_matrix.png" alt="Defense Matrix" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+      <img src="./screenshots/theme_picker.png" alt="Theme Selector" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>5. Live Sessions Monitor</b><br>
+      <i>A real-time list of all active visitor sessions on the website with color-coded threat classification score bars.</i>
+      <br><br>
+      <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>6. Detailed Session Expansion</b><br>
+      <i>Investigate a specific session to inspect peak scores, triggering conditions, timeline metadata, and SOC override buttons.</i>
+      <br><br>
+      <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>7. Stored Session Database (History)</b><br>
+      <i>Audit archived historical visitor logs stored inside PostgreSQL for offline threat intelligence and analytics.</i>
+      <br><br>
+      <img src="./screenshots/stored_sessions.png" alt="Stored Session Database" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>8. Active Defense Matrix (Guards)</b><br>
+      <i>A queryable control panel containing every active Redis-enforced rate-limit, CAPTCHA, and IP ban.</i>
+      <br><br>
+      <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>9. Top Attacking IP Addresses</b><br>
+      <i>Ranked overview listing the most aggressive client IP sources, their total events count, and maximum threat score.</i>
+      <br><br>
+      <img src="./screenshots/top_ips.png" alt="Top Attacking IP Addresses" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>10. Dashboard Access & IP Authorization</b><br>
+      <i>Audit access trails to the SOC dashboard, displaying the connection outcome (Allowed/Blocked) for each administrator IP.</i>
+      <br><br>
+      <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <b>11. Operational Event Summary</b><br>
+      <i>A 2x2 grid tracking metrics for Total Events Processed, Active Blocks, Active Challenges, and Active Rate Limits.</i>
+      <br><br>
+      <img src="./screenshots/event_summary_metrics.png" alt="Operational Event Summary" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <b>12. Auto-Streaming Live Logs Console</b><br>
+      <i>A scrolling event log terminal showing raw backend operations from the ingestion, guard, and proxy services.</i>
+      <br><br>
+      <img src="./screenshots/live_logs.png" alt="Live Logs Console" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
     </td>
   </tr>
 </table>
@@ -190,11 +232,12 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 <br>
 
 <p align="center">
-  <b>7. Dynamic Scoring & Guide Modal</b><br>
-  <i>In-dashboard modal displaying scoring formulas, cooling decay metrics, and SIDERIS's 13 correlation rules.</i>
+  <b>13. Runtime Defense scoring guide modal</b><br>
+  <i>In-dashboard reference displaying threat escalation lifecycles, scoring equations, decay factors, and the 13 correlation rules.</i>
   <br><br>
   <img src="./screenshots/runtime_guide.png" alt="Scoring Guide Modal" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
+
 
 <br>
 <p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
