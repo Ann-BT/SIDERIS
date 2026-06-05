@@ -21,7 +21,7 @@
   // §1 — CONFIGURATION
   // ══════════════════════════════════════════════════════════
 
-  var INGEST_URL = window.SIDERIS_INGEST_URL || 'http://localhost:5000/sideris/ingest';
+  var INGEST_URL = window.SIDERIS_INGEST_URL || '/sideris/ingest';
   var FLUSH_INTERVAL_MS = 5000;
   var MAX_QUEUE_SIZE = 50;
   var SESSION_IDLE_MS = 30 * 60 * 1000; // 30 minutes
@@ -92,22 +92,36 @@
 
   function getSessionId() {
     var now = Date.now();
-    var sid = sessionStorage.getItem('sideris_session_id');
-    var lastActive = parseInt(sessionStorage.getItem('sideris_last_active') || '0', 10);
+    var lastActive = parseInt(localStorage.getItem('sideris_last_active') || '0', 10);
+    var isExpired = lastActive > 0 && now - lastActive > SESSION_IDLE_MS;
 
-    // Regenerate if missing or idle > 30min
-    if (!sid || (lastActive > 0 && now - lastActive > SESSION_IDLE_MS)) {
+    // Priority 1: existing sideris_sid cookie
+    // The proxy sets this cookie on the very first HTML response (before
+    // agent.js even runs), so we read it here to reuse the same session ID
+    // that the proxy already assigned to this page load.
+    var cookieMatch = document.cookie.match(/(?:^|;\s*)sideris_sid=([^;]+)/);
+    var cookieSid = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+
+    // Priority 2: localStorage (survives page reloads within the same browser)
+    var storedSid = localStorage.getItem('sideris_session_id');
+
+    var sid;
+    if (cookieSid && !isExpired) {
+      // Reuse the proxy-seeded (or previously written) session cookie
+      sid = cookieSid;
+    } else if (storedSid && !isExpired) {
+      sid = storedSid;
+    } else {
+      // Generate a fresh session (first visit or idle timeout)
       sid = generateId();
       seq = 0;
-      sessionStorage.setItem('sideris_session_id', sid);
     }
 
-    sessionStorage.setItem('sideris_last_active', String(now));
+    localStorage.setItem('sideris_session_id', sid);
+    localStorage.setItem('sideris_last_active', String(now));
     lastActivityTs = now;
 
-    // ── Write / refresh sideris_sid cookie ──────────────
-    // This is the key step: the cookie is sent on EVERY browser request
-    // (including native page navigation), so the proxy can always read it.
+    // Keep the cookie fresh (30-min rolling window)
     writeSiderisCookie(sid);
 
     return sid;
@@ -474,9 +488,10 @@
       xhr.addEventListener('load', function () {
         if (shouldInstrument(_url)) {
           detectLoginResponse(_url, xhr.status);
-          if ((xhr.status === 429 || xhr.status === 403) && !_url.includes('/sideris/')) {
-            window.location.reload();
-          }
+          // NOTE: No auto-reload on 403/429 — the CAPTCHA overlay is
+          // injected server-side into the next HTML page navigation.
+          // Auto-reload caused infinite loops when the protected site
+          // legitimately returned 403 (e.g. auth-required pages).
         }
       });
 
@@ -527,9 +542,7 @@
     if (shouldInstrument(url)) {
       promise.then(function (resp) {
         detectLoginResponse(url, resp.status);
-        if ((resp.status === 429 || resp.status === 403) && !url.includes('/sideris/')) {
-          window.location.reload();
-        }
+        // NOTE: No auto-reload on 403/429 — see XHR comment above.
         return resp;
       }).catch(function () { /* ignore */ });
     }
@@ -608,6 +621,23 @@
   // Listen for SPA-style navigation (hashchange, popstate)
   window.addEventListener('hashchange', emitPageView);
   window.addEventListener('popstate', emitPageView);
+
+  // Patch history.pushState / replaceState so Next.js, Nuxt, React Router etc.
+  // trigger page_view events on client-side navigation (these bypass popstate).
+  (function patchHistory() {
+    function wrapHistoryMethod(method) {
+      var original = window.history[method];
+      if (typeof original !== 'function') return;
+      window.history[method] = function () {
+        var result = original.apply(window.history, arguments);
+        // Fire a synthetic popstate-like event so our listener triggers
+        emitPageView();
+        return result;
+      };
+    }
+    wrapHistoryMethod('pushState');
+    wrapHistoryMethod('replaceState');
+  })();
 
   // ── page_timing ────────────────────────────────────────
   window.addEventListener('load', function () {

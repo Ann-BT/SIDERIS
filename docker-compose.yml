@@ -1,12 +1,6 @@
 # ──────────────────────────────────────────────────────────
 # docker-compose.yml
-# SIDERIS 2.0 — Infrastructure Services
-#
-# Starts: Redis + PostgreSQL + OWASP Juice Shop
-#
-# Run with:  docker compose up -d
-# Stop with: docker compose down
-# Nuke data: docker compose down -v
+# SIDERIS — Production Deployment Configuration
 # ──────────────────────────────────────────────────────────
 
 services:
@@ -29,49 +23,40 @@ services:
 
   # ── PostgreSQL — persistent SOC storage ────────────────
   postgres:
-    image: mirror.gcr.io/library/postgres:16
+    image: pgvector/pgvector:pg16
     container_name: sideris-postgres
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: sideris
-      POSTGRES_PASSWORD: sideris
-      POSTGRES_DB: sideris
+      - POSTGRES_USER=${POSTGRES_USER:-sideris}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sideris}
+      - POSTGRES_DB=${POSTGRES_DB:-sideris}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sideris -d sideris"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-sideris} -d $${POSTGRES_DB:-sideris}"]
       interval: 5s
       timeout: 3s
       retries: 10
-
-  # ── OWASP Juice Shop — target application ──────────────
-  juice-shop:
-    image: bkimminich/juice-shop:latest
-    container_name: sideris-juice
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
 
   # ── SIDERIS — WAF Proxy + telemetry backend + Dashboard ─
   sideris:
     build: .
     container_name: sideris-app
-    ports:
-      - "4000:4000" # WAF Proxy
-      - "5000:5000" # Telemetry Ingest (Internal)
-      - "6001:6001" # Dashboard API
-      - "5173:5173" # Dashboard UI (Vite dev server)
+    # Uses host networking to easily proxy to local websites on the host
+    # and bind dashboard/proxy ports to the host interface.
+    network_mode: host
     environment:
-      - REDIS_URL=redis://redis:6379
-      - POSTGRES_URL=postgresql://sideris:sideris@postgres:5432/sideris
-      - TARGET_URL=http://juice-shop:3000
-      - PROXY_PORT=4000
-      - INGEST_PORT=5000
-      - DASHBOARD_PORT=6001
-      - INGEST_HOST=http://localhost:5000
-      - DASHBOARD_ALLOWED_IPS=${DASHBOARD_ALLOWED_IPS:-}
+      - REDIS_URL=${REDIS_URL:-redis://localhost:6379}
+      - POSTGRES_URL=${POSTGRES_URL:-postgresql://sideris:sideris@localhost:5432/sideris}
+      - TARGET_URL=${TARGET_URL:-http://localhost:8080}
+      - STOREFRONT_URL=${STOREFRONT_URL:-http://localhost:8080}
+      - PROXY_PORT=${PROXY_PORT:-4000}
+      - INGEST_PORT=${INGEST_PORT:-5000}
+      - DASHBOARD_PORT=${DASHBOARD_PORT:-6001}
+      - INGEST_HOST=${INGEST_HOST:-http://localhost:5000}
+      - DASHBOARD_ALLOWED_IPS=${DASHBOARD_ALLOWED_IPS:-127.0.0.1,::1}
     depends_on:
       redis:
         condition: service_healthy

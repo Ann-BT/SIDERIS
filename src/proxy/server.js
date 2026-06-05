@@ -43,35 +43,64 @@ const AGENT_PATH = path.resolve(__dirname, '../agent/agent.js');
 // Points the agent at the relative endpoint /sideris/ingest.
 // This routes telemetry traffic through the proxy itself, avoiding exposing 
 // the ingest port (5000) to the public internet and avoiding CORS issues.
-const AGENT_SNIPPET = `
-<script>
-  window.SIDERIS_INGEST_URL = '/sideris/ingest';
-</script>
-<script src="/sideris/agent.js" defer></script>`.trim();
+const AGENT_SNIPPET = '<script src="/sideris/agent.js" defer></script>';
 
 // ── Lightweight unique ID for fallback sessions ────────────
+// Uses a UUID v4 format (same as agent) so there is no visual
+// difference between proxy-seeded sessions and agent sessions.
 function generateProxyId() {
-  return 'prx-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
-// ── Session ID resolver ────────────────────────────────────
-// Priority: cookie → header → generated temp ID
+// ── Detect browser vs server-side requests ─────────────────
+// Next.js SSR, Node.js fetch, curl, crawlers, etc. have no browser
+// cookie and will always generate a new session per request.
+// We only create tracked sessions for real browser clients.
+function isBrowserRequest(req) {
+  const ua = req.headers['user-agent'] || '';
+  // All real browsers send Mozilla/5.0
+  if (!ua.includes('Mozilla/')) return false;
+  // Exclude headless/bot patterns even if they spoof Mozilla
+  const botPattern = /bot|crawl|spider|headless|phantom|slurp|wget|curl|python|java|go-http|okhttp|axios|node-fetch/i;
+  return !botPattern.test(ua);
+}
+
+// ── Session ID resolver ──────────────────────────────
+// Priority: cookie → header → generated (browser only)
 function resolveSessionId(req) {
-  // 1. Cookie (set by agent.js on EVERY page — covers all navigation)
+  // 1. Cookie (set by proxy on HTML response + refreshed by agent.js)
   if (req.cookies && req.cookies.sideris_sid) {
-    return { id: req.cookies.sideris_sid, source: 'cookie' };
+    return { id: req.cookies.sideris_sid, source: 'cookie', tracked: true };
   }
   // 2. Header (set by agent's patched XHR / fetch)
   const header = req.headers['x-sideris-session'] || req.headers['x-session-id'];
   if (header) {
-    return { id: header, source: 'header' };
+    return { id: header, source: 'header', tracked: true };
   }
-  // 3. Fallback — pre-agent requests (first HTML load before agent runs)
-  return { id: generateProxyId(), source: 'generated' };
+  // 3. Non-browser (SSR, Node.js, curl, etc.) — group under a stable
+  //    per-IP ID so they don't create hundreds of phantom sessions.
+  if (!isBrowserRequest(req)) {
+    const ip = (req.ip || '::1').replace(/[:.]/g, '-');
+    return { id: `ssr-${ip}`, source: 'server', tracked: false };
+  }
+  // 4. Browser first load — before agent.js has run.
+  //    Proxy sets Set-Cookie so future requests reuse this ID.
+  return { id: generateProxyId(), source: 'generated', tracked: true };
 }
 
 const app = express();
 app.set('trust proxy', true);
+
+// Guard Redis client — declared early so it’s available to all routes
+// including /sideris/captcha-image which runs before the guard middleware.
+const guardRedis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+guardRedis.on('error', err => console.error('[proxy] Guard Redis error:', err.message));
 
 // Parse cookies before any middleware uses them
 app.use(cookieParser());
@@ -123,6 +152,107 @@ app.get('/sideris/agent.js', (req, res) => {
   res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(AGENT_PATH);
+});
+
+// ══════════════════════════════════════════════════════════
+// SERVER-SIDE CAPTCHA GENERATION
+// Generates a 6-char code, stores it in Redis with a 5-min TTL,
+// and returns a distorted SVG image. The client NEVER sees the
+// code — only the rendered image.
+// ══════════════════════════════════════════════════════════
+const CAPTCHA_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateCaptchaCode() {
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += CAPTCHA_CHARS[Math.floor(Math.random() * CAPTCHA_CHARS.length)];
+  }
+  return code;
+}
+
+function generateCaptchaSvg(code) {
+  const W = 200, H = 64;
+  const palettes = [
+    ['#2d1a0e', '#5a3a1a', '#8b5e3c'],
+    ['#1a2d3a', '#1d4d72', '#1565c0'],
+    ['#1a3a1a', '#2d6a2d', '#2e7d32'],
+  ];
+  const pal = palettes[Math.floor(Math.random() * palettes.length)];
+
+  let svgParts = [];
+  svgParts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`);
+
+  // Background
+  svgParts.push(`<rect width="${W}" height="${H}" fill="#f8f6f2"/>`);
+
+  // Grid noise
+  const gridColor = 'rgba(180,140,110,0.15)';
+  for (let x = 0; x < W; x += 18) {
+    svgParts.push(`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="${gridColor}" stroke-width="0.5"/>`);
+  }
+  for (let y = 0; y < H; y += 18) {
+    svgParts.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${gridColor}" stroke-width="0.5"/>`);
+  }
+
+  // Interference bezier curves
+  for (let i = 0; i < 4; i++) {
+    const r = () => Math.floor(Math.random() * 100);
+    const x1 = Math.floor(Math.random() * W * 0.3);
+    const y1 = Math.floor(Math.random() * H);
+    const cx1 = Math.floor(W * 0.25 + Math.random() * W * 0.25);
+    const cy1 = Math.floor(Math.random() * H);
+    const cx2 = Math.floor(W * 0.5 + Math.random() * W * 0.25);
+    const cy2 = Math.floor(Math.random() * H);
+    const x2 = W;
+    const y2 = Math.floor(Math.random() * H);
+    const op = (0.07 + Math.random() * 0.07).toFixed(2);
+    svgParts.push(`<path d="M${x1} ${y1} C${cx1} ${cy1} ${cx2} ${cy2} ${x2} ${y2}" stroke="rgba(111,78,55,${op})" stroke-width="${(1 + Math.random() * 1.5).toFixed(1)}" fill="none"/>`);
+  }
+
+  // Random dots
+  for (let i = 0; i < 40; i++) {
+    const dx = Math.floor(Math.random() * W);
+    const dy = Math.floor(Math.random() * H);
+    const dr = (0.5 + Math.random() * 1.5).toFixed(1);
+    const op = (0.08 + Math.random() * 0.12).toFixed(2);
+    svgParts.push(`<circle cx="${dx}" cy="${dy}" r="${dr}" fill="rgba(111,78,55,${op})"/>`);
+  }
+
+  // Characters
+  const charW = W / code.length;
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    const x = charW * i + charW / 2;
+    const y = H / 2 + 8;
+    const angle = ((Math.random() - 0.5) * 22).toFixed(1);
+    const size = 22 + Math.floor(Math.random() * 8);
+    const weight = Math.random() > 0.5 ? '700' : '600';
+    const color = pal[Math.floor(Math.random() * pal.length)];
+    svgParts.push(`<text x="${x}" y="${y}" transform="rotate(${angle} ${x} ${y})" font-family="monospace" font-size="${size}" font-weight="${weight}" fill="${color}" text-anchor="middle" dominant-baseline="middle">${ch}</text>`);
+  }
+
+  svgParts.push('</svg>');
+  return svgParts.join('');
+}
+
+// ROUTE: GET /sideris/captcha-image — serve CAPTCHA as server-generated SVG
+// Stores the code in Redis; only the SVG is returned to the client.
+app.get('/sideris/captcha-image', async (req, res) => {
+  const sid = req.query.sid || (req.cookies && req.cookies.sideris_sid);
+  if (!sid) {
+    return res.status(400).send('Missing session id');
+  }
+  const code = generateCaptchaCode();
+  try {
+    await guardRedis.set(`sideris:captcha:${sid}`, code.toUpperCase(), 'EX', 300);
+  } catch (err) {
+    console.error('[proxy] captcha-image redis error:', err.message);
+    // Still serve an image even if Redis is flaky — just won't verify correctly
+  }
+  const svg = generateCaptchaSvg(code);
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.send(svg);
 });
 
 // ══════════════════════════════════════════════════════════
@@ -538,7 +668,7 @@ function getCaptchaOverlay(sid) {
           <div class="sdr-cap-lbl">Enter the code shown below</div>
           <div class="sdr-cap-row">
             <div class="sdr-canvas-wrap">
-              <canvas id="sdrCanvas"></canvas>
+              <img id="sdrImg" src="/sideris/captcha-image?sid=${encodeURIComponent(sid || '')}&t=" style="display:block;width:100%;height:100%;object-fit:contain;" alt="CAPTCHA image" draggable="false" />
               <div class="sdr-noise"></div>
             </div>
             <button class="sdr-refresh" id="sdrRefresh" title="New code">Refresh</button>
@@ -567,9 +697,8 @@ function getCaptchaOverlay(sid) {
 
   shadow.innerHTML = html;
 
-  var MAX=4, code='', tries=0, locked=false;
-  var canvas=shadow.getElementById('sdrCanvas');
-  var ctx=canvas.getContext('2d');
+  var MAX=4, tries=0, locked=false;
+  var img=shadow.getElementById('sdrImg');
   var inp=shadow.getElementById('sdrInput');
   var hint=shadow.getElementById('sdrHint');
   var btn=shadow.getElementById('sdrBtn');
@@ -581,52 +710,12 @@ function getCaptchaOverlay(sid) {
   var fullSid = "${sid || ''}";
   shadow.getElementById('sdrSid').textContent = fullSid ? fullSid.substring(0, 20) + '…' : '—';
 
-  var CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  function rc(){return CHARS[Math.floor(Math.random()*CHARS.length)];}
-  function gen(){return Array.from({length:6},rc).join('');}
-  function hsl(h,s,l){return 'hsl('+h+','+s+'%,'+l+'%)';}
-  function draw(c){
-    // Match drawing buffer size to actual rendered CSS size to avoid any blurriness or distortion
-    canvas.width = canvas.offsetWidth || 320;
-    canvas.height = canvas.offsetHeight || 48;
-    var W=canvas.width,H=canvas.height;
-    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
-    ctx.strokeStyle='rgba(140,149,159,0.12)';ctx.lineWidth=0.5;
-    for(var x=0;x<W;x+=16){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-    for(var y=0;y<H;y+=16){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-    for(var i=0;i<5;i++){
-      ctx.beginPath();
-      ctx.strokeStyle='rgba('+(36+i*15)+','+(41+i*20)+','+(47+i*25)+','+(0.06+Math.random()*0.06)+')';
-      ctx.lineWidth=1+Math.random()*1.5;
-      ctx.moveTo(0,H*Math.random());
-      ctx.bezierCurveTo(W*0.25,H*Math.random(),W*0.75,H*Math.random(),W,H*Math.random());
-      ctx.stroke();
-    }
-    for(var d=0;d<45;d++){
-      ctx.beginPath();
-      ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.4,0,Math.PI*2);
-      ctx.fillStyle='rgba(87,96,106,'+(0.06+Math.random()*0.1)+')';
-      ctx.fill();
-    }
-    var cw=W/c.length;
-    c.split('').forEach(function(ch,i){
-      var x=cw*i+cw/2, y=H/2+7;
-      var angle=(Math.random()-0.5)*0.38;
-      var size=20+Math.floor(Math.random()*4);
-      var pals=[[212,12,18],[212,92,25],[354,70,30],[144,60,25]];
-      var p=pals[Math.floor(Math.random()*pals.length)];
-      ctx.save();
-      ctx.translate(x,y);ctx.rotate(angle);
-      ctx.shadowColor='rgba(140,149,159,0.2)';ctx.shadowBlur=2;ctx.shadowOffsetX=1;ctx.shadowOffsetY=1;
-      ctx.font=(Math.random()>.5?'700 ':'600 ')+size+"px ui-monospace,SFMono-Regular,SF Mono,Menlo,monospace";
-      ctx.fillStyle=hsl(p[0],p[1],p[2]);
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(ch,0,0);
-      ctx.shadowColor='transparent';
-      ctx.restore();
-    });
+  // Load fresh CAPTCHA image (new code generated server-side)
+  function freshImage(){
+    img.src='/sideris/captcha-image?sid='+encodeURIComponent(fullSid)+'&t='+Date.now();
   }
-  function fresh(){code=gen();draw(code);}
+  freshImage();
+
   function renderDots(){
     dots.innerHTML='';
     for(var i=0;i<MAX;i++){
@@ -638,63 +727,73 @@ function getCaptchaOverlay(sid) {
   function updateTs(){ts.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});}
   function verify(){
     if(locked)return;
-    var v=inp.value.trim().toUpperCase();
+    var v=inp.value.trim();
     if(!v)return;
-    if(v===code){
-      inp.classList.add('sdr-ok');
-      hint.textContent='✓ Correct!';
-      hint.className='sdr-hint sdr-h-ok';
-      showSuccess();
-    } else {
-      tries++; renderDots();
-      inp.classList.add('sdr-err');
-      inp.value='';
-      setTimeout(function(){inp.classList.remove('sdr-err');},600);
-      if(tries>=MAX){
-        locked=true;
-        btn.disabled=true;inp.disabled=true;
-        hint.className='sdr-hint sdr-h-err';
-        var sec=15;
-        hint.textContent='Too many attempts. Retry in '+sec+'s…';
-        var tid=setInterval(function(){
-          sec--; hint.textContent='Too many attempts. Retry in '+sec+'s…';
-          if(sec<=0){
-            clearInterval(tid);
-            tries=0;locked=false;
-            btn.disabled=false;inp.disabled=false;
-            inp.value='';hint.textContent='Case-insensitive · 6 characters';
-            hint.className='sdr-hint';
-            renderDots();fresh();
-          }
-        },1000);
+    btn.disabled=true;
+    hint.textContent='Verifying…';
+    hint.className='sdr-hint';
+    fetch('/sideris/captcha-verify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session_id:fullSid,answer:v})
+    }).then(function(r){return r.json();})
+    .then(function(data){
+      if(data.ok){
+        inp.classList.add('sdr-ok');
+        hint.textContent='✓ Correct!';
+        hint.className='sdr-hint sdr-h-ok';
+        showSuccess();
       } else {
-        var left=MAX-tries;
-        hint.textContent='Incorrect — '+left+' attempt'+(left!==1?'s':'')+' remaining';
-        hint.className='sdr-hint sdr-h-err';
-        fresh();
+        btn.disabled=false;
+        tries++; renderDots();
+        inp.classList.add('sdr-err');
+        inp.value='';
+        setTimeout(function(){inp.classList.remove('sdr-err');},600);
+        if(tries>=MAX){
+          locked=true;
+          btn.disabled=true;inp.disabled=true;
+          hint.className='sdr-hint sdr-h-err';
+          var sec=15;
+          hint.textContent='Too many attempts. Retry in '+sec+'s…';
+          var tid=setInterval(function(){
+            sec--; hint.textContent='Too many attempts. Retry in '+sec+'s…';
+            if(sec<=0){
+              clearInterval(tid);
+              tries=0;locked=false;
+              btn.disabled=false;inp.disabled=false;
+              inp.value='';hint.textContent='Case-insensitive · 6 characters';
+              hint.className='sdr-hint';
+              renderDots();freshImage();
+            }
+          },1000);
+        } else {
+          var left=MAX-tries;
+          hint.textContent='Incorrect — '+left+' attempt'+(left!==1?'s':'')+' remaining';
+          hint.className='sdr-hint sdr-h-err';
+          freshImage();
+        }
       }
-    }
+    }).catch(function(){
+      btn.disabled=false;
+      hint.textContent='Network error — try again';
+      hint.className='sdr-hint sdr-h-err';
+    });
   }
   function showSuccess(){
     shadow.getElementById('sdrForm').style.display='none';
     var s=shadow.getElementById('sdrSuccess');
     s.classList.add('sdr-vis');
     requestAnimationFrame(function(){shadow.getElementById('sdrProg').style.width='100%';});
-    fetch('/sideris/captcha-verify',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({verified:true,session_id:fullSid})
-    }).catch(function(){}).finally(function(){
-      setTimeout(function(){
-        window.location.reload();
-      },3200);
-    });
+    setTimeout(function(){
+      window.location.reload();
+    },3200);
   }
   ref.addEventListener('click',function(){
     if(locked)return;
     ref.classList.add('sdr-spin');
     setTimeout(function(){ref.classList.remove('sdr-spin');},440);
-    fresh();inp.value='';
+    freshImage();
+    inp.value='';
     inp.className='sdr-input';
     hint.textContent='Case-insensitive · 6 characters';
     hint.className='sdr-hint';
@@ -702,7 +801,7 @@ function getCaptchaOverlay(sid) {
   btn.addEventListener('click',verify);
   inp.addEventListener('keydown',function(e){if(e.key==='Enter')verify();});
   updateTs();setInterval(updateTs,1000);
-  renderDots();fresh();
+  renderDots();
 })();
 </script>
 `;
@@ -716,52 +815,78 @@ app.post('/sideris/captcha-verify', async (req, res) => {
   const sid = req.body?.session_id ||
     (req.cookies && req.cookies.sideris_sid) ||
     req.headers['x-sideris-session'];
+  const answer = (req.body?.answer || '').trim().toUpperCase();
 
-  if (sid) {
-    try {
-      // 1. Fetch guard action to decrement dashboard metrics before deletion
-      const guardData = await guardRedis.hgetall(`sideris:guard:${sid}`);
-      if (guardData && guardData.action) {
-        if (guardData.action === 'block') {
-          await guardRedis.decr('sideris:metrics:guard:block');
-        } else if (guardData.action === 'challenge') {
-          await guardRedis.decr('sideris:metrics:guard:challenge');
-        } else if (guardData.action === 'rate_limit') {
-          await guardRedis.decr('sideris:metrics:guard:rate_limit');
-        }
-      }
-
-      // 2. Delete the Redis guard key
-      await guardRedis.del(`sideris:guard:${sid}`);
-      console.log(`[proxy] CAPTCHA verified — challenge cleared for session ${sid}`);
-
-      // 3. Mark the CAPTCHA as solved and set last mitigation to allow in Redis
-      const sessionKey = `sideris:session:${sid}`;
-      await guardRedis.hset(sessionKey,
-        'captcha_solved', '1',
-        'last_mitigation', 'allow'
-      );
-
-      // 4. Publish unblock synchronization message to worker threads (clears L1 cache)
-      await guardRedis.publish('sideris:commands', JSON.stringify({
-        action: 'unblock',
-        session_id: sid
-      }));
-
-      // 5. Sync unblock to Postgres
-      try {
-        await pool.query(`
-          UPDATE attack_sessions SET
-            last_mitigation = 'allow'
-          WHERE session_id = $1
-        `, [sid]);
-      } catch (pgErr) {
-        console.error('[proxy] PG unblock sync error:', pgErr.message);
-      }
-    } catch (err) {
-      console.error('[proxy] CAPTCHA verify redis error:', err.message);
-    }
+  if (!sid) {
+    return res.status(400).json({ ok: false, error: 'Missing session id' });
   }
+  if (!answer) {
+    return res.status(400).json({ ok: false, error: 'Missing answer' });
+  }
+
+  try {
+    // 1. Retrieve the server-generated code from Redis
+    const captchaKey = `sideris:captcha:${sid}`;
+    const storedCode = await guardRedis.get(captchaKey);
+
+    if (!storedCode) {
+      // Code expired or never generated — force a new image fetch
+      return res.status(400).json({ ok: false, error: 'CAPTCHA expired — please refresh the image' });
+    }
+
+    if (answer !== storedCode.toUpperCase()) {
+      // Wrong answer — do NOT clear the captcha key (keeps the challenge active)
+      console.log(`[proxy] CAPTCHA wrong answer for session ${sid}`);
+      return res.json({ ok: false, error: 'Incorrect answer' });
+    }
+
+    // 2. Answer is correct — delete the captcha key (single-use)
+    await guardRedis.del(captchaKey);
+    console.log(`[proxy] CAPTCHA verified — challenge cleared for session ${sid}`);
+
+    // 3. Fetch guard action to decrement dashboard metrics before deletion
+    const guardData = await guardRedis.hgetall(`sideris:guard:${sid}`);
+    if (guardData && guardData.action) {
+      if (guardData.action === 'block') {
+        await guardRedis.decr('sideris:metrics:guard:block');
+      } else if (guardData.action === 'challenge') {
+        await guardRedis.decr('sideris:metrics:guard:challenge');
+      } else if (guardData.action === 'rate_limit') {
+        await guardRedis.decr('sideris:metrics:guard:rate_limit');
+      }
+    }
+
+    // 4. Delete the Redis guard key
+    await guardRedis.del(`sideris:guard:${sid}`);
+
+    // 5. Mark the CAPTCHA as solved and set last mitigation to allow in Redis
+    const sessionKey = `sideris:session:${sid}`;
+    await guardRedis.hset(sessionKey,
+      'captcha_solved', '1',
+      'last_mitigation', 'allow'
+    );
+
+    // 6. Publish unblock synchronization message to worker threads (clears L1 cache)
+    await guardRedis.publish('sideris:commands', JSON.stringify({
+      action: 'unblock',
+      session_id: sid
+    }));
+
+    // 7. Sync unblock to Postgres
+    try {
+      await pool.query(`
+        UPDATE attack_sessions SET
+          last_mitigation = 'allow'
+        WHERE session_id = $1
+      `, [sid]);
+    } catch (pgErr) {
+      console.error('[proxy] PG unblock sync error:', pgErr.message);
+    }
+  } catch (err) {
+    console.error('[proxy] CAPTCHA verify redis error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Internal server error' });
+  }
+
   res.json({ ok: true });
 });
 
@@ -771,8 +896,6 @@ app.post('/sideris/captcha-verify', async (req, res) => {
 // Phase 2: Scan URL + body for critical attack patterns
 // ══════════════════════════════════════════════════════════
 
-const guardRedis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-guardRedis.on('error', err => console.error('[proxy] Guard Redis error:', err.message));
 
 const BLOCK_PAGE = `<!DOCTYPE html>
 <html><head><title>Access Denied — SIDERIS</title>
@@ -823,18 +946,20 @@ function isStaticAsset(urlPath) {
 }
 
 app.use(async (req, res, next) => {
-  // Skip guard check for Sideris internal, dashboard, and dashboard-api routes
-  if (
-    req.path.startsWith('/sideris/') ||
-    req.path.startsWith('/dashboard') ||
-    req.path.startsWith('/dashboard-api')
-  ) {
+  // Skip guard check for Sideris internal routes
+  if (req.path.startsWith('/sideris/')) {
     return next();
   }
 
   const session = resolveSessionId(req);
   const sid = session.id;
   const clientIp = req.ip || '::1';
+
+  // Attach session to req so the responseInterceptor can set the cookie
+  // on the HTML response — this prevents the double-session problem where
+  // the first HTML load (before agent.js runs) gets a different ID.
+  req._sideris_session_id = sid;
+  req._sideris_no_cookie   = !req.cookies?.sideris_sid;
 
   // ── Phase 1: Check existing guard ───────────────────────
   try {
@@ -857,7 +982,7 @@ app.use(async (req, res, next) => {
     }
 
     // 2. Session Guard Check
-    if (sid && !sid.startsWith('prx-')) {
+    if (sid && !sid.startsWith('prx-') && !sid.startsWith('ssr-')) {
       const action = await guardRedis.hget(`sideris:guard:${sid}`, 'action');
       if (action === 'block') {
         delete req.headers['if-none-match'];
@@ -1078,16 +1203,21 @@ app.use(async (req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
 
-  // Skip logging for Sideris internal, dashboard, and dashboard-api routes, socket.io polling, and static assets
-  const isInternal =
-    req.path.startsWith('/sideris/') ||
-    req.path.startsWith('/dashboard') ||
-    req.path.startsWith('/dashboard-api');
+  // Skip logging for Sideris internal routes, socket.io polling, and static assets
+  const isInternal = req.path.startsWith('/sideris/');
   const isSocketIo = req.path.includes('/socket.io');
   const isStatic   = req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/i);
+  // Skip Next.js internals (image optimizer, webpack chunks, locale files)
+  const isNextInternal = req.path.startsWith('/_next/') || req.path.match(/\/store\/locales\//);
 
-  if (!isInternal && !isSocketIo && !isStatic) {
+  if (!isInternal && !isSocketIo && !isStatic && !isNextInternal) {
     const session = resolveSessionId(req);
+
+    // Skip ingest for server-side (SSR/Node) requests — they have no
+    // browser cookie and would create phantom sessions on every render.
+    if (!session.tracked) {
+      return next();
+    }
 
     res.on('finish', () => {
       // Safely extract body (may be string, object, or undefined)
@@ -1141,8 +1271,7 @@ const proxy = createProxyMiddleware({
   target:      TARGET_URL,
   changeOrigin: true,
   logLevel:    'silent',
-
-  // selfHandleResponse is required when using responseInterceptor
+  ws:          true,
   selfHandleResponse: true,
 
   on: {
@@ -1171,6 +1300,29 @@ const proxy = createProxyMiddleware({
 
       let html = responseBuffer.toString('utf8');
 
+      // ── Seed the sideris_sid cookie via inline script ──────
+      // Injected as an inline (non-deferred) script so it runs BEFORE
+      // agent.js (which is defer'd). This ensures the very first page
+      // load already has a persistent session cookie set, eliminating
+      // the double-session-per-load race condition. Agent.js will read
+      // this cookie and reuse the same session ID the proxy assigned.
+      if (req._sideris_session_id) {
+        const cookieScript = `<script data-sideris-seed>(function(){` +
+          `var m=document.cookie.match(/(?:^|;\\s*)sideris_sid=([^;]+)/);` +
+          `if(!m){` +
+            `var e=new Date(Date.now()+1800000).toUTCString();` +
+            `document.cookie='sideris_sid=${req._sideris_session_id}; path=/; expires='+e+'; SameSite=Lax';` +
+          `}` +
+        `})();<\/script>`;
+        if (html.includes('<head>')) {
+          html = html.replace('<head>', '<head>\n' + cookieScript);
+        } else if (html.includes('<HEAD>')) {
+          html = html.replace('<HEAD>', '<HEAD>\n' + cookieScript);
+        } else {
+          html = cookieScript + '\n' + html;
+        }
+      }
+
       // Inject agent snippet right before </head>
       if (html.includes('</head>')) {
         html = html.replace('</head>', `${AGENT_SNIPPET}\n</head>`);
@@ -1183,6 +1335,103 @@ const proxy = createProxyMiddleware({
       // CAPTCHA modal before </body>. The overlay freezes the page
       // until the user solves it. Non-HTML bot requests are still
       // hard-blocked by the Redis guard on each API call.
+      if (req._sideris_challenge_sid) {
+        const overlay = getCaptchaOverlay(req._sideris_challenge_sid);
+        if (html.includes('</body>')) {
+          html = html.replace('</body>', `${overlay}\n</body>`);
+        } else {
+          html = html + '\n' + overlay;
+        }
+      }
+
+      return html;
+    })
+  }
+});
+
+const medusaProxy = proxy;
+const STOREFRONT_URL = process.env.STOREFRONT_URL || 'http://host.docker.internal:8000';
+
+const storefrontProxy = createProxyMiddleware({
+  target:      STOREFRONT_URL,
+  changeOrigin: true,
+  logLevel:    'silent',
+  ws:          true,
+  selfHandleResponse: true,
+  on: {
+    proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      const contentType = proxyRes.headers['content-type'] || '';
+      const accept = req.headers['accept'] || '';
+
+      if (contentType.includes('text/html') && accept.includes('text/html')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
+        // ── Server-side session cookie (bypasses CSP entirely) ──────
+        // res.append adds to existing Set-Cookie headers from upstream
+        // rather than replacing them, so Discourse's own session cookies
+        // (like _t, _forum_session) are preserved alongside ours.
+        if (req._sideris_session_id) {
+          const expires = new Date(Date.now() + 30 * 60 * 1000).toUTCString();
+          res.append(
+            'Set-Cookie',
+            `sideris_sid=${req._sideris_session_id}; Path=/; Expires=${expires}; SameSite=Lax`
+          );
+        }
+      }
+
+      if (!contentType.includes('text/html') || !accept.includes('text/html')) {
+        return responseBuffer;
+      }
+
+      let html = responseBuffer.toString('utf8');
+
+      // ── Extract CSP nonce from upstream headers ─────────────────
+      // Discourse uses 'strict-dynamic' + per-request nonce, which blocks
+      // any inline or external script that doesn't carry the same nonce.
+      // We extract it so we can add it to our injected scripts.
+      const cspHeader = proxyRes.headers['content-security-policy'] || '';
+      const nonceMatch = cspHeader.match(/'nonce-([^']+)'/);
+      const cspNonce = nonceMatch ? nonceMatch[1] : '';
+      const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : '';
+
+      // ── Inline cookie seed script (belt-and-suspenders backup) ──
+      // Server-side Set-Cookie above is the primary mechanism.
+      // This JS fallback handles edge cases (e.g. if headers get dropped).
+      if (req._sideris_session_id) {
+        const cookieScript =
+          `<script${nonceAttr} data-sideris-seed>(function(){` +
+          `var m=document.cookie.match(/(?:^|;\\s*)sideris_sid=([^;]+)/);` +
+          `if(!m){` +
+            `var e=new Date(Date.now()+1800000).toUTCString();` +
+            `document.cookie='sideris_sid=${req._sideris_session_id}; path=/; expires='+e+'; SameSite=Lax';` +
+          `}` +
+          `})();<\/script>`;
+        if (html.includes('<head>')) {
+          html = html.replace('<head>', '<head>\n' + cookieScript);
+        } else if (html.includes('<HEAD>')) {
+          html = html.replace('<HEAD>', '<HEAD>\n' + cookieScript);
+        } else {
+          html = cookieScript + '\n' + html;
+        }
+      }
+
+      // ── Agent.js injection with CSP nonce ────────────────────────
+      // Add the nonce so agent.js is allowed under 'strict-dynamic' CSP.
+      const agentSnippet = cspNonce
+        ? `<script src="/sideris/agent.js" nonce="${cspNonce}" defer></script>`
+        : AGENT_SNIPPET;
+
+      if (!html.includes('/sideris/agent.js')) {
+        if (html.includes('</head>')) {
+          html = html.replace('</head>', `${agentSnippet}\n</head>`);
+        } else {
+          html = agentSnippet + '\n' + html;
+        }
+      }
+
+      // CAPTCHA overlay injection for storefront
       if (req._sideris_challenge_sid) {
         const overlay = getCaptchaOverlay(req._sideris_challenge_sid);
         if (html.includes('</body>')) {
@@ -1216,44 +1465,50 @@ app.use('/sideris/ingest', createProxyMiddleware({
   }
 }));
 
-// Route: /dashboard-api/ -> Dashboard API (port 6001)
-app.use('/dashboard-api', createProxyMiddleware({
-  target: 'http://localhost:6001',
-  pathRewrite: { '^/dashboard-api': '' },
-  changeOrigin: true,
-  logLevel: 'silent',
-  on: {
-    proxyReq: (proxyReq, req) => {
-      // Re-write the body if parsed by our raw-body middleware
-      if (req.rawBody && req.rawBody.length > 0) {
-        proxyReq.setHeader('Content-Length', req.rawBody.length);
-        proxyReq.write(req.rawBody);
-        proxyReq.end();
-      }
-    }
+// Note: Dashboard proxy routes (port 6001 and port 5173) have been removed from port 4000.
+// Dashboard is accessible directly via port 5173.
+
+// Route: Medusa API and Admin backend endpoints (routed without prefix stripping)
+app.use((req, res, next) => {
+  const isMedusa = ['/store', '/admin', '/app', '/auth'].some(prefix => req.path.startsWith(prefix));
+  if (isMedusa) {
+    medusaProxy(req, res, next);
+  } else {
+    next();
   }
-}));
+});
 
-// Route: /dashboard/ -> Dashboard UI (port 5173)
-app.use('/dashboard', createProxyMiddleware({
-  target: 'http://localhost:5173',
-  pathRewrite: (path, req) => {
-    return path.startsWith('/dashboard') ? path : '/dashboard' + path;
-  },
+// Route: Direct WebSocket and SockJS connections (bypasses selfHandleResponse HTML buffering)
+const sockjsProxy = createProxyMiddleware({
+  target: STOREFRONT_URL,
   changeOrigin: true,
-  logLevel: 'silent',
-}));
+  ws: true,
+  logLevel: 'silent'
+});
+app.use(['/sockjs', '/websocket'], sockjsProxy);
 
-app.use('/', proxy);
+// Route: Storefront default fallback for HTML and static assets
+app.use('/', storefrontProxy);
 
 // ══════════════════════════════════════════════════════════
 // STARTUP
 // ══════════════════════════════════════════════════════════
 
-app.listen(PROXY_PORT, () => {
+const server = app.listen(PROXY_PORT, () => {
   console.log(`[proxy] Sideris Proxy running on    http://localhost:${PROXY_PORT}`);
   console.log(`[proxy] Forwarding traffic to       ${TARGET_URL}`);
   console.log(`[proxy] Agent injected into HTML    /sideris/agent.js`);
   console.log(`[proxy] Backend logs sent to        ${INGEST_URL}`);
   console.log(`[proxy] Session resolution order    cookie → header → generated`);
+});
+
+server.on('upgrade', (req, socket, head) => {
+  const isMedusa = ['/store', '/admin', '/app', '/auth'].some(prefix => req.url.startsWith(prefix));
+  if (isMedusa) {
+    medusaProxy.upgrade(req, socket, head);
+  } else if (req.url.startsWith('/sockjs') || req.url.startsWith('/websocket')) {
+    sockjsProxy.upgrade(req, socket, head);
+  } else {
+    storefrontProxy.upgrade(req, socket, head);
+  }
 });

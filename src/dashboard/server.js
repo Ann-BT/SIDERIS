@@ -777,8 +777,13 @@ app.get('/logs', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 100, 500);
 
+    // Fetch more entries than requested to account for the backend-only filter.
+    // Agent beacon events dominate the stream; without over-fetching, the result
+    // after filtering would be nearly empty.
+    const fetchCount = Math.min(limit * 5, 5000);
+
     // XREVRANGE returns newest-first; we fetch then reverse for oldest→newest display
-    const entries = await redis.xrevrange('sideris:events', '+', '-', 'COUNT', limit);
+    const entries = await redis.xrevrange('sideris:events', '+', '-', 'COUNT', fetchCount);
 
     const logs = entries.reverse().map(([streamId, fields]) => {
       const obj = {};

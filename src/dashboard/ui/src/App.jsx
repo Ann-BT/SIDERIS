@@ -31,7 +31,8 @@ function App() {
   const [logsPaused, setLogsPaused] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [activeTab, setActiveTab] = useState('lifecycle')
-  const [theme, setTheme] = useState(() => localStorage.getItem('sideris-theme') || 'github-light')
+  const [theme, setTheme] = useState(() => localStorage.getItem('sideris-theme') || 'catppuccin')
+  const [themePickerOpen, setThemePickerOpen] = useState(false)
 
   useEffect(() => {
     const classes = document.body.className.split(' ').filter(c => c && !c.startsWith('theme-'));
@@ -327,26 +328,77 @@ function App() {
           <span className="header-subtitle">protecting : {metrics.targetUrl || '—'}</span>
         </div>
         <div className="header-right">
-          <div className="theme-select-container">
-            <span className="theme-select-label">Theme:</span>
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              className="theme-select-dropdown"
-            >
-              <option value="coffee">Coffee Cream</option>
-              <option value="catppuccin">Catppuccin Mocha</option>
-              <option value="catppuccin-latte">Catppuccin Latte</option>
-              <option value="github-light">GitHub Light</option>
-              <option value="solarized-light">Solarized Light</option>
-              <option value="one-dark">One Dark Pro</option>
-              <option value="one-light">One Light</option>
-              <option value="gruvbox-dark">Gruvbox Dark</option>
-              <option value="gruvbox-light">Gruvbox Light</option>
-              <option value="night-owl">Night Owl</option>
-              <option value="nord">Nord Arctic</option>
-              <option value="dracula">Dracula</option>
-            </select>
+          {/* Theme picker button + modal */}
+          <div style={{ position: 'relative' }}>
+            <button className="theme-btn" onClick={() => setThemePickerOpen(o => !o)} title="Change theme">
+              <span className="theme-btn-label">Theme</span>
+            </button>
+            {themePickerOpen && (
+              <>
+                <div className="theme-modal-backdrop" onClick={() => setThemePickerOpen(false)} />
+                <div className="theme-modal" style={{ position: 'fixed', top: '56px', right: '2rem', zIndex: 9001 }}>
+                  <div className="theme-modal-title">Choose a Theme</div>
+
+                  {[
+                    { label: 'Catppuccin', pairs: [
+                      { value: 'catppuccin',       name: 'Mocha',  flavor: 'dark',  dots: ['#1e1e2e','#cba6f7','#fab387','#a6e3a1'] },
+                      { value: 'catppuccin-latte', name: 'Latte',  flavor: 'light', dots: ['#eff1f5','#8839ef','#fe640b','#40a02b'] },
+                    ]},
+                    { label: 'GitHub', pairs: [
+                      { value: 'github-dark',  name: 'GitHub', flavor: 'dark',  dots: ['#0d1117','#58a6ff','#bc8cff','#3fb950'] },
+                      { value: 'github-light', name: 'GitHub', flavor: 'light', dots: ['#f6f8fa','#0969da','#8250df','#1a7f37'] },
+                    ]},
+                    { label: 'Gruvbox', pairs: [
+                      { value: 'gruvbox-dark',  name: 'Gruvbox', flavor: 'dark',  dots: ['#282828','#fe8019','#fabd2f','#b8bb26'] },
+                      { value: 'gruvbox-light', name: 'Gruvbox', flavor: 'light', dots: ['#fbf1c7','#d65d0e','#b57614','#79740e'] },
+                    ]},
+                    { label: 'Nord', pairs: [
+                      { value: 'nord',       name: 'Nord', flavor: 'dark',  dots: ['#2e3440','#88c0d0','#81a1c1','#a3be8c'] },
+                      { value: 'nord-light', name: 'Nord', flavor: 'light', dots: ['#eceff4','#5e81ac','#88c0d0','#a3be8c'] },
+                    ]},
+                    { label: 'Dracula', pairs: [
+                      { value: 'dracula',      name: 'Dracula', flavor: 'dark',  dots: ['#282a36','#bd93f9','#ff79c6','#50fa7b'] },
+                      { value: 'dracula-dawn', name: 'Dracula', flavor: 'light', dots: ['#f8f8f2','#6272a4','#bd93f9','#ff5555'] },
+                    ]},
+                    { label: 'One', pairs: [
+                      { value: 'one-dark',  name: 'One Dark',  flavor: 'dark',  dots: ['#282c34','#61afef','#c678dd','#98c379'] },
+                      { value: 'one-light', name: 'One Light', flavor: 'light', dots: ['#fafafa','#4078f2','#a626a4','#50a14f'] },
+                    ]},
+                    { label: 'Solarized', pairs: [
+                      { value: 'solarized-dark',  name: 'Solarized', flavor: 'dark',  dots: ['#002b36','#268bd2','#cb4b16','#859900'] },
+                      { value: 'solarized-light', name: 'Solarized', flavor: 'light', dots: ['#fdf6e3','#cb4b16','#b58900','#2aa198'] },
+                    ]},
+                    { label: 'Night Owl', pairs: [
+                      { value: 'night-owl',       name: 'Night Owl', flavor: 'dark',  dots: ['#011627','#7fdbca','#82aaff','#c792ea'] },
+                      { value: 'night-owl-light', name: 'Night Owl', flavor: 'light', dots: ['#fbfbfb','#4876d6','#2aa298','#994cc3'] },
+                    ]},
+                    { label: 'Coffee', pairs: [
+                      { value: 'coffee', name: 'Coffee', flavor: 'warm',  dots: ['#FAF7F2','#C8773A','#6F4E37','#2A7D46'] },
+                    ]},
+                  ].map(group => (
+                    <div key={group.label} className="theme-group">
+                      <div className="theme-group-label">{group.label}</div>
+                      <div className="theme-pair">
+                        {group.pairs.map(t => (
+                          <button
+                            key={t.value}
+                            className={`theme-swatch${theme === t.value ? ' active' : ''}`}
+                            onClick={() => { setTheme(t.value); setThemePickerOpen(false); }}
+                            title={`${t.name} ${t.flavor}`}
+                          >
+                            <div className="theme-swatch-dots">
+                              {t.dots.map((c, i) => <span key={i} className="theme-dot" style={{ background: c }} />)}
+                            </div>
+                            <span className="theme-swatch-name">{t.name}</span>
+                            <span className="theme-swatch-flavor">{t.flavor}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           <button className="btn-runtime-guide" onClick={() => setShowGuide(true)}>
             Runtime Defense Guide

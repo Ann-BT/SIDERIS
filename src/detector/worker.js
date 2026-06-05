@@ -266,6 +266,14 @@ async function processMessage(streamId, rawFields) {
 
   const sessionId = event.session_id || 'unknown';
 
+  // Skip scoring for server-side / non-browser sessions (ssr- prefix).
+  // These are curl, SSR renderers, crawlers etc. grouped under a shared ID.
+  // Scoring them creates phantom blocks and pollutes the dashboard.
+  if (sessionId.startsWith('ssr-')) {
+    await redis.incr('sideris:metrics:processed');
+    return;
+  }
+
   // 1. Analyze → attack_type, category, behavior_signal, impact, base_confidence
   const analyzed = analyzer.analyze(event);
 

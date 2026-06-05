@@ -1,2 +1,28 @@
+# Dependencies
 node_modules/
+
+# Logs
 logs/
+*.log
+
+# Environment — NEVER commit this, contains secrets and private config
+.env
+.env.*
+!.env.example
+
+# Private WAF rules (keep your exact patterns secret)
+waf-rules.json
+
+# Local testing and cookie storage
+cookies.txt
+all_dump.sql
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+

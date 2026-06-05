@@ -1,0 +1,8 @@
+node_modules
+.git
+logs
+docs
+.env
+.env.*
+cookies.txt
+all_dump.sql

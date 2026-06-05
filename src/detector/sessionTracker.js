@@ -495,6 +495,8 @@ async function update(sessionId, scoringResult, event) {
   }
 
   const decision = decide(state.session_score);
+  // ── Sync verdict into session state so Redis hash stays accurate ──
+  state.verdict = decision.verdict;
   if (decision && decision.action && decision.action !== 'allow') {
     if (!state.first_mitigated_at || state.first_mitigated_at === 0) {
       state.first_mitigated_at = now;
@@ -583,6 +585,25 @@ function startDecayTimer() {
         if (state.session_score < 20 && state.captcha_solved) {
           state.captcha_solved = false;
         }
+
+        // ── Guard release on score decay ──────────────────
+        // If score has decayed into the safe zone (< 10) and the session
+        // currently has a non-permanent guard directive, release it.
+        // Hard blocks (score ever crossed 50) are exempt \u2014 those require
+        // manual review via the SOC dashboard.
+        if (state.session_score < 10 && !state.permanently_blocked) {
+          try {
+            const guardKey = `sideris:guard:${sessionId}`;
+            const guardAction = await redis.hget(guardKey, 'action');
+            if (guardAction && guardAction !== 'hard_block') {
+              await redis.del(guardKey);
+              console.log(`[sessionTracker] Guard auto-released for ${sessionId} (score decayed to ${state.session_score})`);
+            }
+          } catch (err) {
+            console.error('[sessionTracker] Guard release error:', err.message);
+          }
+        }
+
         await saveToRedis(state);
       }
     }

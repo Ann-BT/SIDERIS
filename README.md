@@ -2,7 +2,13 @@
 
 Real-time web attack detection and behavioral analysis system for security research.
 
-## Architecture
+## 🚀 Quick Links
+* **[Production Deployment Guide](./DEPLOYMENT.md)** — Learn how to set up SIDERIS to protect your live website in minutes.
+* **[Testing Guide](./docs/testing_guide.md)** — Scenarios and scripts for validating SIDERIS detections.
+
+---
+
+## 🏗️ Architecture
 
 ```
 Juice Shop (:3000) + agent.js (injected automatically via WAF Proxy)
@@ -16,43 +22,35 @@ Juice Shop (:3000) + agent.js (injected automatically via WAF Proxy)
   Dashboard API (:6001) → React UI (:5173)
 ```
 
-## Quick Start
+---
 
+## 🛠️ Local Development & Testing
+
+SIDERIS includes a full developer test suite with vulnerable applications (OWASP Juice Shop, Discourse, and Medusa Commerce) to simulate real attack vectors.
+
+To start the local developer test suite:
+
+### 1. Start Services via Docker Compose
+Use the development docker-compose file to spin up SIDERIS, Redis, PostgreSQL, and all testing targets:
 ```bash
-# 1. Start Juice Shop
-docker start fervent_edison
-
-# 2. Start Redis
-# (already running via Docker on port 6379)
-
-# 3. Install dependencies
-npm install
-
-# 4. Launch all services
-npm run start-all
-
-# 5. Open Juice Shop directly
-#    http://localhost:3000
-
-# 6. Verify agent loads automatically in browser (F12 Console):
-#    SiderisAgent.getSessionId()
-
-# 7. Open dashboard
-#    http://localhost:5173  (Vite dev server)
-#    API: http://localhost:6001/sessions
+docker compose -f docker-compose.dev.yml up -d
 ```
 
-## Scripts
+### 2. Verify Client-Side Agent
+Access your test application (e.g. Juice Shop on proxy port `4000` or original target port `3001`). Open your browser console (F12) and run:
+```javascript
+SiderisAgent.getSessionId()
+```
+The telemetry agent should be successfully injected and active.
 
-| Command | Description |
-|---------|-------------|
-| `npm run start-all` | Start ingest + detector + guard + dashboard |
-| `npm run ingest` | Ingest server on :5000 |
-| `npm run detect` | Detector worker (Redis stream consumer) |
-| `npm run guard` | Guard enforcement service |
-| `npm run dashboard` | Dashboard API on :6001 |
+### 3. Open the SOC Dashboard
+Navigate to the React dashboard at:
+* **Dashboard Interface**: `http://localhost:5173`
+* **Metrics API**: `http://localhost:6001/sessions`
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```
 SIDERIS 2.0/
@@ -75,3 +73,4 @@ SIDERIS 2.0/
 ```
 
 See [TESTING.md](./TESTING.md) for detailed test instructions.
+

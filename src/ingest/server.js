@@ -25,12 +25,32 @@ redis.on('error', (err) => console.error('[ingest] Redis error:', err.message));
 
 // ══════════════════════════════════════════════════════════
 // CORS CONFIGURATION
+// Only the proxy (and its configured origin) may post to ingest.
+// Reflecting any origin with credentials=true was a security hole —
+// an attacker could post fake telemetry from any site.
 // ══════════════════════════════════════════════════════════
+
+// Build the set of allowed origins:
+//   1. The explicit proxy origin from env (PROXY_ORIGIN)
+//   2. The proxy itself on PROXY_PORT (localhost variants)
+//   3. The config.allowedOrigins list (target site origins)
+const PROXY_PORT = parseInt(process.env.PROXY_PORT || '4000', 10);
+const INGEST_ALLOWED_ORIGINS = new Set([
+  ...(config.allowedOrigins || []),
+  `http://localhost:${PROXY_PORT}`,
+  `http://127.0.0.1:${PROXY_PORT}`,
+  ...(process.env.PROXY_ORIGIN ? [process.env.PROXY_ORIGIN] : []),
+]);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Reflect origin to allow testing the agent on any frontend domain
-    callback(null, true);
+    // Allow requests with no origin (same-origin, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (INGEST_ALLOWED_ORIGINS.has(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`[ingest] CORS blocked origin: ${origin}`);
+    return callback(new Error('CORS: origin not allowed'), false);
   },
   methods: ['POST', 'GET', 'OPTIONS'],
   allowedHeaders: config.allowedHeaders,
@@ -41,6 +61,7 @@ app.use(cors(corsOptions));
 
 // Handle OPTIONS preflight explicitly
 app.options('*', cors(corsOptions));
+
 
 // ══════════════════════════════════════════════════════════
 // BODY PARSING

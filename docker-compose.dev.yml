@@ -1,0 +1,129 @@
+# ──────────────────────────────────────────────────────────
+# docker-compose.yml
+# SIDERIS 2.0 — Integrated with Medusa E-Commerce
+# ──────────────────────────────────────────────────────────
+
+services:
+
+  # ── Redis — event stream + session state ───────────────
+  redis:
+    image: redis:7-alpine
+    container_name: sideris-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── PostgreSQL — persistent SOC storage ────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sideris-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=sideris
+      - POSTGRES_PASSWORD=sideris
+      - POSTGRES_DB=sideris
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sideris -d sideris"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Medusa E-Commerce Backend & Admin ──────────────────
+  medusa:
+    build:
+      context: ../medusa-test
+      dockerfile: Dockerfile
+    container_name: sideris-medusa
+    ports:
+      - "9001:9000"
+    environment:
+      - DATABASE_URL=postgresql://sideris:sideris@postgres:5432/medusa
+      - REDIS_URL=redis://redis:6379
+      - __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS=sideris-medusa,localhost,sideris-app,localhost:4000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── SIDERIS — WAF Proxy + telemetry backend + Dashboard ─
+  sideris:
+    build: .
+    container_name: sideris-app
+    network_mode: host
+    environment:
+      - REDIS_URL=redis://localhost:6379
+      - POSTGRES_URL=postgresql://sideris:sideris@localhost:5432/sideris
+      - TARGET_URL=http://localhost:3000
+      - STOREFRONT_URL=http://localhost:3000
+      - PROXY_PORT=4000
+      - INGEST_PORT=5000
+      - DASHBOARD_PORT=6001
+      - INGEST_HOST=http://localhost:5000
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      medusa:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Discourse — Modern Forum Application ───────────────
+  discourse:
+    image: public.ecr.aws/bitnami/discourse:latest
+    container_name: sideris-discourse
+    entrypoint: ["/bin/bash", "/discourse-wrapper.sh"]
+    ports:
+      - "3000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - DISCOURSE_HOST=localhost
+      - DISCOURSE_PORT_NUMBER=4000
+      - DISCOURSE_DATABASE_HOST=postgres
+      - DISCOURSE_DATABASE_PORT_NUMBER=5432
+      - DISCOURSE_DATABASE_USER=sideris
+      - DISCOURSE_DATABASE_PASSWORD=sideris
+      - DISCOURSE_DATABASE_NAME=sideris_discourse
+      - DISCOURSE_REDIS_HOST=redis
+      - DISCOURSE_REDIS_PORT_NUMBER=6379
+      - DISCOURSE_REDIS_USE_SSL=false
+      - pnpm_config_engine_strict=false
+    volumes:
+      - discourse_data:/bitnami/discourse
+      - ./scripts/discourse-wrapper.sh:/discourse-wrapper.sh
+    restart: unless-stopped
+
+  # ── OWASP Juice Shop — Vulnerable web app for testing ─────
+  juiceshop:
+    image: bkimminich/juice-shop:latest
+    container_name: sideris-juiceshop
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  discourse_data:
+    driver: local

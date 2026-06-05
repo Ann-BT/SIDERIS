@@ -4,6 +4,7 @@
   "description": "Real-time web attack detection and behavioral analysis system",
   "private": true,
   "scripts": {
+    "setup": "node scripts/setup-sideris.js",
     "ingest": "node src/ingest/server.js",
     "detect": "node src/detector/worker.js",
     "guard": "node src/guard/guard.js",
