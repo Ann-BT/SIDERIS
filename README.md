@@ -51,14 +51,13 @@
 
 It intercepts every visitor, silently watches how they behave (typing speed, mouse movement, browser fingerprint, request patterns), builds a live threat score, and when that score gets ugly — it acts. Rate-limits, CAPTCHA challenges, or a hard block, automatically, before the bad traffic ever touches your actual server.
 
-```
-Without SIDERIS:          With SIDERIS:
-                          
-  Bot → [YOUR SERVER]       Bot → [SIDERIS] → ✋ "I don't think so."
-  Scraper → [YOUR SERVER]   Scraper → [SIDERIS] → 🤔 CAPTCHA time
-  Human → [YOUR SERVER]     Human → [SIDERIS] → ✅ [YOUR SERVER]
-  Attacker → [YOUR SERVER]  Attacker → [SIDERIS] → 🚫 banned
-```
+| Without SIDERIS (Chaos) | With SIDERIS (Order) |
+|:---|:---|
+| 🤖 **Bot** &rarr; `[YOUR SERVER]` | 🤖 **Bot** &rarr; `[SIDERIS]` &rarr; ✋ *"I don't think so."* |
+| 🕷️ **Scraper** &rarr; `[YOUR SERVER]` | 🕷️ **Scraper** &rarr; `[SIDERIS]` &rarr; 🤔 *CAPTCHA challenge* |
+| 🧑 **Human** &rarr; `[YOUR SERVER]` | 🧑 **Human** &rarr; `[SIDERIS]` &rarr; ✅ `[YOUR SERVER]` |
+| 💀 **Attacker** &rarr; `[YOUR SERVER]` | 💀 **Attacker** &rarr; `[SIDERIS]` &rarr; 🚫 *Banned* |
+
 
 **The best part:** You don't change a single line of your application code. SIDERIS is a sidecar — it runs alongside your existing website, whatever stack it's on.
 
