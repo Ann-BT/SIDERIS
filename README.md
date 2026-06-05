@@ -119,88 +119,76 @@ As visitors interact with your site (typing, clicking, moving the mouse), behavi
 #### Step 3: Session Resolution & Deep Dive
 Every active visitor session is listed in the live feed and color-coded by threat level. Administrators can click any session to expand it, revealing peak threat scores, triggering heuristics, and full client telemetry logs.
 
-<table>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>👁️ Live Sessions Feed</b><br>
-      <i>All active visitor sessions with color-coded threat score bars. Green is calm. Red means someone is behaving suspiciously.</i>
-      <br><br>
-      <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>🔍 Session Deep Dive</b><br>
-      <i>Click any session to expand it — peak scores, triggering conditions, full timeline, and manual SOC override buttons.</i>
-      <br><br>
-      <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-</table>
+##### 👁️ Live Sessions Feed
+*All active visitor sessions with color-coded threat score bars. Green is calm. Red means someone is behaving suspiciously.*
+<p align="center">
+  <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 🔍 Session Deep Dive
+*Click any session to expand it — peak scores, triggering conditions, full timeline, and manual SOC override buttons.*
+<p align="center">
+  <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 <br>
 
 #### Step 4: Automated Countermeasures & Challenges
 When a session's threat score crosses specific thresholds, SIDERIS escalates mitigations automatically without changing a single line of your application code.
 
-<table>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>⚠️ Adaptive CAPTCHA Challenge</b><br>
-      <i>Suspicious but not guilty yet? SIDERIS serves a CAPTCHA overlay mid-session. Pass it and your score resets. Fail it and... see right.</i>
-      <br><br>
-      <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>🔴 Hard Block Screen</b><br>
-      <i>When a session crosses the point of no return — malicious patterns, manual SOC override, or automated escalation — they get this. No negotiation.</i>
-      <br><br>
-      <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-</table>
+##### ⚠️ Adaptive CAPTCHA Challenge
+*Suspicious but not guilty yet? SIDERIS serves a CAPTCHA overlay mid-session. Pass it and your score resets. Fail it and... see below.*
+<p align="center">
+  <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 🔴 Hard Block Screen
+*When a session crosses the point of no return — malicious patterns, manual SOC override, or automated escalation — they get this. No negotiation.*
+<p align="center">
+  <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 <br>
 
 #### Step 5: Threat Intelligence & Countermeasures
 Manage the active blocklist, rate limits, and review your top attackers:
 
-<table>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>🎯 Active Defense Matrix</b><br>
-      <i>Every Redis-enforced countermeasure in one panel — active rate-limits, pending CAPTCHAs, IP bans. Your current hit list.</i>
-      <br><br>
-      <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>🏆 Top Offenders Leaderboard</b><br>
-      <i>Ranked list of the most aggressive source IPs. Total events, peak threat score, attack patterns. A hall of shame, essentially.</i>
-      <br><br>
-      <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-</table>
+##### 🎯 Active Defense Matrix
+*Every Redis-enforced countermeasure in one panel — active rate-limits, pending CAPTCHAs, IP bans. Your current hit list.*
+<p align="center">
+  <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 🏆 Top Offenders Leaderboard
+*Ranked list of the most aggressive source IPs. Total events, peak threat score, attack patterns. A hall of shame, essentially.*
+<p align="center">
+  <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 <br>
 
 #### Step 6: Long-Term Analytics & Auditing
 Look back at past event patterns and connection histories:
 
-<table>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>📊 Operational Metrics</b><br>
-      <i>Live counters for total events processed, active blocks, active challenges, and active rate-limits. The numbers that tell you how bad your day is going.</i>
-      <br><br>
-      <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>🗄️ Session History Database</b><br>
-      <i>All past sessions archived in PostgreSQL. Searchable, filterable, auditable. Great for incident reports. Better for "I told you so" moments.</i>
-      <br><br>
-      <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-</table>
+##### 📊 Operational Metrics
+*Live counters for total events processed, active blocks, active challenges, and active rate-limits. The numbers that tell you how bad your day is going.*
+<p align="center">
+  <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="480" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 🗄️ Session History Database
+*All past sessions archived in PostgreSQL. Searchable, filterable, auditable. Great for incident reports. Better for "I told you so" moments.*
+<p align="center">
+  <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 <br>
 
@@ -213,36 +201,35 @@ Monitor service logs, audit control panel access, change dashboard themes, or vi
 
 <br>
 
-<table>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>📟 Live Logs Console</b><br>
-      <i>Real-time scrolling terminal showing raw events from ingestion, guard, and proxy services. Basically Matrix rain but useful.</i>
-      <br><br>
-      <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>🔐 Dashboard Access Log</b><br>
-      <i>Every connection attempt to the SOC dashboard itself — allowed or blocked. Yes, SIDERIS audits access to its own control panel. Turtles all the way down.</i>
-      <br><br>
-      <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center" valign="top">
-      <b>🎨 Theme Selector</b><br>
-      <i>Tokyo Night, Catppuccin, Dracula, Nord, and more. Because if you're going to stare at threat dashboards all day, it might as well look good.</i>
-      <br><br>
-      <img src="./screenshots/theme_picker.png" alt="Theme Selector" style="max-width: 280px; width: 100%; border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-    <td width="50%" align="center" valign="top">
-      <b>📖 Runtime Scoring Guide</b><br>
-      <i>In-dashboard reference for the threat scoring system — escalation tiers, scoring equations, decay factors, and the 13 correlation rules. RTFM, but the FM is built in.</i>
-      <br><br>
-      <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="100%" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-    </td>
-  </tr>
-</table>
+##### 📟 Live Logs Console
+*Real-time scrolling terminal showing raw events from ingestion, guard, and proxy services. Basically Matrix rain but useful.*
+<p align="center">
+  <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 🔐 Dashboard Access Log
+*Every connection attempt to the SOC dashboard itself — allowed or blocked. Yes, SIDERIS audits access to its own control panel. Turtles all the way down.*
+<p align="center">
+  <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 🎨 Theme Selector
+*Tokyo Night, Catppuccin, Dracula, Nord, and more. Because if you're going to stare at threat dashboards all day, it might as well look good.*
+<p align="center">
+  <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="300" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
+<br>
+
+##### 📖 Runtime Scoring Guide
+*In-dashboard reference for the threat scoring system — escalation tiers, scoring equations, decay factors, and the 13 correlation rules. RTFM, but the FM is built in.*
+<p align="center">
+  <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
