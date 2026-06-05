@@ -119,16 +119,16 @@ As visitors interact with your site (typing, clicking, moving the mouse), behavi
 #### Step 3: Session Resolution & Deep Dive
 Every active visitor session is listed in the live feed and color-coded by threat level. Administrators can click any session to expand it, revealing peak threat scores, triggering heuristics, and full client telemetry logs.
 
-##### 👁️ Live Sessions Feed
-*All active visitor sessions with color-coded threat score bars. Green is calm. Red means someone is behaving suspiciously.*
+##### Live Sessions Feed
+*The live feed of everyone currently knocking on your door. Green sessions are normal humans. Red sessions are doing things humans don't do, like requesting 80 pages a second.*
 <p align="center">
   <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 🔍 Session Deep Dive
-*Click any session to expand it — peak scores, triggering conditions, full timeline, and manual SOC override buttons.*
+##### Session Deep Dive
+*The audit trail for a single visitor. You can see their peak score, what exact trigger rules they tripped, their detailed telemetry timeline, and a big red button to ban them manually if you're feeling vindictive.*
 <p align="center">
   <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -138,16 +138,16 @@ Every active visitor session is listed in the live feed and color-coded by threa
 #### Step 4: Automated Countermeasures & Challenges
 When a session's threat score crosses specific thresholds, SIDERIS escalates mitigations automatically without changing a single line of your application code.
 
-##### ⚠️ Adaptive CAPTCHA Challenge
-*Suspicious but not guilty yet? SIDERIS serves a CAPTCHA overlay mid-session. Pass it and your score resets. Fail it and... see below.*
+##### Adaptive CAPTCHA Challenge
+*The "are you sure about that?" test. If SIDERIS isn't 100% sure a visitor is a bot, it intercepts them with a CAPTCHA. Real humans solve it and get unthrottled. Bots get stuck forever.*
 <p align="center">
   <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 🔴 Hard Block Screen
-*When a session crosses the point of no return — malicious patterns, manual SOC override, or automated escalation — they get this. No negotiation.*
+##### Hard Block Screen
+*The end of the line. When a threat score hits the maximum tier, they get this un-bypassable block page. SIDERIS drops their connection before they ever reach your actual web server.*
 <p align="center">
   <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -157,16 +157,16 @@ When a session's threat score crosses specific thresholds, SIDERIS escalates mit
 #### Step 5: Threat Intelligence & Countermeasures
 Manage the active blocklist, rate limits, and review your top attackers:
 
-##### 🎯 Active Defense Matrix
-*Every Redis-enforced countermeasure in one panel — active rate-limits, pending CAPTCHAs, IP bans. Your current hit list.*
+##### Active Defense Matrix
+*The live Redis hit list. Every active ban, rate-limit, and CAPTCHA challenge currently being enforced at the proxy level. You can lift a ban with one click if you decide to forgive.*
 <p align="center">
   <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 🏆 Top Offenders Leaderboard
-*Ranked list of the most aggressive source IPs. Total events, peak threat score, attack patterns. A hall of shame, essentially.*
+##### Top Offenders Leaderboard
+*The SIDERIS Hall of Shame. A ranked leaderboard of the most aggressive IP addresses currently trying to break your application, complete with their peak scores and attack signatures.*
 <p align="center">
   <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -176,16 +176,16 @@ Manage the active blocklist, rate limits, and review your top attackers:
 #### Step 6: Long-Term Analytics & Auditing
 Look back at past event patterns and connection histories:
 
-##### 📊 Operational Metrics
-*Live counters for total events processed, active blocks, active challenges, and active rate-limits. The numbers that tell you how bad your day is going.*
+##### Operational Metrics
+*Real-time counters showing your current metrics. It tells you exactly how many attacks were deflected today. Useful for showing your boss why you still have a job.*
 <p align="center">
   <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="480" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 🗄️ Session History Database
-*All past sessions archived in PostgreSQL. Searchable, filterable, auditable. Great for incident reports. Better for "I told you so" moments.*
+##### Session History Database
+*The permanent archive of all past traffic. Every single session is logged in Postgres, making it easy to search, filter, and audit past incidents when someone asks what happened last week.*
 <p align="center">
   <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -201,32 +201,32 @@ Monitor service logs, audit control panel access, change dashboard themes, or vi
 
 <br>
 
-##### 📟 Live Logs Console
-*Real-time scrolling terminal showing raw events from ingestion, guard, and proxy services. Basically Matrix rain but useful.*
+##### Live Logs Console
+*The raw event stream from all SIDERIS microservices. Perfect for watching the ingestion, proxy, and guard services collaborate in real time. It's like Matrix code, but you can actually read it.*
 <p align="center">
   <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 🔐 Dashboard Access Log
-*Every connection attempt to the SOC dashboard itself — allowed or blocked. Yes, SIDERIS audits access to its own control panel. Turtles all the way down.*
+##### Dashboard Access Log
+*Because SIDERIS doesn't even trust you. It logs and audits every single attempt to access this control panel. If someone tries to brute-force the dashboard, you'll see them here.*
 <p align="center">
   <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 🎨 Theme Selector
-*Tokyo Night, Catppuccin, Dracula, Nord, and more. Because if you're going to stare at threat dashboards all day, it might as well look good.*
+##### Theme Selector
+*Tokyo Night, Catppuccin, Dracula, Nord, and more. Because defending against cyber attacks doesn't mean you have to look at ugly dashboards.*
 <p align="center">
   <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
 
-##### 📖 Runtime Scoring Guide
-*In-dashboard reference for the threat scoring system — escalation tiers, scoring equations, decay factors, and the 13 correlation rules. RTFM, but the FM is built in.*
+##### Runtime Scoring Guide
+*The built-in reference guide. Explains the entire threat scoring equation, decay heuristics, and the 13 correlation rules. You can study how SIDERIS thinks without leaving the dashboard.*
 <p align="center">
   <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
