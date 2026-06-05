@@ -1,23 +1,44 @@
+<a id="sideris"></a>
 <p align="center">
-  <img src="./screenshots/banner.png" alt="SIDERIS" width="100%" style="border-radius: 12px;"/>
+  <img src="./screenshots/banner.png" alt="SIDERIS" width="100%" style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"/>
+</p>
+
+<p align="center">
+  <a href="#about"><img src="https://img.shields.io/badge/ABOUT-black?style=for-the-badge&color=0969da&labelColor=161b22&logo=info&logoColor=white"/></a>&nbsp;
+  <a href="#quick-start"><img src="https://img.shields.io/badge/QUICK_START-black?style=for-the-badge&color=1f883d&labelColor=161b22&logo=docker&logoColor=white"/></a>&nbsp;
+  <a href="#architecture"><img src="https://img.shields.io/badge/ARCHITECTURE-black?style=for-the-badge&color=e0af68&labelColor=161b22&logo=securityscorecard&logoColor=white"/></a>&nbsp;
+  <a href="#gallery"><img src="https://img.shields.io/badge/GALLERY-black?style=for-the-badge&color=bb9af7&labelColor=161b22&logo=react&logoColor=white"/></a>&nbsp;
+  <a href="#configuration"><img src="https://img.shields.io/badge/CONFIG-black?style=for-the-badge&color=7aa2f7&labelColor=161b22&logo=dotenv&logoColor=white"/></a>&nbsp;
+  <a href="#contact"><img src="https://img.shields.io/badge/CONTACT-black?style=for-the-badge&color=47a2f7&labelColor=161b22&logo=gmail&logoColor=white"/></a>&nbsp;
+  <a href="#license"><img src="https://img.shields.io/badge/LICENSE-black?style=for-the-badge&color=57606a&labelColor=161b22&logo=license&logoColor=white"/></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>&nbsp;
+  <a href="https://github.com/Ann-BT/SIDERIS"><img src="https://img.shields.io/github/repo-size/Ann-BT/SIDERIS?style=for-the-badge&color=e0af68&labelColor=161b22&logo=git&logoColor=white"/></a>
 </p>
 
 <div align="center">
 <pre>
-<a href="#about">ABOUT</a>  •  <a href="#quick-start">QUICK START</a>  •  <a href="#architecture">ARCHITECTURE</a>  •  <a href="#gallery">GALLERY</a>  •  <a href="#configuration">CONFIGURATION</a>  •  <a href="#contact">CONTACT</a>  •  <a href="#license">LICENSE</a>
+<a href="#about">ᴀʙᴏᴜᴛ</a>  •  <a href="#quick-start">ǫᴜɪᴄᴋ sᴛᴀʀᴛ</a>  •  <a href="#architecture">ᴀʀᴄʜɪᴛᴇᴄᴛᴜʀᴇ</a>  •  <a href="#gallery">ɢᴀʟʟᴇʀʏ</a>  •  <a href="#configuration">ᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ</a>  •  <a href="#contact">ᴄᴏɴᴛᴀᴄᴛ</a>  •  <a href="#license">ʟɪᴄᴇɴsᴇ</a>
 </pre>
 </div>
 
 <br>
 
 <div align="center">
-  <h3>If SIDERIS helps protect your website, please support the project by leaving a Star!</h3>
+  <h3>🛡️ If SIDERIS helps protect your website, please support the project by leaving a Star! 🛡️</h3>
+  <i>💡 Tip: Click any section header badge or the "Back to Top" buttons to return to the top navigation.</i>
 </div>
 
 <br>
 
 <a id="about"></a>
-<h2 align="center">ABOUT</h2>
+<br>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-ABOUT%20SIDERIS-0969da?style=for-the-badge&labelColor=161b22&logo=info&logoColor=white" height="60" alt="About SIDERIS"/></a>
+</p>
+<br>
 
 SIDERIS (Sidecar Integrated Detection, Event Reporting, and Intelligence System) is a real-time web application firewall (WAF) and client-side behavioral analysis proxy. 
 
@@ -39,11 +60,15 @@ Because hoping your users will play nice is not a security strategy.
 > SIDERIS operates transparently. Simply run SIDERIS in front of your website server and point your public traffic to it.
 
 <br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="quick-start"></a>
 <br>
-<h2 align="center">60-SECOND QUICK START</h2>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-60--SECOND%20QUICK%20START-1f883d?style=for-the-badge&labelColor=161b22&logo=docker&logoColor=white" height="60" alt="Quick Start"/></a>
+</p>
+<br>
 
 To deploy SIDERIS in front of your website right now:
 
@@ -70,11 +95,15 @@ docker compose up -d --build
 Access your website at `http://your-server-ip:4000`. You are now protected.
 
 <br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="architecture"></a>
 <br>
-<h2 align="center">ARCHITECTURE</h2>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-ARCHITECTURE-e0af68?style=for-the-badge&labelColor=161b22&logo=nginx&logoColor=white" height="60" alt="Architecture"/></a>
+</p>
+<br>
 
 SIDERIS acts as a protective shield between public traffic and your real web application server:
 
@@ -103,11 +132,15 @@ SIDERIS acts as a protective shield between public traffic and your real web app
 6. Persistent logs and security events are archived in **PostgreSQL** for analysis on the React-based **SOC Dashboard** (`:5173`).
 
 <br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="gallery"></a>
 <br>
-<h2 align="center">GALLERY</h2>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-VISUAL%20GALLERY-bb9af7?style=for-the-badge&labelColor=161b22&logo=react&logoColor=white" height="60" alt="Gallery"/></a>
+</p>
+<br>
 
 ### 1. Security Operations Center (SOC) Dashboard
 This React-based interface lists active sessions, visualizes live risk scores, breaks down threat categories, and allows analysts to manually block or unblock sessions.
@@ -124,11 +157,15 @@ Suspicious sessions are prompted with a server-generated verification overlay. S
 </p>
 
 <br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="configuration"></a>
 <br>
-<h2 align="center">CONFIGURATION</h2>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-CONFIGURATION-7aa2f7?style=for-the-badge&labelColor=161b22&logo=dotenv&logoColor=white" height="60" alt="Configuration"/></a>
+</p>
+<br>
 
 SIDERIS parameters can be customized via `.env` file variables:
 
@@ -143,22 +180,32 @@ SIDERIS parameters can be customized via `.env` file variables:
 For advanced settings and native (non-Docker) setup, check the **[Deployment and Configuration Guide](./DEPLOYMENT.md)**.
 
 <br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="contact"></a>
 <br>
-<h2 align="center">CONTACT</h2>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-GET%20IN%20TOUCH-47a2f7?style=for-the-badge&labelColor=161b22&logo=gmail&logoColor=white" height="60" alt="Contact"/></a>
+</p>
+<br>
 
 For inquiries, support, or security discussions:
 * **Email**: [anbt.personal@gmail.com](mailto:anbt.personal@gmail.com)
 * **Facebook**: [Ann-BT / Merlin the Great Mage](https://www.facebook.com/merlinthegreatmage)
 
 <br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="license"></a>
 <br>
-<h2 align="center">LICENSE</h2>
+<p align="center">
+  <a href="#sideris"><img src="https://img.shields.io/badge/-LICENSE-57606a?style=for-the-badge&labelColor=161b22&logo=open-source-initiative&logoColor=white" height="60" alt="License"/></a>
+</p>
+<br>
 
 SIDERIS is open-source software licensed under the **[MIT License](./LICENSE)**. Free to download, modify, and deploy for personal or commercial websites.
 
+<br>
+<p align="right"><a href="#sideris"><img src="https://img.shields.io/badge/Back%20To%20Top-161b22?style=flat-square&logo=arrow-up&logoColor=white" alt="Back to Top"/></a></p>
