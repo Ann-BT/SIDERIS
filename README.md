@@ -19,7 +19,7 @@
 </p>
 
 <div align="center">
-  <code>Node.js</code> • <code>React</code> • <code>Redis</code> • <code>PostgreSQL</code> • <code>Docker</code> • <code>MIT License</code>
+  <code>Node.js</code> • <code>React</code> • <code>Redis</code> • <code>PostgreSQL</code> • <code>Docker</code> • <a href="./LICENSE"><code>MIT License</code></a>
 </div>
 
 
