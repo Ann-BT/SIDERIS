@@ -15,14 +15,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>&nbsp;
-  <img src="https://img.shields.io/badge/Node.js-black?style=for-the-badge&color=339933&labelColor=161b22&logo=nodedotjs&logoColor=white"/>&nbsp;
-  <img src="https://img.shields.io/badge/React-black?style=for-the-badge&color=61DAFB&labelColor=161b22&logo=react&logoColor=white"/>&nbsp;
-  <img src="https://img.shields.io/badge/Redis-black?style=for-the-badge&color=FF4438&labelColor=161b22&logo=redis&logoColor=white"/>&nbsp;
-  <img src="https://img.shields.io/badge/PostgreSQL-black?style=for-the-badge&color=4169E1&labelColor=161b22&logo=postgresql&logoColor=white"/>&nbsp;
-  <img src="https://img.shields.io/badge/Docker-black?style=for-the-badge&color=2496ED&labelColor=161b22&logo=docker&logoColor=white"/>&nbsp;
-  <img src="https://img.shields.io/badge/License-MIT-black?style=for-the-badge&color=57606a&labelColor=161b22"/>
+  <a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>
 </p>
+
+<div align="center">
+  <code>Node.js</code> • <code>React</code> • <code>Redis</code> • <code>PostgreSQL</code> • <code>Docker</code> • <code>MIT License</code>
+</div>
+
 
 <br>
 
