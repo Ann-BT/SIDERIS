@@ -220,7 +220,7 @@ Monitor service logs, audit control panel access, change dashboard themes, or vi
 ##### 🎨 Theme Selector
 *Tokyo Night, Catppuccin, Dracula, Nord, and more. Because if you're going to stare at threat dashboards all day, it might as well look good.*
 <p align="center">
-  <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="300" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
 <br>
