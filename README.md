@@ -53,10 +53,10 @@ It intercepts every visitor, silently watches how they behave (typing speed, mou
 
 | Without SIDERIS (Chaos) | With SIDERIS (Order) |
 |:---|:---|
-| 🤖 **Bot** &rarr; `[YOUR SERVER]` | 🤖 **Bot** &rarr; `[SIDERIS]` &rarr; ✋ *"I don't think so."* |
-| 🕷️ **Scraper** &rarr; `[YOUR SERVER]` | 🕷️ **Scraper** &rarr; `[SIDERIS]` &rarr; 🤔 *CAPTCHA challenge* |
-| 🧑 **Human** &rarr; `[YOUR SERVER]` | 🧑 **Human** &rarr; `[SIDERIS]` &rarr; ✅ `[YOUR SERVER]` |
-| 💀 **Attacker** &rarr; `[YOUR SERVER]` | 💀 **Attacker** &rarr; `[SIDERIS]` &rarr; 🚫 *Banned* |
+| Bot &rarr; `[YOUR SERVER]` | Bot &rarr; `[SIDERIS]` &rarr; *"I don't think so."* |
+| Scraper &rarr; `[YOUR SERVER]` | Scraper &rarr; `[SIDERIS]` &rarr; *CAPTCHA challenge* |
+| Human &rarr; `[YOUR SERVER]` | Human &rarr; `[SIDERIS]` &rarr; `[YOUR SERVER]` |
+| Attacker &rarr; `[YOUR SERVER]` | Attacker &rarr; `[SIDERIS]` &rarr; *Banned* |
 
 
 **The best part:** You don't change a single line of your application code. SIDERIS is a sidecar — it runs alongside your existing website, whatever stack it's on.
