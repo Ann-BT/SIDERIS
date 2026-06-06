@@ -16,7 +16,7 @@
 <p align="center">
   <a href="#what-is-sideris"><img src="https://img.shields.io/badge/▸_OVERVIEW-0969da?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#how-it-works"><img src="https://img.shields.io/badge/▸_ARCHITECTURE-e0af68?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
-  <a href="#performance"><img src="https://img.shields.io/badge/▸_PERFORMANCE-f7768e?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
+  <a href="#performance"><img src="https://img.shields.io/badge/▸_PERFORMANCE-2ea44f?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#in-action"><img src="https://img.shields.io/badge/▸_SCREENSHOTS-bb9af7?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#quick-start"><img src="https://img.shields.io/badge/▸_QUICK_START-1f883d?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#limitations"><img src="https://img.shields.io/badge/▸_LIMITATIONS-ff9e64?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
@@ -233,7 +233,7 @@ Scores decay over time. A visitor who triggered rate limiting and then behaved n
 <!---------------------------------------------------------------------------->
 
 <p align="center">
-  <img src="https://img.shields.io/badge/◈──────────────────◈_PERFORMANCE_◈──────────────────◈-f7768e?style=for-the-badge&labelColor=0d1117" height="32"/>
+  <img src="https://img.shields.io/badge/◈──────────────────◈_PERFORMANCE_◈──────────────────◈-2ea44f?style=for-the-badge&labelColor=0d1117" height="32"/>
 </p>
 
 <a id="performance"></a>
