@@ -156,7 +156,7 @@ async function processAlert(payloadStr) {
     reason || 'risk_threshold',
     risk_score.toString(),
     Date.now().toString(),
-    '0',                            // ARGV[6]: Store permanently (no TTL)
+    finalTtl.toString(),            // ARGV[6]: Dynamic TTL based on offense count (0 means permanent)
     CAPTCHA_GRACE_MS.toString(),    // ARGV[7]: grace period for CAPTCHA
     blockType,                      // ARGV[8]: block_type
     'automatic'                     // ARGV[9]: guard_source

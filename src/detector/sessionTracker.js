@@ -579,14 +579,17 @@ function startDecayTimer() {
         // Guard release on score decay
         // If score has decayed into the safe zone (< 10) and the session
         // currently has a non-permanent guard directive, release it.
-        // Hard blocks (score ever crossed 50) are exempt \u2014 those require
+        // Hard blocks (score ever crossed 50) are exempt — those require
         // manual review via the SOC dashboard.
-        if (state.session_score < 10 && !state.permanently_blocked) {
+        if (state.session_score < 10 && state.highest_block_type !== 'hard') {
           try {
             const guardKey = `sideris:guard:${sessionId}`;
-            const guardAction = await redis.hget(guardKey, 'action');
-            if (guardAction && guardAction !== 'hard_block') {
+            const guardData = await redis.hgetall(guardKey);
+            if (guardData && guardData.action && guardData.block_type !== 'hard') {
               await redis.del(guardKey);
+              if (state.ip_address) {
+                await redis.del(`sideris:guard:ip:${state.ip_address}`);
+              }
               console.log(`[sessionTracker] Guard auto-released for ${sessionId} (score decayed to ${state.session_score})`);
             }
           } catch (err) {

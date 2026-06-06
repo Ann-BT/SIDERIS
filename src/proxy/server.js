@@ -825,8 +825,9 @@ app.post('/sideris/captcha-verify', async (req, res) => {
     }
 
     if (answer !== storedCode.toUpperCase()) {
-      // Wrong answer — do NOT clear the captcha key (keeps the challenge active)
-      console.log(`[proxy] CAPTCHA wrong answer for session ${sid}`);
+      // Wrong answer — delete the key to prevent brute-forcing
+      await guardRedis.del(captchaKey);
+      console.log(`[proxy] CAPTCHA wrong answer for session ${sid} — key deleted to prevent brute-force`);
       return res.json({ ok: false, error: 'Incorrect answer' });
     }
 

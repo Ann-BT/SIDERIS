@@ -68,6 +68,9 @@ INGEST_HOST=http://localhost:5000
 # Backend databases
 REDIS_URL=${answers.REDIS_URL}
 POSTGRES_URL=${answers.POSTGRES_URL}
+
+# Dashboard access control (restricted to localhost by default for safety)
+DASHBOARD_ALLOWED_IPS=127.0.0.1,::1
 `;
 
   const envPath = path.resolve(__dirname, '../.env');
