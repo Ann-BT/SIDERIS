@@ -175,6 +175,13 @@ SIDERIS correlation rules are mapped to ATT&CK for Enterprise:
 | Browser fingerprint spoofing | T1592 | Environment inconsistency detection |
 | Headless browser automation | T1059.007 | Behavioral biometrics deviation |
 
+### Scalability & Resiliency
+
+SIDERIS is built to scale horizontally and survive backend dependency failures:
+
+- **Horizontal Scaling:** State is centralized in Redis, allowing you to run multiple instances of the WAF Proxy behind a load balancer (like Nginx, HAProxy, or Cloudflare). The Detector Worker uses a Redis Consumer Group (`sideris_group`) to load-balance telemetry scoring events across multiple worker processes.
+- **Fail-Open Safe Mode:** If the Redis container goes down or encounters network lag, the WAF Proxy automatically catches the connection error, logs it, and falls back to passing traffic directly to your application backend. Your website stays online and accessible, even if your security telemetry services fail.
+
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
@@ -511,6 +518,9 @@ For most sites: negligibly. Clean requests on established sessions add ~2–4ms.
 
 **What happens if SIDERIS goes down?**  
 Traffic stops flowing to your application. This is a proxy — if the proxy dies, the connection dies. For production, run it behind a health-checked load balancer. See [Deployment Guide](./DEPLOYMENT.md).
+
+**What happens if the Redis or PostgreSQL databases go down?**  
+SIDERIS is configured to **fail open**. If the Redis cache encounters issues, the WAF Proxy catches the connection error, logs it, and falls back to routing traffic directly to your application without blocking users. Your site remains online, though security scoring will be paused until the database recovers.
 
 **Will it block my legitimate users?**  
 Occasionally possible, especially for power users or accessibility tool users. Default thresholds are conservative. Any blocked session can be pardoned from the SOC dashboard in seconds, and you can tune sensitivity in `.env`.
