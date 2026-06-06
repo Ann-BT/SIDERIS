@@ -105,9 +105,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/storefront.png" alt="Normal Client Storefront" width="600" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A completely zero-touch tracking system. SIDERIS intercepts outgoing HTML on the fly and silently injects a small behavioral agent (`agent.js`) into the page context.
-* **What it does to help:** It tracks mouse paths, keystrokes, and browser quirks from your visitors without you ever editing a single line of your actual storefront or application code.
-* **Funny comment:** It is like having a private investigator watch every visitor from the bushes, except it's completely legal and doesn't get tired.
+SIDERIS intercepts outgoing HTML on the fly to silently inject a tiny tracking agent (`agent.js`) into the page context. It maps mouse movements and keystroke dynamics in the shadows, tracking user behavior without you changing a single line of application code. It's like having a private investigator watch every visitor from the bushes, except it's completely legal and doesn't get tired.
 
 <br>
 
@@ -116,9 +114,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/banner.png" alt="SIDERIS SOC Dashboard" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** The central flight deck and command center of your WAF.
-* **What it does to help:** Aggregates real-time event logs, active connections, threat intelligence, and current defensive blocks into one premium single-page application.
-* **Funny comment:** Perfect for keeping open on a second monitor to look busy when your boss walks past. It screams "cybersecurity wizard" even if you are just eating chips.
+The central mission control deck of your defense system. It displays live event logs, active connections, and block statistics in a single premium dashboard—perfect for leaving open on a second monitor to look busy when your boss walks past.
 
 <br>
 
@@ -127,9 +123,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A real-time traffic grid updating live as visitors move across your server.
-* **What it does to help:** Color-codes every session by danger level. Green means a normal human typing away; red means an aggressive script hammering endpoints.
-* **Funny comment:** Watch the bot trying to find `/wp-admin` on your React application and giggle as its threat score slowly turns a warning crimson.
+A real-time grid tracking every active visitor. It color-codes sessions by risk level (green is human, red is script) so you can watch scrapers trying to brute-force your pages and giggle as their threat scores spike.
 
 <br>
 
@@ -138,9 +132,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A detailed forensic examiner for any specific user's timeline.
-* **What it does to help:** Lists the exact WAF correlation rules they tripped, their raw keystroke timings, mouse heatmaps, and provides a big red manual ban button.
-* **Funny comment:** For those special moments when automatic filtering is too polite, and you want to personally ban an annoying user yourself. Pure admin satisfaction.
+The forensic investigator panel. Expand any active user to inspect their triggered correlation rules, keystroke timings, and mouse heatmaps—complete with a massive manual ban button for when automated filtering isn't satisfying enough.
 
 <br>
 
@@ -149,9 +141,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** An automatic speed bump for suspicious but unconfirmed visitors.
-* **What it does to help:** Blocks questionable requests and serves a CAPTCHA. Humans solve it in 2 seconds and get their connection restored; automated scrapers get stuck here forever.
-* **Funny comment:** The digital equivalent of asking a suspected vampire to cross a line of salt. If they're a robot, they will sit there contemplating the universe until their server timeout hits.
+An automated speed bump for questionable traffic. Suspected bots get hit with a CAPTCHA mid-session, trapping automated scrapers in an infinite loop of identifying traffic lights while actual humans pass right through.
 
 <br>
 
@@ -160,9 +150,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** The final boundary for high-threat bots or manually blacklisted IPs.
-* **What it does to help:** SIDERIS immediately cuts the TCP connection at the proxy layer, serving a strict block page. The malicious request never hits your Node/Python/PHP backend.
-* **Funny comment:** Basically a digital door slammed right in the face. Zero CPU cycles wasted on your application server, zero databases queried. Goodbye.
+The ultimate iron curtain. Confirmed threat actors get their TCP connections dropped at the proxy level before they ever touch your actual application server, saving your CPU cycles and database from useless queries.
 
 <br>
 
@@ -171,9 +159,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A live directory of all active rate-limits, CAPTCHAs, and bans stored in Redis.
-* **What it does to help:** Displays all current security enforcements and allows admins to lift bans instantly with one click if someone complains.
-* **Funny comment:** Your virtual detention center. You can see who is currently in timeout, and you can grant parole if you're feeling generous (though they'll probably try to scrape you again).
+A live registry of every active ban, rate-limit, and CAPTCHA challenge currently registered in Redis. If a real user accidentally gets flagged, you can grant them parole with a single click.
 
 <br>
 
@@ -182,9 +168,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A ranked scoreboard of the most aggressive attacker subnets.
-* **What it does to help:** Highlights persistent threat actors so you can block entire IP ranges at your cloud provider/DNS level if needed.
-* **Funny comment:** The SIDERIS Hall of Shame. A ranked leaderboard of the script-kiddies who tried their hardest, got nowhere, and now have their IPs permanently memorialized.
+The SIDERIS Hall of Shame. A ranked leaderboard of the most aggressive attacker subnets and scrapers that tried their best, got blocked immediately, and now have their IPs permanently memorialized.
 
 <br>
 
@@ -193,9 +177,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="480" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A clean dashboard widget compiling recent event counts and active block percentages.
-* **What it does to help:** Gives you rapid KPIs to measure how hard your server is being hit and how many attacks SIDERIS deflected.
-* **Funny comment:** The "why you pay me" metric panel. Copy and paste this chart directly into your monthly report to justify your IT budget.
+A high-level KPI widget showing today's deflected attacks. It's the ultimate chart to copy-paste into your monthly report to justify your cybersecurity budget and existence.
 
 <br>
 
@@ -204,9 +186,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A structured PostgreSQL archive of historical connections.
-* **What it does to help:** Saves session audits so you can search, query, and dissect past traffic anomalies long after they have disconnected.
-* **Funny comment:** A permanent record of every bad actor who ever knocked on your port. Because security issues are best analyzed in hindsight with a cup of coffee.
+A Postgres-backed archive of all past connections. Perfect for post-mortem security audits and proving to your team that the server crash last night was actually an aggressive botnet, not your code.
 
 <br>
 
@@ -215,9 +195,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** An integrated web terminal showing standard output streams from all SIDERIS docker containers.
-* **What it does to help:** Eliminates the need to open five terminal tabs running `docker logs`; it aggregates ingest, detector, and proxy outputs in one clean panel.
-* **Funny comment:** It looks like the Matrix falling code, except it actually tells you why your web server is throwing a 502 error instead of showing you kung-fu.
+An integrated console combining stdout logs from your proxy, ingest, and detector containers. It looks like the Matrix code, except it actually contains useful information instead of green rain.
 
 <br>
 
@@ -226,9 +204,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A self-auditing security panel log.
-* **What it does to help:** Keeps track of every IP trying to access or log into your SIDERIS control panel.
-* **Funny comment:** SIDERIS is so paranoid it doesn't even trust you. If you mistype your password, it will log your IP as a suspicious event just to be safe.
+A strict self-audit panel logging every dashboard log-in attempt. SIDERIS is so paranoid it doesn't even trust you, meaning if you mistype your admin credentials, you will log yourself as a threat.
 
 <br>
 
@@ -237,9 +213,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** A theme selection menu supporting Tokyo Night, Catppuccin, Nord, Dracula, and more.
-* **What it does to help:** Customizes the WAF dashboard to match your personal preference or IDE colors.
-* **Funny comment:** Because defending your web server from automated scrapers is serious business, but looking at a boring white dashboard while doing it is a crime.
+Change themes on the fly between Tokyo Night, Catppuccin, Nord, and Dracula. Because defending your database from automated scrapers is serious business, but doing it in an ugly default layout is a tragedy.
 
 <br>
 
@@ -248,9 +222,7 @@ Here are the key features of SIDERIS, showing the active dashboard screens and d
   <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
 
-* **What it is:** An interactive documentation manual built directly into the dashboard.
-* **What it does to help:** Explains the scoring heuristics, decay rates, and telemetry weightings so you can understand exactly why a threat level was assigned.
-* **Funny comment:** For the rare times you actually want to read the math formulas instead of just trusting the red/green dots. Excellent bedtime reading.
+An interactive manual explaining the WAF's threat equations, correlation rules, and decay math—perfect bedtime reading for when you want to study the exact logic of the heuristic engine.
 
 <br>
 
