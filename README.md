@@ -31,8 +31,6 @@
 
 *⭐ If SIDERIS saved your server from a bad day, the star button is right up there. I run on dopamine and instant ramen.*
 
-*💡 Click any section header badge to return to the top navigation.*
-
 </div>
 
 <br>
@@ -270,18 +268,6 @@ All of that feeds into a live scoring engine. The score is calculated continuous
                                          │   all of the above   │
                                          └─────────────────────┘
 ```
-
-### The 5 Enforcement Tiers
-
-When a session's threat score climbs, SIDERIS escalates proportionally — it doesn't jump straight to banning everyone who looks slightly suspicious:
-
-| Tier | Trigger | Response |
-|:---|:---|:---|
-| **1 — Monitor** | Slightly elevated score | Watching. Taking notes. Saying nothing. |
-| **2 — Flag** | Suspicious patterns forming | Logged, tagged, SOC alerted |
-| **3 — Rate Limit** | Score confirms bad intent | Requests throttled heavily |
-| **4 — Challenge** | High confidence threat | CAPTCHA served mid-session |
-| **5 — Block** | Maximum threat / manual override | Connection terminated. Goodbye. |
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
