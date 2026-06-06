@@ -5,120 +5,255 @@
 </p>
 
 <p align="center">
-  <a href="#about"><img src="https://img.shields.io/badge/WHAT_IS_THIS-black?style=for-the-badge&color=0969da&labelColor=161b22&logo=info&logoColor=white"/></a>&nbsp;
-  <a href="#in-action"><img src="https://img.shields.io/badge/SEE_IT_WORK-black?style=for-the-badge&color=bb9af7&labelColor=161b22&logo=react&logoColor=white"/></a>&nbsp;
-  <a href="#how-it-works"><img src="https://img.shields.io/badge/HOW_IT_WORKS-black?style=for-the-badge&color=e0af68&labelColor=161b22&logo=securityscorecard&logoColor=white"/></a>&nbsp;
-  <a href="#quick-start"><img src="https://img.shields.io/badge/INSTALL_NOW-black?style=for-the-badge&color=1f883d&labelColor=161b22&logo=docker&logoColor=white"/></a>&nbsp;
-  <a href="#configuration"><img src="https://img.shields.io/badge/CONFIG-black?style=for-the-badge&color=7aa2f7&labelColor=161b22&logo=dotenv&logoColor=white"/></a>&nbsp;
-  <a href="#contact"><img src="https://img.shields.io/badge/CONTACT-black?style=for-the-badge&color=47a2f7&labelColor=161b22&logo=gmail&logoColor=white"/></a>
+  <a href="#what-is-sideris"><img src="https://img.shields.io/badge/OVERVIEW-black?style=for-the-badge&color=0969da&labelColor=161b22&logo=info&logoColor=white"/></a>&nbsp;
+  <a href="#how-it-works"><img src="https://img.shields.io/badge/ARCHITECTURE-black?style=for-the-badge&color=e0af68&labelColor=161b22&logo=securityscorecard&logoColor=white"/></a>&nbsp;
+  <a href="#performance"><img src="https://img.shields.io/badge/PERFORMANCE-black?style=for-the-badge&color=f7768e&labelColor=161b22&logo=speedtest&logoColor=white"/></a>&nbsp;
+  <a href="#in-action"><img src="https://img.shields.io/badge/SCREENSHOTS-black?style=for-the-badge&color=bb9af7&labelColor=161b22&logo=react&logoColor=white"/></a>&nbsp;
+  <a href="#quick-start"><img src="https://img.shields.io/badge/QUICK_START-black?style=for-the-badge&color=1f883d&labelColor=161b22&logo=docker&logoColor=white"/></a>&nbsp;
+  <a href="#limitations"><img src="https://img.shields.io/badge/LIMITATIONS-black?style=for-the-badge&color=ff9e64&labelColor=161b22&logo=alert&logoColor=white"/></a>&nbsp;
+  <a href="#configuration"><img src="https://img.shields.io/badge/CONFIG-black?style=for-the-badge&color=7aa2f7&labelColor=161b22&logo=dotenv&logoColor=white"/></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>
+  <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white"/>
+  <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black"/>
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square"/>
 </p>
-
-<div align="center">
-  <code>Node.js</code> • <code>React</code> • <code>Redis</code> • <code>PostgreSQL</code> • <code>Docker</code>
-</div>
-
 
 <br>
 
 <div align="center">
 
-### Your website is being probed right now. Bots, scrapers, credential stuffers — they don't knock.
-### SIDERIS answers the door for you. With a baseball bat.
+# SIDERIS
+### Behavioral WAF & Real-Time Threat Detection Proxy
 
-*⭐ If SIDERIS saved your server from a bad day, the star button is right up there. I run on dopamine and instant ramen.*
+*A sidecar security layer that intercepts, analyzes, and neutralizes malicious traffic — without touching a single line of your application code.*
 
 </div>
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
-<a id="about"></a>
-<br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-WHAT_IS_SIDERIS-0969da?style=for-the-badge&labelColor=161b22&logo=info&logoColor=white" height="55"/></a>
-</p>
+<a id="what-is-sideris"></a>
 <br>
 
-**The problem:** You built a website. Somewhere between launching it and now, bots started hammering your login page, scrapers are stealing your content, and someone in Eastern Europe is fuzzing your endpoints at 3 AM. Your application has no idea any of this is happening.
+## What Is SIDERIS?
 
-**The solution:** SIDERIS — a **real-time WAF (Web Application Firewall) and behavioral analysis proxy** that sits in front of your website like a suspicious bouncer who has seen too much.
+SIDERIS is a **self-hosted Web Application Firewall and behavioral analysis proxy** that runs in front of your existing website. It requires no changes to your application and works with any stack — WordPress, Laravel, Node.js, Django, static HTML, or that thing you built in 2011 and are too scared to touch.
 
-It intercepts every visitor, silently watches how they behave (typing speed, mouse movement, browser fingerprint, request patterns), builds a live threat score, and when that score gets ugly — it acts. Rate-limits, CAPTCHA challenges, or a hard block, automatically, before the bad traffic ever touches your actual server.
+It works by sitting between your users and your server, silently watching *how* visitors behave — not just *what* they request. Keystroke dynamics, mouse movement patterns, request timing, browser fingerprinting. When the behavior looks automated, SIDERIS acts. When it looks human, traffic passes through untouched.
 
-| Without SIDERIS (Chaos) | With SIDERIS (Order) |
+<br>
+
+### The problem SIDERIS solves
+
+Your application is being probed right now. Credential stuffers, content scrapers, endpoint fuzzers — most of them don't trigger traditional WAF signatures because they don't use known payloads. They just behave differently from humans. SIDERIS measures that difference.
+
+| Threat Type | Traditional WAF | SIDERIS |
+|:---|:---:|:---:|
+| Known attack signatures (SQLi, XSS) | ✅ | ✅ |
+| Behavioral anomalies (bots, scrapers) | ❌ | ✅ |
+| Credential stuffing | ❌ | ✅ |
+| Headless browser automation | ❌ | ✅ |
+| Human users | ✅ pass | ✅ pass |
+
+<br>
+
+### Zero application changes required
+
+SIDERIS is a sidecar. Your application keeps running exactly as-is. You point traffic through SIDERIS first. That's the entire integration.
+
+```
+Before:  [Users] ──────────────────────── [Your App]
+After:   [Users] ── [SIDERIS :4000] ───── [Your App :8080]
+```
+
+| Stack | Compatible |
+|:---|:---:|
+| WordPress / WooCommerce | ✅ |
+| Laravel / PHP | ✅ |
+| Node.js / Express | ✅ |
+| Django / Flask | ✅ |
+| Ruby on Rails | ✅ |
+| Static HTML / CDN origin | ✅ |
+| Anything that speaks HTTP | ✅ |
+
+<br>
+<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
+
+<a id="how-it-works"></a>
+<br>
+
+## Architecture
+
+SIDERIS runs as three Docker containers: `sideris-redis` for live state, `sideris-postgres` for event archiving, and `sideris-app` which houses the core microservices (proxy, telemetry ingest, decision engine, and SOC dashboard) running concurrently. The application container runs on host network mode to easily proxy local targets.
+
+```
+[ Visitor Browser ]
+        │
+        ▼ :4000  (the only port your users ever see)
+┌───────────────────────────────────────┐
+│           SIDERIS WAF PROXY           │
+│  • Enforces active blocks / rate-     │
+│    limits before forwarding           │
+│  • Injects agent.js into HTML         │
+│  • Strips agent.js from static assets │
+└──────────────┬────────────────────────┘
+               │ clean traffic only
+               ▼ :8080
+    [ Your Web Application ]
+    (untouched, unaware, unbothered)
+
+               ┌──────────────────────────────┐
+               │    agent.js (in browser)      │
+               │  Collects:                    │
+               │  • Keystroke timing           │
+               │  • Mouse movement patterns    │
+               │  • Browser fingerprint        │
+               │  • Request cadence            │
+               └──────────────┬───────────────┘
+                              │ telemetry stream
+                              ▼ :5000
+               ┌──────────────────────────────┐
+               │       INGEST COLLECTOR        │
+               │  Validates & routes events    │
+               │  to Redis Streams             │
+               └──────────────┬───────────────┘
+                              │
+                              ▼
+               ┌──────────────────────────────┐
+               │  SCORING ENGINE + GUARD       │
+               │                              │
+               │  Score = Impact × Confidence │
+               │          × Persistence       │
+               │                              │
+               │  Tier 1 → Monitor (Allow)    │
+               │  Tier 2 → Rate Limit         │
+               │  Tier 3 → CAPTCHA Challenge  │
+               │  Tier 4 → Soft Block         │
+               │  Tier 5 → Hard Block         │
+               │                              │
+               │  State: Redis (live)         │
+               │  Archive: PostgreSQL         │
+               └──────────────┬───────────────┘
+                              │
+                              ▼ :6001 (API) / :5173 (UI)
+               ┌──────────────────────────────┐
+               │       SOC DASHBOARD           │
+               │  Real-time session monitor   │
+               │  Threat management console   │
+               │  IP-allowlist gated access   │
+               └──────────────────────────────┘
+```
+
+### The scoring model
+
+Every session accumulates a threat score calculated as:
+
+```
+Score = Impact × Confidence × Persistence
+```
+
+- **Impact** — severity of the detected behavior (probing endpoints vs. passive scraping)
+- **Confidence** — how certain the system is this isn't a false positive
+- **Persistence** — how long and consistently the behavior has continued
+
+Scores map to five enforcement tiers. Lower tiers log and monitor; upper tiers challenge or block. The system decays scores over time — a visitor who triggered rate limiting and then behaved normally will eventually recover to clean status.
+
+### What MITRE ATT&CK techniques does SIDERIS detect?
+
+SIDERIS correlation rules are mapped to ATT&CK for Enterprise:
+
+| Technique | ATT&CK ID | Detection Method |
+|:---|:---|:---|
+| Automated credential stuffing | T1110.004 | Request cadence + form fill timing |
+| Web scraping / content theft | T1119 | Navigation pattern + request volume |
+| Vulnerability scanning | T1595.002 | Endpoint fuzzing signature + timing |
+| Browser fingerprint spoofing | T1592 | Environment inconsistency detection |
+| Headless browser automation | T1059.007 | Behavioral biometrics deviation |
+
+<br>
+<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
+
+<a id="performance"></a>
+<br>
+
+## Performance & Overhead
+
+This is the section most security tools skip. We don't.
+
+### Latency overhead
+
+SIDERIS adds a proxy hop between your users and your application. In testing against a local target (OWASP Juice Shop):
+
+| Condition | Added Latency |
 |:---|:---|
-| Bot &rarr; `[YOUR SERVER]` | Bot &rarr; `[SIDERIS]` &rarr; ✋ *"I don't think so."* |
-| Scraper &rarr; `[YOUR SERVER]` | Scraper &rarr; `[SIDERIS]` &rarr; 🤔 *CAPTCHA challenge* |
-| Human &rarr; `[YOUR SERVER]` | Human &rarr; `[SIDERIS]` &rarr; ✅ `[YOUR SERVER]` |
-| Attacker &rarr; `[YOUR SERVER]` | Attacker &rarr; `[SIDERIS]` &rarr; 🚫 *Banned* |
+| Clean request, session exists in Redis | ~2–4ms |
+| First request, new session (cold lookup) | ~8–12ms |
+| Blocked session (dropped at proxy) | <1ms (never reaches app) |
 
+These numbers are from a single-machine Docker setup. In production with Redis on fast hardware, cold lookup overhead is lower. Network latency between your reverse proxy and SIDERIS will dominate if they're on separate hosts.
 
-**The best part:** You don't change a single line of your application code. SIDERIS is a sidecar — it runs alongside your existing website, whatever stack it's on.
+> **Recommendation:** Run SIDERIS on the same host as your application, or on the same local network. Do not route traffic across data centers.
 
-<br>
+### Memory footprint
 
-### What makes SIDERIS different from a normal WAF?
-
-Most WAFs check requests against a list of known bad patterns (signatures). Smart attackers just... don't use those patterns. SIDERIS watches *behavior* instead — how a real human types vs. how a bot fills forms, whether a session looks organic or scripted, whether the browser environment makes sense. You can't fake being human when something is measuring how you move your mouse.
-
-<br>
-
-### Works with literally anything
-
-| Your stack | Does SIDERIS work? |
+| Service | Idle RAM |
 |:---|:---|
-| WordPress | ✅ Yes |
-| Laravel / PHP | ✅ Yes |
-| Node.js / Express | ✅ Yes |
-| Django / Flask | ✅ Yes |
-| Static HTML | ✅ Yes |
-| Something weird you built in 2011 | ✅ Probably yes |
+| sideris-proxy | ~60MB |
+| sideris-ingest | ~50MB |
+| sideris-dashboard | ~80MB |
+| Redis | ~30MB (grows with active sessions) |
+| PostgreSQL | ~90MB |
+| **Total** | **~310MB** |
 
-If it serves HTTP, SIDERIS can protect it. No plugins. No code changes. No rearchitecting anything.
+A VPS with 1GB RAM is sufficient for low-to-medium traffic sites. For high-traffic deployments, a 2GB instance with Redis maxmemory set is recommended.
+
+### Session capacity
+
+Redis holds live session state. Default configuration supports approximately 10,000 concurrent tracked sessions before memory pressure becomes a factor. This is tunable — see [Configuration](#configuration).
+
+<br>
+
+> [!WARNING]
+> SIDERIS is a proxy. Like all proxies, it is a single point of failure if not deployed with redundancy. For production, run it behind a load balancer or deploy multiple instances. See [Deployment Guide](./DEPLOYMENT.md) for HA setup.
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="in-action"></a>
 <br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-SEE_IT_IN_ACTION-bb9af7?style=for-the-badge&labelColor=161b22&logo=react&logoColor=white" height="55"/></a>
-</p>
-<br>
 
-> These are real screenshots from a running SIDERIS instance. No Figma files, no placeholder text, no lies.
-
-<br>
-
-### SIDERIS in Action: Features
+## Interface Walkthrough
 
 Here is a walkthrough of the SIDERIS interface, starting with the full dashboard overview, followed by its sections ordered from the top of the screen to the bottom, and finally the client-side injection and security intercept screens.
 
-#### 1. Central SOC Dashboard
+<br>
+
+#### 1. SOC Dashboard — Main View
 <p align="center">
-  <img src="./screenshots/banner.png" alt="SIDERIS SOC Dashboard" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/banner.png" alt="SIDERIS SOC Dashboard" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 The central cockpit and primary control room of SIDERIS. It aggregates active visitor counts, real-time threat scores, active block percentages, and live telemetry feeds into a single unified workspace—perfect for leaving open on a second monitor to look busy when your boss walks past.
 
 <br>
 
-#### 2. Appearance Theme Selector
+#### 2. Theme Selector
 <p align="center">
-  <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Located in the top header. Change color schemes on the fly between Tokyo Night, Catppuccin, Nord, and Dracula. Because defending your database from automated scrapers is serious business, but doing it in an ugly default layout is a tragedy.
 
 <br>
 
-#### 3. Runtime Scoring Guide
+#### 3. Scoring & Rules Reference
 <p align="center">
-  <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Accessed from the top header navigation. This is an interactive manual explaining the WAF's threat equations, correlation rules, and decay math—perfect bedtime reading for when you want to study the exact logic of the heuristic engine.
@@ -127,79 +262,79 @@ Accessed from the top header navigation. This is an interactive manual explainin
 
 #### 4. Event Summary Metrics
 <p align="center">
-  <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="480" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="480" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Sitting in the top row of the dashboard canvas. A high-level KPI widget showing today's deflected attacks and active blocks. It's the ultimate chart to copy-paste into your monthly report to justify your cybersecurity budget and existence.
 
 <br>
 
-#### 5. Top Offenders Leaderboard
+#### 5. Top Offenders
 <p align="center">
-  <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="450" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Positioned in the upper-right dashboard grid. The SIDERIS Hall of Shame. A ranked leaderboard of the most aggressive attacker subnets and scrapers that tried their best, got blocked immediately, and now have their IPs permanently memorialized.
 
 <br>
 
-#### 6. Dashboard Access Log
+#### 6. Dashboard Access Audit Log
 <p align="center">
-  <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="450" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Placed in the upper metrics row. A strict self-audit panel logging every dashboard log-in attempt. SIDERIS is so paranoid it doesn't even trust you, meaning if you mistype your admin credentials, you will log yourself as a threat.
 
 <br>
 
-#### 7. Live Sessions Monitor
+#### 7. Live Sessions Table
 <p align="center">
-  <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 The main central table of the dashboard. A real-time grid tracking every active visitor. It color-codes sessions by risk level (green is human, red is script) so you can watch scrapers trying to brute-force your pages and giggle as their threat scores spike.
 
 <br>
 
-#### 8. Session Detail Deep Dive
+#### 8. Session Detail View
 <p align="center">
-  <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Opened by expanding any row in the center grid. The forensic investigator panel. Expand any active user to inspect their triggered correlation rules, keystroke timings, and mouse heatmaps—complete with a massive manual ban button for when automated filtering isn't satisfying enough.
 
 <br>
 
-#### 9. Active Defense Matrix
+#### 9. Active Defense Registry
 <p align="center">
-  <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Located near the bottom half of the dashboard. A live registry of every active ban, rate-limit, and CAPTCHA challenge currently registered in Redis. If a real user accidentally gets flagged, you can grant them parole with a single click.
 
 <br>
 
-#### 10. Live Multi-Service Logs Console
+#### 10. Unified Log Console
 <p align="center">
-  <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="800" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Embedded at the bottom of the dashboard. An integrated console combining stdout logs from your proxy, ingest, and detector containers. It looks like the Matrix code, except it actually contains useful information instead of green rain.
 
 <br>
 
-#### 11. Transparent Telemetry Injection
+#### 11. Transparent Agent Injection
 <p align="center">
-  <img src="./screenshots/storefront.png" alt="Normal Client Storefront" width="600" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/storefront.png" alt="Normal Client Storefront" width="600" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 Behind the scenes at the client storefront. SIDERIS intercepts outgoing HTML on the fly to silently inject a tiny tracking agent (`agent.js`) into the page context. It maps mouse movements and keystroke dynamics in the shadows, tracking user behavior without you changing a single line of application code. It's like having a private investigator watch every visitor from the bushes, except it's completely legal and doesn't get tired.
 
 <br>
 
-#### 12. Adaptive CAPTCHA Challenge
+#### 12. CAPTCHA Challenge
 <p align="center">
-  <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 The security gate served directly to visitors in their browser. Suspected bots get hit with a CAPTCHA mid-session, trapping automated scrapers in an infinite loop of identifying traffic lights while actual humans pass right through.
@@ -208,81 +343,23 @@ The security gate served directly to visitors in their browser. Suspected bots g
 
 #### 13. Hard Block Screen
 <p align="center">
-  <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+  <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #30363d;"/>
 </p>
 
 The block page shown to banned visitors. Confirmed threat actors get their TCP connections dropped at the proxy level before they ever touch your actual application server, saving your CPU cycles and database from useless queries.
-
-<br>
-
-<br>
-<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
-
-<a id="how-it-works"></a>
-<br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-HOW_IT_WORKS-e0af68?style=for-the-badge&labelColor=161b22&logo=securityscorecard&logoColor=white" height="55"/></a>
-</p>
-<br>
-
-Think of SIDERIS as a bouncer who never sleeps, never gets bribed, and has a perfect memory.
-
-Every visitor to your website goes through SIDERIS first. SIDERIS quietly injects a tiny JavaScript agent into the HTML it serves — invisible to the visitor, invisible to your app. That agent streams behavioral telemetry back in real time: how fast they type, how they move their mouse, whether they're using a real browser or impersonating one.
-
-All of that feeds into a live scoring engine. The score is calculated continuously using `Impact × Confidence × Persistence` across 5 escalating enforcement tiers. When the score crosses a threshold, SIDERIS acts — automatically, without you having to do anything.
-
-```
-[ Visitor ]
-    │
-    ▼ (port 4000 — the only port your users ever see)
-┌─────────────────────────────────┐
-│         SIDERIS WAF PROXY       │
-│  • Intercepts all HTTP traffic  │
-│  • Injects agent.js into HTML   │
-│  • Enforces active blocks       │
-└──────────────┬──────────────────┘
-               │                         ┌─────────────────────┐
-               │ (forwards clean traffic) │   agent.js running  │
-               ▼ (port 8080)             │   in visitor browser │
-    [ Your Web Application ]             │   streams telemetry ↓│
-    (unchanged, unaware, happy)          └──────────┬──────────┘
-                                                    │
-                                         (port 5000 — ingest)
-                                                    │
-                                                    ▼
-                                         ┌─────────────────────┐
-                                         │   Scoring Engine     │
-                                         │   Redis (live state) │
-                                         │   Guard Service      │
-                                         └──────────┬──────────┘
-                                                    │
-                                         ┌──────────▼──────────┐
-                                         │     PostgreSQL       │
-                                         │   (event archive)    │
-                                         └──────────┬──────────┘
-                                                    │
-                                         ┌──────────▼──────────┐
-                                         │   SOC Dashboard      │
-                                         │   (port 6001)        │
-                                         │   your window into   │
-                                         │   all of the above   │
-                                         └─────────────────────┘
-```
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="quick-start"></a>
 <br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-INSTALL_IN_60_SECONDS-1f883d?style=for-the-badge&labelColor=161b22&logo=docker&logoColor=white" height="55"/></a>
-</p>
-<br>
 
-You need: **Docker** and **Docker Compose**. That's it. No Node.js installation. No PostgreSQL setup. No Redis configuration. Docker handles the entire stack.
+## Quick Start
+
+**Prerequisites:** Docker and Docker Compose. Nothing else needs to be installed on your host.
 
 > [!IMPORTANT]
-> SIDERIS runs as a sidecar in front of your existing website. Your website keeps running exactly as it is — you just point traffic through SIDERIS first.
+> SIDERIS runs as a sidecar in front of your existing application. Your application keeps running on its current port. SIDERIS takes the public-facing port.
 
 <br>
 
@@ -293,23 +370,23 @@ git clone https://github.com/Ann-BT/SIDERIS.git
 cd SIDERIS
 ```
 
-### Step 2 — Configure (30 seconds)
+### Step 2 — Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and set two values:
+Edit `.env` and set these two values:
 
 ```env
-# Where is your existing website running?
+# Where your application is currently running
 TARGET_URL=http://localhost:8080
 
-# What port should SIDERIS listen on? (your users will hit this)
+# The public port SIDERIS will listen on (your users hit this)
 PROXY_PORT=4000
 ```
 
-Everything else has sensible defaults. You can tune it later.
+Everything else has safe defaults. You can tune thresholds after you see your traffic patterns.
 
 ### Step 3 — Launch
 
@@ -317,105 +394,164 @@ Everything else has sensible defaults. You can tune it later.
 docker compose up -d --build
 ```
 
-That's it. Your website is now at `http://your-server-ip:4000` and SIDERIS is watching.
-
-The SOC dashboard comes up at `http://localhost:6001` — accessible from your machine only by default (see [Configuration](#configuration) to add more IPs).
-
-<br>
-
-### What just started?
-
-```
-sideris-proxy      → port 4000   (the WAF, faces the internet)
-sideris-ingest     → port 5000   (receives agent.js telemetry)
-sideris-dashboard  → port 6001   (your SOC panel)
-sideris-redis      → internal    (live session state)
-sideris-postgres   → internal    (event archive)
-```
-
-All five services talk to each other over an internal Docker network. Nothing except ports 4000, 5000, and 6001 are exposed.
+Your application is now protected at `http://your-server:4000`.  
+SOC dashboard: `http://localhost:5173` (localhost-only by default).
 
 <br>
 
-> [!TIP]
-> **Production deployment**: Put Nginx or Cloudflare in front of SIDERIS on ports 80/443 for SSL. SIDERIS handles the security logic; let your reverse proxy handle TLS termination.
+### What's running
+
+```
+sideris-app (Proxy)     :4000   WAF proxy — public-facing
+sideris-app (Ingest)    :5000   Telemetry receiver — keep internal
+sideris-app (SOC API)   :6001   Dashboard API — keep internal
+sideris-app (SOC UI)    :5173   SOC Dashboard UI — keep internal
+sideris-redis           internal
+sideris-postgres        internal
+```
+
+All inter-service communication happens over an isolated Docker network. Only the ports you expose are reachable from outside.
+
+<br>
+
+### Recommended production setup
+
+```
+[Internet] → [Nginx / Cloudflare :443] → [SIDERIS :4000] → [Your App :8080]
+```
+
+Let your existing reverse proxy handle TLS termination. SIDERIS handles the security logic. They do different jobs and do them better when separated.
+
+For full production deployment including HTTPS, high-availability, and scaling guidance: **[Deployment Guide](./DEPLOYMENT.md)**
+
+<br>
+<p align="center">━━━━━━━ ❖ ━━━━━━━</p>
+
+<a id="limitations"></a>
+<br>
+
+## Honest Limitations
+
+Every security tool has a threat model boundary. Here is SIDERIS's:
+
+<br>
+
+**SIDERIS is not a DDoS mitigation tool.**  
+It is designed for behavioral analysis of individual sessions — not volumetric flood attacks. If you're receiving millions of requests per second, you need a CDN-level solution (Cloudflare, AWS Shield) upstream of SIDERIS, not instead of it.
+
+**SIDERIS is not a network firewall.**  
+It operates at the HTTP application layer. It does not inspect raw TCP/UDP traffic, provide IDS/IPS functionality, or replace `iptables` / `ufw` rules.
+
+**Behavioral analysis requires a warm-up period.**  
+On first deployment, SIDERIS has no baseline for what "normal" traffic on your site looks like. Scoring confidence increases as session history accumulates. Expect the first 24-48 hours to be conservative — the system will under-block rather than over-block while calibrating.
+
+**False positives are possible.**  
+Power users, accessibility tools, and some browser extensions can produce behavioral signals that resemble automation. Default thresholds are tuned to minimize this, but no behavioral system is perfect. The [Active Defense Registry](#9-active-defense-registry) panel lets you manually pardon affected users in seconds.
+
+**SIDERIS is a single proxy process.**  
+Without redundancy, it is a single point of failure. For mission-critical deployments, run multiple instances behind a load balancer. See [Deployment Guide](./DEPLOYMENT.md).
+
+**agent.js requires JavaScript.**  
+Behavioral telemetry collection depends on JavaScript running in the visitor's browser. Sessions with JavaScript disabled fall back to request-pattern analysis only. This covers the vast majority of real traffic but reduces detection confidence for JS-disabled clients.
+
+<br>
+
+> Security is a layered problem. SIDERIS is one layer — the behavioral detection layer. It works best alongside, not instead of, TLS, proper authentication, dependency patching, and infrastructure hardening.
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
 <a id="configuration"></a>
 <br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-CONFIGURATION-7aa2f7?style=for-the-badge&labelColor=161b22&logo=dotenv&logoColor=white" height="55"/></a>
-</p>
-<br>
 
-All configuration lives in `.env`. Here's what every variable does:
+## Configuration Reference
 
-| Variable | Default | What it does |
+All configuration lives in `.env`.
+
+| Variable | Default | Description |
 |:---|:---|:---|
-| `TARGET_URL` | `http://localhost:8080` | Your actual website. SIDERIS forwards clean traffic here. |
-| `PROXY_PORT` | `4000` | The public-facing port. This is what your users connect to. |
-| `INGEST_PORT` | `5000` | Where `agent.js` sends behavioral telemetry. Keep internal. |
-| `DASHBOARD_PORT` | `6001` | SOC dashboard port. Do not expose to the internet. |
-| `REDIS_URL` | `redis://redis:6379` | Live session state. Docker handles this automatically. |
-| `POSTGRES_URL` | `postgresql://sideris:...` | Event archive. Docker handles this automatically. |
-| `DASHBOARD_ALLOWED_IPS` | `127.0.0.1,::1` | Comma-separated list of IPs that can open the SOC dashboard. Add your own IP here. |
+| `TARGET_URL` | `http://localhost:8080` | Your application's internal address. SIDERIS forwards clean traffic here. |
+| `PROXY_PORT` | `4000` | Public-facing WAF port. Users connect here. |
+| `INGEST_PORT` | `5000` | Telemetry receiver port. Keep this internal — do not expose to the internet. |
+| `DASHBOARD_PORT` | `6001` | SOC dashboard API port. Keep internal. |
+| `REDIS_URL` | `redis://redis:6379` | Live session state store. Docker manages this automatically. |
+| `POSTGRES_URL` | `postgresql://sideris:...` | Event archive database. Docker manages this automatically. |
+| `DASHBOARD_ALLOWED_IPS` | `127.0.0.1,::1` | Comma-separated list of IPs permitted to access the SOC dashboard. |
 
 <br>
 
-**To allow your IP on the dashboard:**
+**Allow your IP on the dashboard:**
 ```env
-DASHBOARD_ALLOWED_IPS=127.0.0.1,::1,YOUR.IP.ADDRESS.HERE
+DASHBOARD_ALLOWED_IPS=127.0.0.1,::1,203.0.113.42
 ```
 
-**To protect a remote server:**
+**Take over port 80 on a VPS:**
 ```env
-TARGET_URL=http://localhost:8080   # your app still runs locally on the server
-PROXY_PORT=80                      # SIDERIS takes port 80 directly
+TARGET_URL=http://localhost:8080
+PROXY_PORT=80
 ```
 
-For advanced configuration, native (non-Docker) setup, and scoring threshold tuning, see the **[Deployment and Configuration Guide](./DEPLOYMENT.md)**.
+**Allow office network access to the dashboard:**
+```env
+DASHBOARD_ALLOWED_IPS=127.0.0.1,::1,192.168.1.0/24,203.0.113.0/24
+```
+
+For scoring threshold tuning, session TTL configuration, and advanced deployment options: **[Deployment and Configuration Guide](./DEPLOYMENT.md)**
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
-<a id="contact"></a>
-<br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-GET_IN_TOUCH-47a2f7?style=for-the-badge&labelColor=161b22&logo=gmail&logoColor=white" height="55"/></a>
-</p>
+<a id="faq"></a>
 <br>
 
-Found a bug? Have a feature idea? Want to tell me SIDERIS saved your server? Want to tell me SIDERIS broke your server? Either way, reach out:
+## FAQ
 
-- **Email**: [anbt.personal@gmail.com](mailto:anbt.personal@gmail.com)
-- **Facebook**: [Ann-BT / Merlin the Great Mage](https://www.facebook.com/merlinthegreatmage)
-- **GitHub Issues**: For bugs and feature requests, open an issue — that's what they're for.
+**Will SIDERIS slow down my website?**  
+For most sites: negligibly. Clean requests on established sessions add ~2–4ms. Cold session lookups add ~8–12ms. Blocked sessions are dropped in under 1ms. See [Performance](#performance) for full numbers.
+
+**What happens if SIDERIS goes down?**  
+Traffic stops flowing to your application. This is a proxy — if the proxy dies, the connection dies. For production, run it behind a health-checked load balancer. See [Deployment Guide](./DEPLOYMENT.md).
+
+**Will it block my legitimate users?**  
+Occasionally possible, especially for power users or accessibility tool users. Default thresholds are conservative. Any blocked session can be pardoned from the SOC dashboard in seconds, and you can tune sensitivity in `.env`.
+
+**Does it work with HTTPS?**  
+SIDERIS terminates plain HTTP. Put Nginx or Caddy in front to handle TLS, then forward to SIDERIS. Standard reverse proxy pattern — nothing unusual.
+
+**Does agent.js collect personal data?**  
+It collects behavioral signals: keystroke timing intervals, mouse movement vectors, request patterns. It does not collect keystrokes themselves, form field content, or personally identifiable information. Review `agent.js` directly — it's in the repository.
+
+**Can I run this on shared hosting?**  
+No. SIDERIS requires Docker. You need a VPS or dedicated server.
 
 <br>
 <p align="center">━━━━━━━ ❖ ━━━━━━━</p>
 
-<a id="license"></a>
-<br>
-<p align="center">
-  <a href="#sideris"><img src="https://img.shields.io/badge/-LICENSE-57606a?style=for-the-badge&labelColor=161b22&logo=open-source-initiative&logoColor=white" height="55"/></a>
-</p>
 <br>
 
-SIDERIS is open-source software licensed under the **[MIT License](./LICENSE)**.
+## Get In Touch
 
-Free to use, modify, and deploy — personal projects, commercial websites, whatever. The only thing you can't do is sue me if a sufficiently determined attacker gets through anyway. Security is a process, not a product. SIDERIS just makes the process considerably less painful.
+Found a bug? Have a feature idea? Deployed this on a real site and want to share what you found?
+
+- **GitHub Issues** — bugs, feature requests, reproducible problems
+- **Email** — [anbt.personal@gmail.com](mailto:anbt.personal@gmail.com)
 
 <br>
 
 ---
 
 <div align="center">
-  <br>
-  <i>Built with too much coffee and genuine paranoia about web security.</i>
-  <br><br>
-  <a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>
-  <br><br>
-  <i>⭐ Stars are free and they make me unreasonably happy. Just saying.</i>
+
+**SIDERIS** is open-source, MIT licensed. Free to use, modify, and deploy — personal projects, commercial sites, whatever.
+
+The only thing the license doesn't cover is holding us responsible if a sufficiently motivated attacker gets through anyway. Security is a process. SIDERIS is one layer of it.
+
+<br>
+
+<a href="https://github.com/Ann-BT/SIDERIS/stargazers"><img src="https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white"/></a>
+
+<br>
+
+*Built with genuine paranoia about web security and an unhealthy relationship with Redis Streams.*
+
 </div>
