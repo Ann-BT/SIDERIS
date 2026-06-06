@@ -128,7 +128,7 @@ function matchIp(clientIp, entry) {
 
 // Record dashboard access session in Redis (with 24h expiration)
 async function recordDashboardAccess(req, allowed) {
-  const clientIp = normalizeIp(req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown');
+  const clientIp = normalizeIp(req.ip || req.socket.remoteAddress || 'unknown');
   const userAgent = req.headers['user-agent'] || 'unknown';
   const userKey = `sideris:dashboard:user:${clientIp}`;
 
@@ -158,7 +158,7 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const clientIp = normalizeIp(req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown');
+  const clientIp = normalizeIp(req.ip || req.socket.remoteAddress || 'unknown');
 
   const isAllowed = config.dashboardAllowedIps.some(allowedNet => matchIp(clientIp, allowedNet));
 

@@ -69,16 +69,25 @@ function isBrowserRequest(req) {
   return !botPattern.test(ua);
 }
 
+const SESSION_ID_REGEX = /^[a-zA-Z0-9_\-]+$/;
+
+function isValidSessionId(id) {
+  return typeof id === 'string' && id.length <= 128 && SESSION_ID_REGEX.test(id);
+}
+
 // Session ID resolver
 // Priority: cookie → header → generated (browser only)
 function resolveSessionId(req) {
   // 1. Cookie (set by proxy on HTML response + refreshed by agent.js)
   if (req.cookies && req.cookies.sideris_sid) {
-    return { id: req.cookies.sideris_sid, source: 'cookie', tracked: true };
+    const id = req.cookies.sideris_sid;
+    if (isValidSessionId(id)) {
+      return { id, source: 'cookie', tracked: true };
+    }
   }
   // 2. Header (set by agent's patched XHR / fetch)
   const header = req.headers['x-sideris-session'] || req.headers['x-session-id'];
-  if (header) {
+  if (header && isValidSessionId(header)) {
     return { id: header, source: 'header', tracked: true };
   }
   // 3. Non-browser (SSR, Node.js, curl, etc.) — group under a stable
