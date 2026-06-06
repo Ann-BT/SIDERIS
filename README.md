@@ -449,8 +449,8 @@ It is designed for behavioral analysis of individual sessions — not volumetric
 **SIDERIS is not a network firewall.**  
 It operates at the HTTP application layer. It does not inspect raw TCP/UDP traffic, provide IDS/IPS functionality, or replace `iptables` / `ufw` rules.
 
-**Behavioral analysis requires a warm-up period.**  
-On first deployment, SIDERIS has no baseline for what "normal" traffic on your site looks like. Scoring confidence increases as session history accumulates. Expect the first 24-48 hours to be conservative — the system will under-block rather than over-block while calibrating.
+**Heuristic thresholds are static, not dynamic.**  
+SIDERIS does not use dynamic machine learning or baseline training periods to learn what "normal" traffic looks like. Instead, it relies on pre-configured static rules and thresholds. While this eliminates warm-up delays and makes the scoring engine predictable, it means you may need to tune sensitivity in `.env` to match your application's baseline traffic.
 
 **False positives are possible.**  
 Power users, accessibility tools, and some browser extensions can produce behavioral signals that resemble automation. Default thresholds are tuned to minimize this, but no behavioral system is perfect. The [Active Defense Registry](#9-active-defense-registry) panel lets you manually pardon affected users in seconds.
