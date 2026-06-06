@@ -133,12 +133,12 @@ SIDERIS runs as three Docker containers: `sideris-redis` for live state, `sideri
 │   [ Visitor Browser ]                                               │
 │          │                                                          │
 │          ▼  :4000  ◄── the only port your users ever see            │
-│   ┌──────────────────────────────────────┐                         │
-│   │         SIDERIS WAF PROXY            │                         │
-│   │  • Enforces blocks before forwarding │                         │
-│   │  • Injects agent.js into HTML        │                         │
-│   │  • Drops confirmed threats at edge   │                         │
-│   └──────────────┬───────────────────────┘                         │
+│   ┌──────────────────────────────────────┐                          │
+│   │         SIDERIS WAF PROXY            │                          │
+│   │  • Enforces blocks before forwarding │                          │
+│   │  • Injects agent.js into HTML        │                          │
+│   │  • Drops confirmed threats at edge   │                          │
+│   └──────────────┬───────────────────────┘                          │
 │                  │  clean traffic only                              │
 │                  ▼  :8080                                           │
 │      [ Your Web Application ]                                       │
