@@ -132,7 +132,7 @@ SIDERIS runs as three Docker containers: `sideris-redis` for live state, `sideri
 │                                                                     │
 │   [ Visitor Browser ]                                               │
 │          │                                                          │
-│          ▼  :4000  ◄── the only port your users ever see           │
+│          ▼  :4000  ◄── the only port your users ever see            │
 │   ┌──────────────────────────────────────┐                         │
 │   │         SIDERIS WAF PROXY            │                         │
 │   │  • Enforces blocks before forwarding │                         │
@@ -630,7 +630,12 @@ PROXY_PORT=80
 DASHBOARD_ALLOWED_IPS=127.0.0.1,::1,192.168.1.0/24
 ```
 
-For scoring threshold tuning, session TTL, and advanced options: **[Deployment and Configuration Guide](./DEPLOYMENT.md)**
+For scoring threshold tuning, session TTL, and advanced options: **[Deployment Guide](./DEPLOYMENT.md)**
+
+### Extended Reference Guides
+* **[Operations & Administration Guide](./docs/ADMIN_GUIDE.md)** — Manage active bans, unban users via CLI/Redis, database maintenance, and troubleshooting.
+* **[Customization & Rules Tuning Guide](./docs/CUSTOMIZATION.md)** — Details on the scoring formulas, adjusting mitigation thresholds, and writing custom WAF rules.
+* **[Browser Agent Reference](./docs/AGENT_DETAILS.md)** — Client-side telemetry specifications, session synchronization mechanics, and CSP compatibility.
 
 <br>
 

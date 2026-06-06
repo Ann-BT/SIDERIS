@@ -163,7 +163,7 @@ DASHBOARD_ALLOWED_IPS=127.0.0.1,192.168.1.0/24,10.0.0.0/8
 ```
 
 ### 2. Guard Policy
-The Guard service automatically blocks or challenges clients whose session scores exceed specific threat levels. You can customize mitigation behaviors under src/guard/guard.js.
+The Guard service automatically blocks or challenges clients whose session scores exceed specific threat levels. You can customize mitigation behaviors under src/guard/guard.js. For details on how to write custom scoring rules or adjust thresholds, see the **[Customization & Rules Tuning Guide](./docs/CUSTOMIZATION.md)**.
 
 ---
 
@@ -174,6 +174,13 @@ The Guard service automatically blocks or challenges clients whose session score
    ```javascript
    SiderisAgent.getSessionId()
    ```
-   If it returns a session string, the agent is injected and communicating successfully.
-3. **Verify Dashboard**: Navigate to the dashboard UI port (default http://localhost:5173). You should see active sessions, event metrics, and attack events being populated in real time.
+   If it returns a session string, the agent is injected and communicating successfully. For troubleshooting details and Content Security Policy (CSP) setups, see the **[Browser Agent Reference](./docs/AGENT_DETAILS.md)**.
+3. **Verify Dashboard**: Navigate to the dashboard UI port (default http://localhost:5173). You should see active sessions, event metrics, and attack events being populated in real time. For troubleshooting dashboard lockout or allowed IP issues, see the **[Operations & Administration Guide](./docs/ADMIN_GUIDE.md)**.
+
+---
+
+## Extended Guides
+* **[Operations & Administration Guide](./docs/ADMIN_GUIDE.md)** — Manual unbanning, system lockout recovery, and database log pruning.
+* **[Customization & Rules Tuning Guide](./docs/CUSTOMIZATION.md)** — Custom WAF rules development and threat engine threshold adjustments.
+* **[Browser Agent Reference](./docs/AGENT_DETAILS.md)** — Behavioral biometrics details, session synchronization, and CSP header integration.
 
