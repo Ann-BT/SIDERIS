@@ -109,16 +109,7 @@ The central cockpit and primary control room of SIDERIS. It aggregates active vi
 
 <br>
 
-#### 2. Dashboard Header Controls
-<p align="center">
-  <img src="./screenshots/header_controls.png" alt="Dashboard Header Controls" width="220" style="border-radius: 6px; border: 1px solid #d0d7de; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"/>
-</p>
-
-The toolbar located at the very top of the dashboard. It houses controls to switch themes, access the scoring reference manual, and check microservice connection status indicators. Think of it as the dashboard's own control panel.
-
-<br>
-
-#### 3. Appearance Theme Selector
+#### 2. Appearance Theme Selector
 <p align="center">
   <img src="./screenshots/theme_picker.png" alt="Theme Selector" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -127,7 +118,7 @@ Located in the top header. Change color schemes on the fly between Tokyo Night, 
 
 <br>
 
-#### 4. Runtime Scoring Guide
+#### 3. Runtime Scoring Guide
 <p align="center">
   <img src="./screenshots/runtime_guide.png" alt="Scoring Guide" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -136,7 +127,7 @@ Accessed from the top header navigation. This is an interactive manual explainin
 
 <br>
 
-#### 5. Event Summary Metrics
+#### 4. Event Summary Metrics
 <p align="center">
   <img src="./screenshots/event_summary_metrics.png" alt="Event Summary Metrics" width="480" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -145,7 +136,7 @@ Sitting in the top row of the dashboard canvas. A high-level KPI widget showing 
 
 <br>
 
-#### 6. Top Offenders Leaderboard
+#### 5. Top Offenders Leaderboard
 <p align="center">
   <img src="./screenshots/top_ips.png" alt="Top Attacking IPs" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -154,7 +145,7 @@ Positioned in the upper-right dashboard grid. The SIDERIS Hall of Shame. A ranke
 
 <br>
 
-#### 7. Dashboard Access Log
+#### 6. Dashboard Access Log
 <p align="center">
   <img src="./screenshots/dashboard_access_log.png" alt="Dashboard Access Log" width="450" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -163,7 +154,7 @@ Placed in the upper metrics row. A strict self-audit panel logging every dashboa
 
 <br>
 
-#### 8. Live Sessions Monitor
+#### 7. Live Sessions Monitor
 <p align="center">
   <img src="./screenshots/live_sessions.png" alt="Live Sessions Monitor" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -172,7 +163,7 @@ The main central table of the dashboard. A real-time grid tracking every active 
 
 <br>
 
-#### 9. Session Detail Deep Dive
+#### 8. Session Detail Deep Dive
 <p align="center">
   <img src="./screenshots/session_expand.png" alt="Session Detail Expansion" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -181,7 +172,7 @@ Opened by expanding any row in the center grid. The forensic investigator panel.
 
 <br>
 
-#### 10. Active Defense Matrix
+#### 9. Active Defense Matrix
 <p align="center">
   <img src="./screenshots/defense_matrix.png" alt="Active Defense Matrix" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -190,7 +181,7 @@ Located near the bottom half of the dashboard. A live registry of every active b
 
 <br>
 
-#### 11. Live Multi-Service Logs Console
+#### 10. Live Multi-Service Logs Console
 <p align="center">
   <img src="./screenshots/live_logs.png" alt="Live Logs Console" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -199,16 +190,7 @@ Embedded at the bottom of the dashboard. An integrated console combining stdout 
 
 <br>
 
-#### 12. Historical Session Database
-<p align="center">
-  <img src="./screenshots/stored_sessions.png" alt="Stored Sessions" width="800" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
-</p>
-
-The historical archives tab. A Postgres-backed archive of all past connections. Perfect for post-mortem security audits and proving to your team that the server crash last night was actually an aggressive botnet, not your code.
-
-<br>
-
-#### 13. Transparent Telemetry Injection
+#### 11. Transparent Telemetry Injection
 <p align="center">
   <img src="./screenshots/storefront.png" alt="Normal Client Storefront" width="600" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -217,7 +199,7 @@ Behind the scenes at the client storefront. SIDERIS intercepts outgoing HTML on 
 
 <br>
 
-#### 14. Adaptive CAPTCHA Challenge
+#### 12. Adaptive CAPTCHA Challenge
 <p align="center">
   <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
@@ -226,7 +208,7 @@ The security gate served directly to visitors in their browser. Suspected bots g
 
 <br>
 
-#### 15. Hard Block Screen
+#### 13. Hard Block Screen
 <p align="center">
   <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
 </p>
