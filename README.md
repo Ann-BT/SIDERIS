@@ -7,16 +7,6 @@
 <br>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/behavioral_WAF-active-brightgreen?style=flat-square&labelColor=0d1117"/>
-  <img src="https://img.shields.io/badge/zero_code_changes-required-blue?style=flat-square&labelColor=0d1117"/>
-  <img src="https://img.shields.io/badge/latency_overhead-2–4ms-yellow?style=flat-square&labelColor=0d1117"/>
-  <img src="https://img.shields.io/badge/deployment-docker_compose-2496ED?style=flat-square&labelColor=0d1117&logo=docker&logoColor=white"/>
-  <img src="https://img.shields.io/badge/license-MIT-9ece6a?style=flat-square&labelColor=0d1117"/>
-</p>
-
-<br>
-
-<p align="center">
   <a href="#what-is-sideris"><img src="https://img.shields.io/badge/▸_OVERVIEW-0969da?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#how-it-works"><img src="https://img.shields.io/badge/▸_ARCHITECTURE-e0af68?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#performance"><img src="https://img.shields.io/badge/▸_PERFORMANCE-f7768e?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
@@ -52,9 +42,7 @@
 
 <!---------------------------------------------------------------------------->
 
-<div align="center">
-<img src="https://img.shields.io/badge/─────────────────────────────────────────────────────────────────-161b22?style=flat-square"/>
-</div>
+<hr style="border: none; height: 1px; background-color: #161b22; margin: 30px 0;"/>
 
 <a id="what-is-sideris"></a>
 <br>
@@ -407,7 +395,17 @@ From the visitor's perspective, your site looks completely normal. Behind the sc
 
 ---
 
-#### `11` &nbsp; Hard Block Screen
+#### `11` &nbsp; CAPTCHA Challenge
+
+<p align="center">
+  <img src="./screenshots/captcha.png" alt="Adaptive CAPTCHA Challenge" width="380" style="border-radius: 8px; border: 1px solid #30363d;"/>
+</p>
+
+The security gate served directly to visitors in their browser. Suspected bots get hit with a CAPTCHA mid-session, trapping automated scrapers in an infinite loop of identifying traffic lights while actual humans pass right through in seconds.
+
+---
+
+#### `12` &nbsp; Hard Block Screen
 
 <p align="center">
   <img src="./screenshots/blocked_screen.png" alt="Hard Block Screen" width="650" style="border-radius: 8px; border: 1px solid #30363d;"/>
@@ -530,7 +528,7 @@ For full production deployment including HTTPS, high-availability, and scaling: 
 <br>
 
 <details>
-<summary><b>🔴 &nbsp; Not a DDoS mitigation tool</b></summary>
+<summary><b>Not a DDoS mitigation tool</b></summary>
 <br>
 
 SIDERIS is designed for behavioral analysis of individual sessions, not volumetric flood attacks. If you're receiving millions of requests per second, you need a CDN-level solution (Cloudflare, AWS Shield) upstream of SIDERIS — not instead of it.
@@ -538,7 +536,7 @@ SIDERIS is designed for behavioral analysis of individual sessions, not volumetr
 </details>
 
 <details>
-<summary><b>🔴 &nbsp; Not a network firewall</b></summary>
+<summary><b>Not a network firewall</b></summary>
 <br>
 
 SIDERIS operates at the HTTP application layer. It does not inspect raw TCP/UDP traffic, provide IDS/IPS functionality, or replace <code>iptables</code> / <code>ufw</code> rules.
@@ -546,7 +544,7 @@ SIDERIS operates at the HTTP application layer. It does not inspect raw TCP/UDP 
 </details>
 
 <details>
-<summary><b>🟡 &nbsp; Static detection thresholds — not ML-based</b></summary>
+<summary><b>Static detection thresholds — not ML-based</b></summary>
 <br>
 
 SIDERIS uses pre-configured static rules and thresholds rather than dynamic machine learning. This eliminates warm-up delays and makes the scoring engine predictable and auditable, but it means you may need to tune sensitivity in <code>.env</code> to match your application's baseline traffic patterns.
@@ -554,7 +552,7 @@ SIDERIS uses pre-configured static rules and thresholds rather than dynamic mach
 </details>
 
 <details>
-<summary><b>🟡 &nbsp; False positives are possible</b></summary>
+<summary><b>False positives are possible</b></summary>
 <br>
 
 Power users, accessibility tools, and some browser extensions can produce behavioral signals that resemble automation. Default thresholds are tuned conservatively, but no behavioral system is perfect. Any affected session can be pardoned from the Active Defense Registry in seconds.
@@ -562,7 +560,7 @@ Power users, accessibility tools, and some browser extensions can produce behavi
 </details>
 
 <details>
-<summary><b>🟡 &nbsp; Single proxy process without redundancy</b></summary>
+<summary><b>Single proxy process without redundancy</b></summary>
 <br>
 
 Without a load balancer, SIDERIS is a single point of failure. For mission-critical deployments, run multiple instances behind a health-checked load balancer. See <a href="./DEPLOYMENT.md">Deployment Guide</a>.
@@ -570,7 +568,7 @@ Without a load balancer, SIDERIS is a single point of failure. For mission-criti
 </details>
 
 <details>
-<summary><b>🟡 &nbsp; Behavioral telemetry requires JavaScript</b></summary>
+<summary><b>Behavioral telemetry requires JavaScript</b></summary>
 <br>
 
 <code>agent.js</code> requires JavaScript to run in the visitor's browser. Sessions with JS disabled fall back to request-pattern analysis only. This covers the vast majority of real traffic, but reduces detection confidence for JS-disabled clients.
@@ -726,10 +724,6 @@ Found a bug? Have a feature idea? Deployed this on a real site?
 Free to use, modify, and deploy — personal projects, commercial sites, whatever.
 
 The only thing the license doesn't cover is holding us responsible if a sufficiently<br>motivated attacker gets through anyway. Security is a process. SIDERIS is one layer of it.
-
-<br>
-
-[![Stars](https://img.shields.io/github/stars/Ann-BT/SIDERIS?style=for-the-badge&color=9ece6a&labelColor=161b22&logo=github&logoColor=white)](https://github.com/Ann-BT/SIDERIS/stargazers)
 
 <br>
 
