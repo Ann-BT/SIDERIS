@@ -15,11 +15,11 @@
 
 <p align="center">
   <a href="#what-is-sideris"><img src="https://img.shields.io/badge/▸_OVERVIEW-0969da?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
-  <a href="#how-it-works"><img src="https://img.shields.io/badge/▸_ARCHITECTURE-e0af68?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
+  <a href="#how-it-works"><img src="https://img.shields.io/badge/▸_ARCHITECTURE-0d9488?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#performance"><img src="https://img.shields.io/badge/▸_PERFORMANCE-2ea44f?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#in-action"><img src="https://img.shields.io/badge/▸_SCREENSHOTS-bb9af7?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#quick-start"><img src="https://img.shields.io/badge/▸_QUICK_START-1f883d?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
-  <a href="#limitations"><img src="https://img.shields.io/badge/▸_LIMITATIONS-ff9e64?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
+  <a href="#limitations"><img src="https://img.shields.io/badge/▸_LIMITATIONS-388bfd?style=for-the-badge&labelColor=161b22"/></a>&nbsp;
   <a href="#configuration"><img src="https://img.shields.io/badge/▸_CONFIG-7aa2f7?style=for-the-badge&labelColor=161b22"/></a>
 </p>
 
@@ -119,7 +119,7 @@ After  SIDERIS:   [Users] ── [SIDERIS :4000] ──────────�
 <!---------------------------------------------------------------------------->
 
 <p align="center">
-  <img src="https://img.shields.io/badge/◈──────────────────◈_ARCHITECTURE_◈──────────────────◈-e0af68?style=for-the-badge&labelColor=0d1117" height="32"/>
+  <img src="https://img.shields.io/badge/◈──────────────────◈_ARCHITECTURE_◈──────────────────◈-0d9488?style=for-the-badge&labelColor=0d1117" height="32"/>
 </p>
 
 <a id="how-it-works"></a>
@@ -282,7 +282,7 @@ A **1GB VPS** is sufficient for low-to-medium traffic. For high-traffic deployme
 
 <br>
 
-> [!WARNING]
+> [!NOTE]
 > SIDERIS is a proxy. Like all proxies, it is a single point of failure without redundancy. For production, run it behind a load balancer or deploy multiple instances. See [Deployment Guide](./DEPLOYMENT.md).
 
 <br>
@@ -524,7 +524,7 @@ For full production deployment including HTTPS, high-availability, and scaling: 
 <!---------------------------------------------------------------------------->
 
 <p align="center">
-  <img src="https://img.shields.io/badge/◈──────────────────◈_LIMITATIONS_◈──────────────────◈-ff9e64?style=for-the-badge&labelColor=0d1117" height="32"/>
+  <img src="https://img.shields.io/badge/◈──────────────────◈_LIMITATIONS_◈──────────────────◈-388bfd?style=for-the-badge&labelColor=0d1117" height="32"/>
 </p>
 
 <a id="limitations"></a>
