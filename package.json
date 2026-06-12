@@ -13,7 +13,8 @@
     "storage": "node src/storage/writer.js",
     "start-all": "node scripts/start-all.js",
     "tunnel": "bash scripts/tunnel.sh",
-    "tunnel-auth": "bash scripts/tunnel.sh auth"
+    "tunnel-auth": "bash scripts/tunnel.sh auth",
+    "clean": "node scripts/clear-dashboard.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
@@ -23,5 +24,8 @@
     "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.10.1",
     "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "ngrok": "^5.0.0-beta.2"
   }
 }

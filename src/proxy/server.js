@@ -41,7 +41,8 @@ const AGENT_PATH = path.resolve(__dirname, '../agent/agent.js');
 // Points the agent at the relative endpoint /sideris/ingest.
 // This routes telemetry traffic through the proxy itself, avoiding exposing
 // the ingest port (5000) to the public internet and avoiding CORS issues.
-const AGENT_SNIPPET = '<script src="/sideris/agent.js" defer></script>';
+const AGENT_VERSION = '2.0.2';
+const AGENT_SNIPPET = `<script src="/sideris/agent.js?v=${AGENT_VERSION}" defer></script>`;
 
 // Lightweight unique ID for fallback sessions
 // Uses a UUID v4 format (same as agent) so there is no visual
@@ -916,7 +917,7 @@ const BLOCK_PAGE = `<!DOCTYPE html>
 // Critical attack patterns for inline detection
 
 const CRITICAL_PATTERNS = [
-  { name: 'sql_injection', re: /(UNION[\s\/\*]+SELECT|'\s*OR\s*['"\d]|OR\s+1\s*=\s*1|--\s*$|DROP\s+TABLE|INSERT\s+INTO|EXEC\s*\(|WAITFOR\s+DELAY|BENCHMARK\s*\(|SLEEP\s*\(|LOAD_FILE\s*\(|INTO\s+OUTFILE)/i },
+  { name: 'sql_injection', re: /(UNION[\s\/\*]+SELECT|'\s*OR\s*['"\d]|OR\s+1\s*=\s*1|[\s'"]+--\s*$|DROP\s+TABLE|INSERT\s+INTO|EXEC\s*\(|WAITFOR\s+DELAY|BENCHMARK\s*\(|SLEEP\s*\(|LOAD_FILE\s*\(|INTO\s+OUTFILE)/i },
   { name: 'xss',           re: /(<script[\s>]|javascript\s*:|on(error|load|click|mouseover)\s*=|<iframe[\s>]|<svg[^>]+onload|document\.cookie|eval\s*\()/i },
   { name: 'cmd_injection',  re: /([;&|`]|\$\()\s*(ls|id|cat|wget|curl|whoami|uname|bash|sh|python|nc|ping)\s/i },
   { name: 'ssti',           re: /\{\{[\s\S]{0,50}\}\}|\$\{[\s\S]{0,50}\}|<%=[\s\S]{0,50}%>/  },
@@ -943,8 +944,13 @@ function isStaticAsset(urlPath) {
 }
 
 app.use(async (req, res, next) => {
-  // Skip guard check for Sideris internal routes
-  if (req.path.startsWith('/sideris/')) {
+  // Skip guard check for Sideris internal, dashboard, and dashboard-api routes
+  if (req.path.startsWith('/sideris/') || req.path.startsWith('/dashboard') || req.path.startsWith('/dashboard-api')) {
+    return next();
+  }
+
+  // Skip guard check and inline scan for socket.io requests to avoid false positives on heartbeat parameters
+  if (req.path.includes('/socket.io')) {
     return next();
   }
 
@@ -1198,8 +1204,8 @@ app.use(async (req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
 
-  // Skip logging for Sideris internal routes, socket.io polling, and static assets
-  const isInternal = req.path.startsWith('/sideris/');
+  // Skip logging for Sideris internal, dashboard, and dashboard-api routes, socket.io polling, and static assets
+  const isInternal = req.path.startsWith('/sideris/') || req.path.startsWith('/dashboard') || req.path.startsWith('/dashboard-api');
   const isSocketIo = req.path.includes('/socket.io');
   const isStatic   = req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/i);
   // Skip Next.js internals (image optimizer, webpack chunks, locale files)
@@ -1352,6 +1358,13 @@ const storefrontProxy = createProxyMiddleware({
   ws:          true,
   selfHandleResponse: true,
   on: {
+    proxyReq: (proxyReq, req) => {
+      if (req.rawBody && req.rawBody.length > 0) {
+        proxyReq.setHeader('Content-Length', req.rawBody.length);
+        proxyReq.write(req.rawBody);
+        proxyReq.end();
+      }
+    },
     proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
       const contentType = proxyRes.headers['content-type'] || '';
       const accept = req.headers['accept'] || '';
@@ -1413,7 +1426,7 @@ const storefrontProxy = createProxyMiddleware({
       // Agent.js injection with CSP nonce
       // Add the nonce so agent.js is allowed under 'strict-dynamic' CSP.
       const agentSnippet = cspNonce
-        ? `<script src="/sideris/agent.js" nonce="${cspNonce}" defer></script>`
+        ? `<script src="/sideris/agent.js?v=${AGENT_VERSION}" nonce="${cspNonce}" defer></script>`
         : AGENT_SNIPPET;
 
       if (!html.includes('/sideris/agent.js')) {
@@ -1456,8 +1469,33 @@ app.use('/sideris/ingest', createProxyMiddleware({
   }
 }));
 
-// Note: Dashboard proxy routes (port 6001 and port 5173) have been removed from port 4000.
-// Dashboard is accessible directly via port 5173.
+// Route: /dashboard-api/ -> Dashboard API (port 6001)
+app.use('/dashboard-api', createProxyMiddleware({
+  target: 'http://localhost:6001',
+  pathRewrite: { '^/dashboard-api': '' },
+  changeOrigin: true,
+  logLevel: 'silent',
+  on: {
+    proxyReq: (proxyReq, req) => {
+      // Re-write the body if parsed by our raw-body middleware
+      if (req.rawBody && req.rawBody.length > 0) {
+        proxyReq.setHeader('Content-Length', req.rawBody.length);
+        proxyReq.write(req.rawBody);
+        proxyReq.end();
+      }
+    }
+  }
+}));
+
+// Route: /dashboard/ -> Dashboard UI (port 5173)
+app.use('/dashboard', createProxyMiddleware({
+  target: 'http://localhost:5173',
+  pathRewrite: (path, req) => {
+    return path.startsWith('/dashboard') ? path : '/dashboard' + path;
+  },
+  changeOrigin: true,
+  logLevel: 'silent',
+}));
 
 // Route: Medusa API and Admin backend endpoints (routed without prefix stripping)
 app.use((req, res, next) => {

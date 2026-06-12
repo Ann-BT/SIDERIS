@@ -49,7 +49,7 @@
   // §3 — SUSPICIOUS PATTERN REGEXES
 
   var PATTERNS = {
-    sqlInjection: /(\b(SELECT|UNION|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC)\b|OR\s+1\s*=\s*1|'\s*(OR|AND)\s+'|--\s*$|;\s*(DROP|SELECT|INSERT)|\/\*.*\*\/|WAITFOR\s+DELAY|BENCHMARK\s*\(|CHAR\s*\(|CONCAT\s*\()/i,
+    sqlInjection: /(\b(SELECT|UNION|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC)\b|OR\s+1\s*=\s*1|'\s*(OR|AND)\s+'|[\s'"]+--\s*$|;\s*(DROP|SELECT|INSERT)|\/\*.*\*\/|WAITFOR\s+DELAY|BENCHMARK\s*\(|CHAR\s*\(|CONCAT\s*\()/i,
     xss: /(<script[\s>]|javascript\s*:|on(error|load|click|mouseover|focus|blur|submit|change)\s*=|<iframe[\s>]|<img[^>]+onerror|<svg[^>]+onload|document\.cookie|eval\s*\(|alert\s*\(|prompt\s*\(|String\.fromCharCode)/i,
     directoryTraversal: /(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e\/|%2e%2e%5c|\/etc\/passwd|\/etc\/shadow|\/proc\/self|\/windows\/system32)/i,
     adminEndpoint: /\/(admin|administrator|wp-admin|wp-login|phpmyadmin|cpanel|manager|console|dashboard\/admin|_admin|administration)/i
@@ -435,100 +435,104 @@
   }
 
   // Patch XMLHttpRequest
-  var OriginalXHR = window.XMLHttpRequest;
-  function PatchedXHR() {
-    var xhr = new OriginalXHR();
-    var _open = xhr.open;
-    var _url = '';
+  if (window.XMLHttpRequest && window.XMLHttpRequest.prototype) {
+    var OriginalXHR = window.XMLHttpRequest;
+    var originalOpen = OriginalXHR.prototype.open;
+    var originalSend = OriginalXHR.prototype.send;
 
-    xhr.open = function (method, url) {
-      _url = url;
-      _open.apply(xhr, arguments);
+    OriginalXHR.prototype.open = function (method, url) {
+      this._sideris_url = url;
+      originalOpen.apply(this, arguments);
       // Inject session header on same-origin, non-excluded requests
       if (shouldInstrument(url)) {
         try {
-          xhr.setRequestHeader('X-Sideris-Session', getSessionId());
+          this.setRequestHeader('X-Sideris-Session', getSessionId());
         } catch (e) {
           // Header may not be settable before open — set after
         }
       }
     };
 
-    var _send = xhr.send;
-    xhr.send = function () {
+    OriginalXHR.prototype.send = function () {
+      var url = this._sideris_url;
       // Re-set header after open (some implementations require this order)
-      if (shouldInstrument(_url)) {
+      if (shouldInstrument(url)) {
         try {
-          xhr.setRequestHeader('X-Sideris-Session', getSessionId());
+          this.setRequestHeader('X-Sideris-Session', getSessionId());
         } catch (e) { /* already set */ }
-        trackRequest(_url);
+        trackRequest(url);
       }
 
       // Intercept login responses
-      xhr.addEventListener('load', function () {
-        if (shouldInstrument(_url)) {
-          detectLoginResponse(_url, xhr.status);
-          // NOTE: No auto-reload on 403/429 — the CAPTCHA overlay is
-          // injected server-side into the next HTML page navigation.
-          // Auto-reload caused infinite loops when the protected site
-          // legitimately returned 403 (e.g. auth-required pages).
+      var self = this;
+      this.addEventListener('load', function () {
+        if (shouldInstrument(url)) {
+          detectLoginResponse(url, self.status);
         }
       });
 
-      _send.apply(xhr, arguments);
+      originalSend.apply(this, arguments);
     };
-
-    return xhr;
   }
 
-  // Copy static properties
-  PatchedXHR.prototype = OriginalXHR.prototype;
-  PatchedXHR.UNSENT = 0;
-  PatchedXHR.OPENED = 1;
-  PatchedXHR.HEADERS_RECEIVED = 2;
-  PatchedXHR.LOADING = 3;
-  PatchedXHR.DONE = 4;
-  window.XMLHttpRequest = PatchedXHR;
-
   // Patch fetch
-  var originalFetch = window.fetch;
-  window.fetch = function (input, init) {
-    var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+  if (window.fetch) {
+    var originalFetch = window.fetch;
+    window.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
 
-    if (shouldInstrument(url)) {
-      var isRequest = typeof Request !== 'undefined' && input instanceof Request;
-      init = init || {};
-      
-      // If no init headers but input is a Request, copy its headers to preserve them
-      if (!init.headers && isRequest && input.headers) {
-         init.headers = new Headers(input.headers);
-      } else {
-         init.headers = init.headers || {};
+      if (shouldInstrument(url)) {
+        var isRequest = typeof Request !== 'undefined' && input instanceof Request;
+        init = init || {};
+
+        if (isRequest) {
+          // Clone request headers to preserve them
+          var mergedHeaders = new Headers(input.headers);
+          if (init.headers) {
+            if (typeof Headers !== 'undefined' && init.headers instanceof Headers) {
+              init.headers.forEach(function (val, key) {
+                mergedHeaders.set(key, val);
+              });
+            } else if (Array.isArray(init.headers)) {
+              for (var i = 0; i < init.headers.length; i++) {
+                mergedHeaders.set(init.headers[i][0], init.headers[i][1]);
+              }
+            } else {
+              for (var key in init.headers) {
+                if (init.headers.hasOwnProperty(key)) {
+                  mergedHeaders.set(key, init.headers[key]);
+                }
+              }
+            }
+          }
+          mergedHeaders.set('X-Sideris-Session', getSessionId());
+          init.headers = mergedHeaders;
+        } else {
+          init.headers = init.headers || {};
+          if (typeof Headers !== 'undefined' && init.headers instanceof Headers) {
+            init.headers.set('X-Sideris-Session', getSessionId());
+          } else if (Array.isArray(init.headers)) {
+            init.headers.push(['X-Sideris-Session', getSessionId()]);
+          } else {
+            init.headers['X-Sideris-Session'] = getSessionId();
+          }
+        }
+        trackRequest(url);
       }
 
-      if (typeof Headers !== 'undefined' && init.headers instanceof Headers) {
-        init.headers.set('X-Sideris-Session', getSessionId());
-      } else if (Array.isArray(init.headers)) {
-        init.headers.push(['X-Sideris-Session', getSessionId()]);
-      } else {
-        init.headers['X-Sideris-Session'] = getSessionId();
+      var promise = originalFetch.call(window, input, init);
+
+      // Intercept login responses
+      if (shouldInstrument(url)) {
+        promise.then(function (resp) {
+          detectLoginResponse(url, resp.status);
+          return resp;
+        }).catch(function () { /* ignore */ });
       }
-      trackRequest(url);
-    }
 
-    var promise = originalFetch.call(window, input, init);
-
-    // Intercept login responses
-    if (shouldInstrument(url)) {
-      promise.then(function (resp) {
-        detectLoginResponse(url, resp.status);
-        // NOTE: No auto-reload on 403/429 — see XHR comment above.
-        return resp;
-      }).catch(function () { /* ignore */ });
-    }
-
-    return promise;
-  };
+      return promise;
+    };
+  }
 
   // §10 — LOGIN DETECTION
 

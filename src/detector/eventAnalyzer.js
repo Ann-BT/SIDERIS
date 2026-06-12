@@ -19,7 +19,7 @@
 // §1 — PAYLOAD ATTACK PATTERNS
 
 // SQL Injection
-const SQL_PAT = /(UNION[\s\/\*]+SELECT|'\s*OR\s*'|OR\s+1\s*=\s*1|--\s*$|#\s*$|DROP\s+TABLE|INSERT\s+INTO|EXEC\s*\(|WAITFOR\s+DELAY|BENCHMARK\s*\(|CHAR\s*\(|CONCAT\s*\(|SLEEP\s*\(|LOAD_FILE\s*\(|INTO\s+OUTFILE)/i;
+const SQL_PAT = /(UNION[\s\/\*]+SELECT|'\s*OR\s*'|OR\s+1\s*=\s*1|[\s'"]+--\s*$|#\s*$|DROP\s+TABLE|INSERT\s+INTO|EXEC\s*\(|WAITFOR\s+DELAY|BENCHMARK\s*\(|CHAR\s*\(|CONCAT\s*\(|SLEEP\s*\(|LOAD_FILE\s*\(|INTO\s+OUTFILE)/i;
 
 // Cross-Site Scripting
 const XSS_PAT = /(<script[\s>]|javascript\s*:|on(error|load|click|mouseover|focus|blur|submit)\s*=|<iframe[\s>]|<svg[^>]+onload|document\.cookie|eval\s*\(|alert\s*\(|prompt\s*\(|confirm\s*\(|String\.fromCharCode|<img[^>]+onerror)/i;

@@ -33,6 +33,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('lifecycle')
   const [theme, setTheme] = useState(() => localStorage.getItem('sideris-theme') || 'catppuccin')
   const [themePickerOpen, setThemePickerOpen] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     const classes = document.body.className.split(' ').filter(c => c && !c.startsWith('theme-'));
@@ -196,7 +197,7 @@ function App() {
     fetchLogs()
     const interval = setInterval(() => { fetchData(); fetchLogs() }, 3000)
     return () => clearInterval(interval)
-  }, [logsPaused])
+  }, [logsPaused, refreshTrigger])
 
   const handleUnblock = async (sessionId) => {
     try {
@@ -209,6 +210,7 @@ function App() {
       if (data.success) {
         showToast(`Session ${sessionId.substring(0, 12)}… unblocked`, 'success')
         setUnblockConfirm(null)
+        setRefreshTrigger(t => t + 1)
       } else {
         showToast(data.error || 'Unblock failed', 'error')
       }
@@ -228,6 +230,7 @@ function App() {
       if (data.success) {
         showToast(`Session ${sessionId.substring(0, 12)}… blocked`, 'warning')
         setBlockConfirm(null)
+        setRefreshTrigger(t => t + 1)
       } else {
         showToast(data.error || 'Block failed', 'error')
       }
@@ -1022,7 +1025,7 @@ function App() {
                 <th>Type</th>
                 <th>Score</th>
                 <th>Updated</th>
-                <th style={{ textAlign: 'right' }}>Report</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1037,16 +1040,42 @@ function App() {
                     <td><span className="block-type-badge">{(g.block_type || 'auto').toUpperCase()}</span></td>
                     <td><span className={`risk-badge ${getRiskClass(g.risk_score)}`}>{g.risk_score}</span></td>
                     <td className="time">{formatRelativeTime(g.updated_at)}</td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <a
                         className="btn-download-small"
                         href={`${API}/session-logs/${g.session_id}`}
                         download
                         onClick={(e) => e.stopPropagation()}
                         title="Download backend access logs for this session as JSON"
+                        style={{ marginRight: '6px' }}
                       >
                         Download
                       </a>
+                      {unblockConfirm === g.session_id ? (
+                        <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--warning)', marginRight: '2px' }}>Confirm?</span>
+                          <button
+                            className="btn-confirm-yes-small"
+                            onClick={(e) => { e.stopPropagation(); handleUnblock(g.session_id) }}
+                          >
+                            Yes
+                          </button>
+                          <button
+                            className="btn-confirm-no-small"
+                            onClick={(e) => { e.stopPropagation(); setUnblockConfirm(null) }}
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="btn-unban-small"
+                          onClick={(e) => { e.stopPropagation(); setUnblockConfirm(g.session_id) }}
+                          title="Unban this session and IP address"
+                        >
+                          Unban
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

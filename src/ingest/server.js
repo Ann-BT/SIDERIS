@@ -42,7 +42,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (same-origin, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (INGEST_ALLOWED_ORIGINS.has(origin)) {
+    if (INGEST_ALLOWED_ORIGINS.has(origin) || origin.endsWith('.ngrok-free.dev') || origin.endsWith('.ngrok-free.app') || origin.endsWith('.ngrok.io')) {
       return callback(null, true);
     }
     console.warn(`[ingest] CORS blocked origin: ${origin}`);

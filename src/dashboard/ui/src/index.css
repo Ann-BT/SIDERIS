@@ -2211,6 +2211,65 @@ body::before {
   color: var(--espresso);
 }
 
+.btn-unban-small {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--success-dim);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+  transition: all 0.15s;
+  font-family: var(--font);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.btn-unban-small:hover {
+  background: rgba(42, 125, 70, 0.18);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.btn-confirm-yes-small {
+  padding: 4px 8px; 
+  font-size: 0.68rem; 
+  background: var(--success); 
+  color: #fff; 
+  border: none; 
+  border-radius: 4px; 
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1;
+  font-family: var(--font);
+  transition: all 0.15s;
+}
+
+.btn-confirm-yes-small:hover {
+  background: #236B3A;
+}
+
+.btn-confirm-no-small {
+  padding: 3px 7px; 
+  font-size: 0.68rem; 
+  background: transparent; 
+  color: var(--text-muted); 
+  border: 1px solid var(--border); 
+  border-radius: 4px; 
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1;
+  font-family: var(--font);
+  transition: all 0.15s;
+}
+
+.btn-confirm-no-small:hover {
+  background: var(--cappuccino);
+}
+
 /* ═══ LIVE LOGS PANEL ═══ */
 .logs-panel {
   background: var(--foam);
