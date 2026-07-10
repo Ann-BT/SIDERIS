@@ -640,6 +640,7 @@
   var formSessions = new Map(); // Track firstFocusTs per form
 
   document.addEventListener('submit', function (e) {
+    checkNoMouse('submit');
     var form = e.target;
     if (!form || form.tagName !== 'FORM') return;
 
@@ -691,6 +692,7 @@
 
   // field_change
   document.addEventListener('change', function (e) {
+    checkNoMouse('change');
     var field = e.target;
     if (!field || !field.tagName) return;
     var tag = field.tagName.toLowerCase();
@@ -728,6 +730,7 @@
 
   // paste
   document.addEventListener('paste', function (e) {
+    checkNoMouse('paste');
     var textLength = 0;
     var suspicious = [];
     try {
@@ -748,6 +751,7 @@
   var keystrokeBurstThreshold = 10;
 
   document.addEventListener('keydown', function (e) {
+    checkNoMouse('keydown');
     var target = e.target;
     if (!target || !target.tagName) return;
     var tag = target.tagName.toLowerCase();
@@ -796,6 +800,25 @@
   var mouseMoveCount = 0;
   var lastMouseMoveTime = 0;
 
+  // Track no_mouse event if interaction happens without mouse movement
+  var pageLoadTime = Date.now();
+  var hasSentNoMouse = false;
+
+  function checkNoMouse(eventName) {
+    if (hasSentNoMouse) return;
+    // 2-second grace period after page load
+    if (Date.now() - pageLoadTime < 2000) return;
+
+    if (mouseMoveCount === 0) {
+      hasSentNoMouse = true;
+      enqueue('no_mouse', {
+        reason: 'User interaction detected without mouse movement',
+        trigger: eventName,
+        timeSinceLoadMs: Date.now() - pageLoadTime
+      });
+    }
+  }
+
   document.addEventListener('mousemove', function (e) {
     var now = Date.now();
     mouseMoveCount++;
@@ -830,6 +853,7 @@
   var clickTimestamps = [];
 
   document.addEventListener('click', function () {
+    checkNoMouse('click');
     var now = Date.now();
     clickTimestamps.push(now);
 
@@ -854,6 +878,7 @@
   var scrollAccumulator = 0;
 
   window.addEventListener('scroll', function () {
+    checkNoMouse('scroll');
     var now = Date.now();
     scrollCount++;
 

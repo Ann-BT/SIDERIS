@@ -1457,6 +1457,9 @@ app.use('/sideris/ingest', createProxyMiddleware({
   target: INGEST_HOST,
   changeOrigin: true,
   logLevel: 'silent',
+  pathRewrite: (path, req) => {
+    return path.startsWith('/sideris/ingest') ? path : ('/sideris/ingest' + path).replace(/\/$/, '');
+  },
   on: {
     proxyReq: (proxyReq, req) => {
       // Re-write the body if parsed by our raw-body middleware

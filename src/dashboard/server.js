@@ -16,7 +16,8 @@ const pool = require('../shared/pgPool');
 const crypto = require('crypto');
 
 const app = express();
-app.set('trust proxy', true);
+// Secured: only trust local proxies to prevent IP allowlist bypass via spoofed X-Forwarded-For headers
+app.set('trust proxy', 'loopback');
 
 const redis = new Redis(config.redisUrl);
 const PORT = config.dashboardPort || 8080;
@@ -412,7 +413,12 @@ app.get('/dashboard-users', async (req, res) => {
 // GET /guards — all active guard directives
 app.get('/guards', async (req, res) => {
   try {
-    const keys = await scanKeys('sideris:guard:*', null);
+    let keys = await scanKeys('sideris:guard:*', null);
+    // Exclude internal IP-based blocks and cooldown keys so only session guards are listed
+    keys = keys.filter(key => 
+      !key.startsWith('sideris:guard:ip:') && 
+      !key.startsWith('sideris:guard:cooldown:')
+    );
     if (keys.length === 0) return res.json([]);
 
     const pipeline = redis.pipeline();
@@ -468,21 +474,40 @@ app.get('/guards', async (req, res) => {
 // GET /metrics — aggregate counters
 app.get('/metrics', async (req, res) => {
   try {
-    const targetKeys = [
-      'sideris:metrics:guard:block',
-      'sideris:metrics:guard:challenge',
-      'sideris:metrics:guard:rate_limit',
-      'sideris:metrics:processed'
-    ];
+    const keys = await scanKeys('sideris:guard:*', null);
+    
+    let blocks = 0;
+    let challenges = 0;
+    let rateLimits = 0;
 
-    const values = await redis.mget(...targetKeys);
+    if (keys.length > 0) {
+      // Filter out IP-based and cooldown keys to avoid double-counting
+      const sessionKeys = keys.filter(key => 
+        !key.startsWith('sideris:guard:ip:') && 
+        !key.startsWith('sideris:guard:cooldown:')
+      );
 
-    // Normalize mapping (null => 0)
+      if (sessionKeys.length > 0) {
+        const pipeline = redis.pipeline();
+        sessionKeys.forEach(key => pipeline.hget(key, 'action'));
+        const results = await pipeline.exec();
+
+        results.forEach(result => {
+          const action = result[1];
+          if (action === 'block') blocks++;
+          else if (action === 'challenge') challenges++;
+          else if (action === 'rate_limit') rateLimits++;
+        });
+      }
+    }
+
+    const processed = parseInt(await redis.get('sideris:metrics:processed') || '0', 10);
+
     res.json({
-      blocks: parseInt(values[0] || '0', 10),
-      challenges: parseInt(values[1] || '0', 10),
-      rate_limits: parseInt(values[2] || '0', 10),
-      processed: parseInt(values[3] || '0', 10),
+      blocks,
+      challenges,
+      rate_limits: rateLimits,
+      processed,
       targetUrl: config.targetUrl
     });
   } catch (err) {

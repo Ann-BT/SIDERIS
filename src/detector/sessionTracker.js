@@ -559,7 +559,7 @@ async function update(sessionId, scoringResult, event) {
   };
 }
 
-// DECAY TIMER — score × 0.95 every 30 seconds
+// DECAY TIMER — score × 0.99 every 30 seconds
 // Also evicts sessions idle longer than TTL.
 function startDecayTimer() {
   setInterval(async () => {

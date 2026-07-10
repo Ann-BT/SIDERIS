@@ -94,6 +94,8 @@ const CATEGORY_MAP = {
   instant_form_fill:   { category: 'bot',             signal: 'Form submitted < 800ms from focus' },
   keystroke_burst:     { category: 'bot',             signal: '>10 keystrokes in 500ms (inhuman speed)' },
   no_mouse_activity:   { category: 'bot',             signal: 'No mouse movement detected (bot)' },
+  rapid_click:         { category: 'bot',             signal: 'Rapid click burst detected' },
+  fast_typing:         { category: 'bot',             signal: 'Inhumanly fast typing speed' },
 
   // dos
   request_flood:       { category: 'dos',             signal: 'Extremely high request rate (>50/min)' },
@@ -117,6 +119,8 @@ const IMPACT = {
   rapid_navigation:    2,
   instant_form_fill:   2,
   keystroke_burst:     2,
+  rapid_click:         2,
+  fast_typing:         2,
   directory_traversal: 3,
   scanner_tool:        4,
   file_exposure:       6,
@@ -146,6 +150,8 @@ const AGENT_MAP = {
   instant_form_fill: { type: 'instant_form_fill',   confidence: 0.8 },
   keystroke_burst:   { type: 'keystroke_burst',      confidence: 0.7 },
   no_mouse:          { type: 'no_mouse_activity',    confidence: 0.6 },
+  rapid_click:       { type: 'rapid_click',          confidence: 0.8 },
+  fast_typing:       { type: 'fast_typing',          confidence: 0.7 },
 };
 
 // §6 — MAIN ANALYSIS FUNCTION

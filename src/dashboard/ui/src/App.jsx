@@ -1217,8 +1217,8 @@ function App() {
 
                       <div className="equation-breakdown">
                         <div className="eq-element">
-                          <span className="eq-label">Base Impact (0.0 to 5.0)</span>
-                          <span className="eq-text">The inherent severity of the threat category. SQLi and command injections trigger <strong>5.0 (Critical)</strong>, credential stuffing triggers <strong>4.0 (High)</strong>, endpoint fuzzing triggers <strong>3.0 (Medium)</strong>, while standard authorization failures trigger <strong>2.0 (Low)</strong>.</span>
+                          <span className="eq-label">Base Impact (0.0 to 30.0)</span>
+                          <span className="eq-text">The inherent severity of the threat category. Injection-class attacks (SQLi, CMDi, XSS, SSRF, SSTI, XXE, file upload exploits) trigger <strong>30.0 (Critical)</strong>, CMS admin probes trigger <strong>8.0 (High)</strong>, headless browser flags trigger <strong>6.0 (High)</strong>, credential stuffing and scanner tools trigger <strong>4.0 (Medium)</strong>, while standard authorization failures trigger <strong>3.0 (Medium)</strong>.</span>
                         </div>
                         <div className="eq-element">
                           <span className="eq-label">Confidence Refinement floor & Multipliers</span>
@@ -1233,7 +1233,7 @@ function App() {
 
                     <div className="guide-panel">
                       <h3>Temporal Score Decay Heuristics</h3>
-                      <p className="panel-text">To prevent transient user connection issues or keyboard errors from locking out legitimate staff permanently, SIDERIS integrates a dynamic cooling decay algorithm. Every <strong>30 seconds</strong>, active session scores are multiplied by a decay factor of <strong>0.95</strong> (S_new = S_old &times; 0.95).</p>
+                      <p className="panel-text">To prevent transient user connection issues or keyboard errors from locking out legitimate staff permanently, SIDERIS integrates a dynamic cooling decay algorithm. Every <strong>30 seconds</strong>, active session scores are multiplied by a decay factor of <strong>0.99</strong> (S_new = S_old &times; 0.99).</p>
                       <p className="panel-text">This continuous cooling forces the threat score down towards zero over periods of inactivity. A suspicious session that triggered a CAPTCHA will eventually drift back into the normal zone as time passes, unless the score crossed the persistent block threshold (50+ points) or inline signatures triggered an immediate un-expiring lockout.</p>
                       
                       <h3>Session Statefulness & Persistence</h3>
@@ -1323,7 +1323,7 @@ function App() {
                       
                       <div className="glossary-list">
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>headless_browser</code> <small>(Impact 3, Conf 1.3)</small></span>
+                          <span className="glossary-title"><code>headless_browser</code> <small>(Impact 6, Conf 1.3)</small></span>
                           <p className="glossary-text">Triggered when browser checks reveal webdriver execution, automated sandbox environment variables, or headless browser rendering properties. Used by bot scripts to execute headless scraping.</p>
                         </div>
                         
@@ -1338,8 +1338,18 @@ function App() {
                         </div>
 
                         <div className="glossary-item">
+                          <span className="glossary-title"><code>rapid_click</code> <small>(Impact 2, Conf 0.8)</small></span>
+                          <p className="glossary-text">Detects rapid succession of mouse clicks (&ge; 10 clicks in 5 seconds). Flags automated click scripts or rapid macros acting on UI elements.</p>
+                        </div>
+
+                        <div className="glossary-item">
                           <span className="glossary-title"><code>keystroke_burst</code> <small>(Impact 2, Conf 0.7)</small></span>
                           <p className="glossary-text">Detects &gt;10 keystrokes in 500ms. Inconsistent with human typing speeds, it flags paste operations, auto-fill macros, or automated script inputs in text areas.</p>
+                        </div>
+
+                        <div className="glossary-item">
+                          <span className="glossary-title"><code>fast_typing</code> <small>(Impact 2, Conf 0.7)</small></span>
+                          <p className="glossary-text">Detects inhumanly fast typing speeds (&lt; 50ms average keystroke interval over 5+ keys). Indicates robotic auto-typing scripts or copy-paste emulation.</p>
                         </div>
 
                         <div className="glossary-item">
@@ -1356,37 +1366,37 @@ function App() {
                       
                       <div className="glossary-list">
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>sql_injection</code> <small>(Impact 5, Conf 1.3)</small></span>
+                          <span className="glossary-title"><code>sql_injection</code> <small>(Impact 30, Conf 1.3)</small></span>
                           <p className="glossary-text">Detects SQL syntax keywords (UNION SELECT, OR 1=1, DROP, SLEEP, etc.) inside headers, query strings, or body buffers. Indicates attempts to access or modify backend databases.</p>
                         </div>
                         
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>xss</code> <small>(Impact 4, Conf 1.2)</small></span>
+                          <span className="glossary-title"><code>xss</code> <small>(Impact 30, Conf 1.2)</small></span>
                           <p className="glossary-text">Matches HTML script tags, onerror/onload event handlers, or javascript: payloads. Indicates scripts aiming to execute client-side code in other users' browsers.</p>
                         </div>
 
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>cmd_injection</code> <small>(Impact 5, Conf 1.2)</small></span>
+                          <span className="glossary-title"><code>cmd_injection</code> <small>(Impact 30, Conf 1.2)</small></span>
                           <p className="glossary-text">Identifies shell command metacharacters (;, |, `, $()) followed by system executables (id, cat, wget, whoami). Aims to run commands on the server OS.</p>
                         </div>
 
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>ssti</code> / <code>xxe</code> / <code>ssrf</code> <small>(Impact 5, Conf 1.0)</small></span>
+                          <span className="glossary-title"><code>ssti</code> / <code>xxe</code> / <code>ssrf</code> <small>(Impact 30, Conf 1.0)</small></span>
                           <p className="glossary-text">Identifies server-side template syntax (e.g. {"${...}"} or {"{{...}}"}), XML DOCTYPE system entities, or internal IP redirects (127.0.0.1, file://). Aims to exploit backend runtimes.</p>
                         </div>
 
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>file_upload_exploit</code> <small>(Impact 5, Conf 1.2)</small></span>
+                          <span className="glossary-title"><code>file_upload_exploit</code> <small>(Impact 30, Conf 1.2)</small></span>
                           <p className="glossary-text">POST request filenames containing executable scripts (.php, .jsp, .asp, .cgi). Aims to upload a web shell for persistent server access.</p>
                         </div>
 
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>file_exposure</code> <small>(Impact 4, Conf 1.0)</small></span>
+                          <span className="glossary-title"><code>file_exposure</code> <small>(Impact 6, Conf 1.0)</small></span>
                           <p className="glossary-text">Probes targeted at backups, repositories, or system configurations (.env, .git/config, wp-config.php). Aims to locate database credentials or code backups.</p>
                         </div>
 
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>cms_admin_probe</code> <small>(Impact 3, Conf 1.0)</small></span>
+                          <span className="glossary-title"><code>cms_admin_probe</code> <small>(Impact 8, Conf 1.0)</small></span>
                           <p className="glossary-text">Scans on administrative portals (/wp-admin, /phpmyadmin) on non-CMS architectures, identifying automated vulnerability scanner mapping.</p>
                         </div>
 
@@ -1396,7 +1406,7 @@ function App() {
                         </div>
 
                         <div className="glossary-item">
-                          <span className="glossary-title"><code>http_method_abuse</code> <small>(Impact 2, Conf 1.0)</small></span>
+                          <span className="glossary-title"><code>http_method_abuse</code> <small>(Impact 3, Conf 1.0)</small></span>
                           <p className="glossary-text">Matches unusual HTTP methods like TRACE, CONNECT, or PROPFIND. Standard clients do not use these; they are common in reconnaissance tools.</p>
                         </div>
 
