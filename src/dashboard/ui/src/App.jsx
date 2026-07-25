@@ -48,10 +48,11 @@ function App() {
   const [sortDir, setSortDir] = useState('desc')     // 'asc' | 'desc'
 
   // Sorting & search state for Active Defense Matrix (guards)
-  const [guardSortBy, setGuardSortBy]   = useState('score')       // 'score' | 'action' | 'updated_at'
-  const [guardSortDir, setGuardSortDir] = useState('desc')        // 'asc' | 'desc'
-  const [guardSearch, setGuardSearch]   = useState('')
-  const [guardActionFilter, setGuardActionFilter] = useState('all') // 'all' | 'block' | 'challenge' | 'rate_limit'
+  const [guardSortBy, setGuardSortBy]         = useState('score')       // 'score' | 'action' | 'updated_at'
+  const [guardSortDir, setGuardSortDir]       = useState('desc')        // 'asc' | 'desc'
+  const [guardSearch, setGuardSearch]         = useState('')
+  const [guardActionFilter, setGuardActionFilter] = useState('all')     // 'all' | 'block' | 'challenge' | 'rate_limit'
+  const [guardShowHistoric, setGuardShowHistoric] = useState(true)      // true = show expired peak rows too
 
   const ITEMS_PER_PAGE = 30
   const GUARDS_PER_PAGE = 30
@@ -63,10 +64,10 @@ function App() {
     setSessionPage(1)
   }, [sortBy, sessionSortField, sortDir])
 
-  // Reset guard page when sort, search, action filter, or direction changes
+  // Reset guard page when sort, search, action filter, direction, or historic toggle changes
   useEffect(() => {
     setGuardPage(1)
-  }, [guardSearch, guardSortBy, guardSortDir, guardActionFilter])
+  }, [guardSearch, guardSortBy, guardSortDir, guardActionFilter, guardShowHistoric])
 
   // Escape key listener for guide modal
   useEffect(() => {
@@ -244,6 +245,8 @@ function App() {
 
   const filteredGuards = guards
     .filter(g => {
+      // Hide historic entries when toggle is off
+      if (!guardShowHistoric && g.is_historic) return false
       if (guardSearch) {
         const searchLower = guardSearch.toLowerCase()
         const idMatch = (g.session_id || '').toLowerCase().includes(searchLower)
@@ -319,7 +322,7 @@ function App() {
       }
     })
     return Object.values(ipMap)
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => b.maxScore - a.maxScore || b.count - a.count)
       .slice(0, 20)
   }
 
@@ -967,7 +970,7 @@ function App() {
           <h2 className="panel-title">
             Active Defense Matrix
             <span className="session-count">
-              {guardSearch || guardActionFilter !== 'all' ? `${filteredGuards.length} of ${guards.length}` : guards.length} enforced
+              {filteredGuards.length} {guardShowHistoric ? 'total' : 'live'} enforced
             </span>
           </h2>
           <div className="sort-controls">
@@ -1013,6 +1016,14 @@ function App() {
             >
               {guardSortDir === 'desc' ? '↓ Desc' : '↑ Asc'}
             </button>
+            <button
+              className={`sort-dir-btn${guardShowHistoric ? ' active' : ''}`}
+              onClick={() => setGuardShowHistoric(v => !v)}
+              title={guardShowHistoric ? 'Showing all (live + expired peak verdicts) — click to show live only' : 'Showing live guards only — click to include expired peak verdicts'}
+              style={{ marginLeft: '6px', whiteSpace: 'nowrap' }}
+            >
+              {guardShowHistoric ? '⏱ All History' : '🔴 Live Only'}
+            </button>
           </div>
         </div>
         <div className="table-container">
@@ -1033,10 +1044,20 @@ function App() {
                 <tr><td colSpan="7" className="empty-state">No matching guard actions enforced</td></tr>
               ) : (
                 paginatedGuards.map(g => (
-                  <tr key={g.session_id}>
+                  <tr key={g.session_id} style={g.is_historic ? { opacity: 0.62 } : undefined}>
                     <td className="code-font">{g.session_id.substring(0, 16)}…</td>
                     <td className="code-font">{g.ip_address || (sessions.find(s => s.session_id === g.session_id)?.ip_address) || '—'}</td>
-                    <td><span className={`action-badge type-${g.action}`}>{getMitigationLabel(g.action, g.block_type)}</span></td>
+                    <td>
+                      <span className={`action-badge type-${g.action}`}>{getMitigationLabel(g.action, g.block_type)}</span>
+                      {g.is_historic && (
+                        <span style={{
+                          marginLeft: '5px', fontSize: '0.62rem', fontWeight: 700,
+                          padding: '1px 5px', borderRadius: '3px',
+                          background: 'var(--border, #444)', color: 'var(--text-muted, #aaa)',
+                          letterSpacing: '0.04em', verticalAlign: 'middle'
+                        }}>EXPIRED</span>
+                      )}
+                    </td>
                     <td><span className="block-type-badge">{(g.block_type || 'auto').toUpperCase()}</span></td>
                     <td><span className={`risk-badge ${getRiskClass(g.risk_score)}`}>{g.risk_score}</span></td>
                     <td className="time">{formatRelativeTime(g.updated_at)}</td>
@@ -1051,30 +1072,32 @@ function App() {
                       >
                         Download
                       </a>
-                      {unblockConfirm === g.session_id ? (
-                        <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--warning)', marginRight: '2px' }}>Confirm?</span>
+                      {!g.is_historic && (
+                        unblockConfirm === g.session_id ? (
+                          <div style={{ display: 'inline-flex', gap: '4px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--warning)', marginRight: '2px' }}>Confirm?</span>
+                            <button
+                              className="btn-confirm-yes-small"
+                              onClick={(e) => { e.stopPropagation(); handleUnblock(g.session_id) }}
+                            >
+                              Yes
+                            </button>
+                            <button
+                              className="btn-confirm-no-small"
+                              onClick={(e) => { e.stopPropagation(); setUnblockConfirm(null) }}
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            className="btn-confirm-yes-small"
-                            onClick={(e) => { e.stopPropagation(); handleUnblock(g.session_id) }}
+                            className="btn-unban-small"
+                            onClick={(e) => { e.stopPropagation(); setUnblockConfirm(g.session_id) }}
+                            title="Unban this session and IP address"
                           >
-                            Yes
+                            Unban
                           </button>
-                          <button
-                            className="btn-confirm-no-small"
-                            onClick={(e) => { e.stopPropagation(); setUnblockConfirm(null) }}
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          className="btn-unban-small"
-                          onClick={(e) => { e.stopPropagation(); setUnblockConfirm(g.session_id) }}
-                          title="Unban this session and IP address"
-                        >
-                          Unban
-                        </button>
+                        )
                       )}
                     </td>
                   </tr>

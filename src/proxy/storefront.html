@@ -3,265 +3,242 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIDERIS Demo Storefront</title>
+  <title>MEDUSA STORE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     window.SIDERIS_INGEST_URL = '/sideris/ingest';
   </script>
   <script src="/sideris/agent.js" defer></script>
   <style>
     :root {
-      --bg-dark: #0a0c10;
-      --panel-dark: #121620;
-      --border-dark: #1e2538;
-      --accent: #00ff88;
-      --accent-hover: #00e577;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg: #ffffff;
+      --fg: #111111;
+      --muted: #71717a;
+      --border: #e4e4e7;
+      --card-bg: #f4f4f5;
+      --accent: #111111;
+      --accent-hover: #27272a;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      overflow-x: hidden;
+      background-color: var(--bg);
+      color: var(--fg);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
+    /* Minimalist Header */
     header {
-      background: rgba(18, 22, 32, 0.8);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-dark);
-      padding: 1rem 2rem;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
       position: sticky;
       top: 0;
       z-index: 100;
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    .logo {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #00ff88 0%, #00bcff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .logo span {
-      font-size: 0.8rem;
-      border: 1px solid var(--accent);
-      padding: 0.2rem 0.5rem;
-      border-radius: 20px;
-      color: var(--accent);
-      -webkit-text-fill-color: var(--accent);
-    }
-
-    .search-bar {
-      position: relative;
-      width: 400px;
-    }
-
-    .search-bar input {
+      max-width: 1400px;
       width: 100%;
-      background: #161c2a;
-      border: 1px solid var(--border-dark);
-      padding: 0.6rem 1rem 0.6rem 2.5rem;
-      border-radius: 8px;
-      color: var(--text-main);
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-    }
-
-    .search-bar input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
-    }
-
-    .search-bar::before {
-      content: '🔍';
-      position: absolute;
-      left: 0.8rem;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.9rem;
-      opacity: 0.6;
-    }
-
-    .cart-btn {
-      background: var(--panel-dark);
-      border: 1px solid var(--border-dark);
-      color: var(--text-main);
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-
-    .cart-btn:hover {
-      border-color: var(--accent);
-      background: #161c2a;
-    }
-
-    .cart-count {
-      background: var(--accent);
-      color: var(--bg-dark);
-      font-size: 0.8rem;
-      font-weight: 700;
-      padding: 0.1rem 0.4rem;
-      border-radius: 50%;
-    }
-
-    .hero {
-      background: radial-gradient(circle at top right, rgba(0, 255, 136, 0.08), transparent 40%),
-                  radial-gradient(circle at bottom left, rgba(0, 188, 255, 0.05), transparent 40%);
-      padding: 4rem 2rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border-dark);
-    }
-
-    .hero h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-
-    .hero p {
-      color: var(--text-muted);
-      font-size: 1.1rem;
-      max-width: 600px;
       margin: 0 auto;
     }
 
-    .main-container {
-      max-width: 1200px;
-      margin: 3rem auto;
-      padding: 0 1.5rem;
+    .nav-left {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--fg);
+      cursor: pointer;
     }
 
-    .section-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.8rem;
-      margin-bottom: 2rem;
+    .logo-center {
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      user-select: none;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .nav-right {
       display: flex;
       align-items: center;
-      gap: 0.8rem;
+      gap: 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .nav-link {
+      color: var(--fg);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .cart-trigger {
+      background: none;
+      border: none;
+      color: var(--fg);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    /* Minimalist Search Area under Header */
+    .search-section {
+      max-width: 600px;
+      width: 100%;
+      margin: 2rem auto 1rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .minimal-search {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 0;
+      font-size: 0.95rem;
+      text-align: center;
+      outline: none;
+      color: var(--fg);
+      transition: border-color 0.2s ease;
+    }
+
+    .minimal-search:focus {
+      border-color: var(--fg);
+    }
+
+    /* Main Grid Layout */
+    .main-container {
+      max-width: 1400px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      flex-grow: 1;
     }
 
     .products-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 2rem;
+      gap: 2.5rem 2rem;
     }
 
+    /* Minimalist Product Card */
     .product-card {
-      background: var(--panel-dark);
-      border: 1px solid var(--border-dark);
-      border-radius: 12px;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
-      height: 100%;
-      transition: all 0.3s ease;
+      text-decoration: none;
+      color: var(--fg);
+      cursor: pointer;
+      position: relative;
     }
 
-    .product-card:hover {
-      transform: translateY(-5px);
-      border-color: var(--accent);
-      box-shadow: 0 10px 20px rgba(0, 255, 136, 0.05);
-    }
-
-    .product-img {
-      height: 200px;
-      background: #181f30;
+    .product-img-container {
+      width: 100%;
+      aspect-ratio: 4/5;
+      background-color: var(--card-bg);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
-      border-bottom: 1px solid var(--border-dark);
+      overflow: hidden;
+      margin-bottom: 1rem;
+      transition: opacity 0.2s ease;
+      position: relative;
     }
 
-    .product-info {
-      padding: 1.5rem;
+    .product-card:hover .product-img-container {
+      opacity: 0.9;
+    }
+
+    .product-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: cover;
+      mix-blend-mode: multiply;
+    }
+
+    .product-img-fallback {
+      font-size: 3rem;
+    }
+
+    .product-details {
       display: flex;
-      flex-direction: column;
-      flex-grow: 1;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 0.9rem;
+      font-weight: 500;
+      line-height: 1.4;
+      padding: 0 0.25rem;
     }
 
     .product-title {
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .product-desc {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      line-height: 1.4;
-      margin-bottom: 1.5rem;
-      flex-grow: 1;
-    }
-
-    .product-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: auto;
+      max-width: 75%;
     }
 
     .product-price {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--accent);
+      color: var(--fg);
     }
 
-    .add-to-cart {
-      background: var(--accent);
-      color: var(--bg-dark);
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
+    /* Quick Add Button overlay */
+    .quick-add-btn {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #ffffff;
+      color: #111111;
+      border: 1px solid var(--border);
+      padding: 0.5rem 1.25rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
       font-weight: 600;
-      transition: all 0.3s ease;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
-    .add-to-cart:hover {
-      background: var(--accent-hover);
-      box-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+    .product-card:hover .quick-add-btn {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .quick-add-btn:hover {
+      background: #111111;
+      color: #ffffff;
+      border-color: #111111;
     }
 
     /* Cart Drawer */
     .cart-drawer {
       position: fixed;
-      right: -400px;
+      right: -420px;
       top: 0;
       bottom: 0;
-      width: 400px;
-      background: var(--panel-dark);
-      border-left: 1px solid var(--border-dark);
+      width: 420px;
+      background: #ffffff;
+      border-left: 1px solid var(--border);
       z-index: 200;
-      padding: 2rem;
+      padding: 2.5rem;
       display: flex;
       flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.05);
       transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -274,15 +251,22 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
-      border-bottom: 1px solid var(--border-dark);
+      border-bottom: 1px solid var(--border);
       padding-bottom: 1rem;
+    }
+
+    .cart-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .close-cart {
       background: transparent;
       border: none;
-      color: var(--text-muted);
-      font-size: 1.5rem;
+      color: var(--muted);
+      font-size: 1.25rem;
       cursor: pointer;
     }
 
@@ -296,51 +280,70 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 0;
-      border-bottom: 1px solid #1a2030;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--card-bg);
+    }
+
+    .cart-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
     }
 
     .cart-item-title {
       font-size: 0.95rem;
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .cart-item-price {
-      color: var(--accent);
-      font-size: 0.9rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .cart-remove-btn {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
     }
 
     .cart-total {
       display: flex;
       justify-content: space-between;
-      font-size: 1.2rem;
-      font-weight: 700;
+      font-size: 1.1rem;
+      font-weight: 600;
       margin-bottom: 1.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
     }
 
     .checkout-btn {
       background: var(--accent);
-      color: var(--bg-dark);
+      color: #ffffff;
       border: none;
       width: 100%;
-      padding: 0.8rem;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 700;
+      padding: 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: background-color 0.2s ease;
     }
 
     .checkout-btn:hover {
       background: var(--accent-hover);
     }
 
-    /* Modal */
+    /* Modal Backdrop */
     .overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(2px);
       z-index: 150;
       display: none;
     }
@@ -349,50 +352,105 @@
       display: block;
     }
 
+    /* Success Toast */
     .toast {
       position: fixed;
       bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: #10b981;
-      color: #fff;
-      padding: 0.8rem 2rem;
-      border-radius: 30px;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      right: 2rem;
+      background: #111111;
+      color: #ffffff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       z-index: 300;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .toast.show {
-      transform: translateX(-50%) translateY(0);
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Minimalist Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 4rem 2rem;
+      background: #ffffff;
+      max-width: 1400px;
+      width: 100%;
+      margin: 4rem auto 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .footer-left {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 5rem;
+    }
+
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .footer-col-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-bottom: 0.25rem;
+    }
+
+    .footer-col a {
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .footer-col a:hover {
+      color: var(--muted);
     }
   </style>
 </head>
 <body>
 
+  <!-- Minimalist Header -->
   <header>
-    <div class="logo">
-      SIDERIS <span>Demo Store</span>
+    <div class="nav-left">Menu</div>
+    <div class="logo-center">Medusa Store</div>
+    <div class="nav-right">
+      <span class="nav-link">Account</span>
+      <button class="cart-trigger" onclick="toggleCart(true)">
+        Cart (<span id="cart-count">0</span>)
+      </button>
     </div>
-    <div class="search-bar">
-      <input type="text" id="product-search" placeholder="Search products... (Try SQL Injection here for testing)">
-    </div>
-    <button class="cart-btn" onclick="toggleCart(true)">
-      🛒 Cart <span class="cart-count" id="cart-count">0</span>
-    </button>
   </header>
 
-  <section class="hero">
-    <h1>Headless Commerce Protected</h1>
-    <p>This store runs dynamically on Medusa 2.0 Backend endpoints via the SIDERIS WAF proxy. Real products, real-time client defense logging.</p>
-  </section>
+  <!-- Minimalist Search / SQL Injection Tester -->
+  <div class="search-section">
+    <input type="text" id="product-search" class="minimal-search" placeholder="Search products... (Try SQL Injection here for testing)">
+  </div>
 
+  <!-- Product Grid -->
   <div class="main-container">
-    <h2 class="section-title">🛍️ Featured Products</h2>
     <div class="products-grid" id="products-grid">
-      <!-- Loaded dynamically -->
-      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
+      <div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 5rem;">
         Loading products from Medusa backend...
       </div>
     </div>
@@ -406,23 +464,44 @@
       <button class="close-cart" onclick="toggleCart(false)">✕</button>
     </div>
     <div class="cart-items" id="cart-items">
-      <div style="color: var(--text-muted); text-align: center; margin-top: 3rem;">Your cart is empty</div>
+      <div style="color: var(--muted); text-align: center; margin-top: 3rem; font-size: 0.9rem;">Your cart is empty</div>
     </div>
     <div class="cart-total">
       <span>Total:</span>
-      <span id="cart-total-price">$0.00</span>
+      <span id="cart-total-price">0,00 €</span>
     </div>
     <button class="checkout-btn" onclick="checkout()">Proceed to Checkout</button>
   </div>
 
-  <div class="toast" id="toast">Added to cart!</div>
+  <!-- Toast notification -->
+  <div class="toast" id="toast">Added to cart</div>
+
+  <!-- Minimalist Footer -->
+  <footer>
+    <div class="footer-left">
+      Medusa Store
+    </div>
+    <div class="footer-right">
+      <div class="footer-col">
+        <div class="footer-col-title">Categories</div>
+        <a href="#">Shirts</a>
+        <a href="#">Sweatshirts</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Medusa</div>
+        <a href="https://github.com/medusajs" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://docs.medusajs.com" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/medusajs" target="_blank" rel="noopener">Source code</a>
+      </div>
+    </div>
+  </footer>
 
   <script>
     const PUBLISHABLE_KEY = 'pk_39a81c7b059454833d90ab169636ebb28362f6143937a97bd65332f0cae00488';
     let products = [];
     let cart = [];
 
-    // Map categories or names to emoji icons for visual display
+    // Map category title keywords to emojis for visual fallback
     const iconMap = {
       'ZenBook': '💻',
       'iPhone': '📱',
@@ -438,11 +517,21 @@
       'Shorts': '🩳'
     };
 
-    function getIcon(title) {
+    function getFallbackIcon(title) {
       for (const [key, val] of Object.entries(iconMap)) {
         if (title.includes(key)) return val;
       }
       return '📦';
+    }
+
+    // Helper to format currency values beautifully
+    function formatCurrency(amount, currencyCode = 'eur') {
+      const code = currencyCode.toLowerCase();
+      if (code === 'eur') {
+        return `${amount.toFixed(2).replace('.', ',')} €`;
+      } else {
+        return `$${amount.toFixed(2)}`;
+      }
     }
 
     async function loadProducts(query = '') {
@@ -460,17 +549,17 @@
         });
 
         if (res.status === 403) {
-          // If Sideris blocked the request (SQL Injection test)
+          // Intercept WAF SQL injection blocks
           const errData = await res.json();
           if (errData.error === 'blocked') {
             document.body.innerHTML = `
-              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family: 'Space Grotesk', sans-serif;">
-                <h1 style="color:#ef4444; font-size:4rem; margin-bottom:1rem;">🛡️ SIDERIS BLOCK</h1>
-                <p style="font-size:1.2rem; color:var(--text-muted); margin-bottom:2rem;">Your request was flagged as a security threat: <b>${errData.attack}</b></p>
-                <div style="background:#ef444422; border:1px solid #ef4444; padding:1.5rem; border-radius:8px; font-family:monospace; margin-bottom:2rem;">
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family: 'Outfit', sans-serif; background:#ffffff; color:#111111;">
+                <h1 style="color:#ef4444; font-size:3rem; font-weight:700; margin-bottom:1rem; text-transform:uppercase; letter-spacing:1px;">🛡️ SIDERIS BLOCK</h1>
+                <p style="font-size:1.1rem; color:var(--muted); margin-bottom:2rem;">Your request was flagged as a security threat: <b>${errData.attack}</b></p>
+                <div style="background:#f4f4f5; border:1px solid var(--border); padding:1.5rem; border-radius:6px; font-family:monospace; margin-bottom:2rem; font-size:0.9rem; color:#ef4444;">
                   {"error":"blocked","code":"E_ATTACK_DETECTED","attack":"${errData.attack}"}
                 </div>
-                <button onclick="window.location.reload()" style="background:#ef4444; border:none; color:white; padding:0.8rem 2rem; border-radius:6px; cursor:pointer; font-weight:600;">Go Back</button>
+                <button onclick="window.location.reload()" style="background:#111111; border:none; color:white; padding:0.8rem 2.5rem; border-radius:4px; cursor:pointer; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Go Back</button>
               </div>
             `;
             return;
@@ -483,30 +572,38 @@
         products = data.products;
 
         if (products.length === 0) {
-          grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">No products found</div>`;
+          grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--muted); padding: 5rem;">No products found</div>`;
           return;
         }
 
         grid.innerHTML = products.map(product => {
-          // Get the price of the first variant (convert to human-readable format, standard USD)
-          let priceStr = '$0.00';
+          // Format prices - check for EUR, then USD, then any available price
+          let priceStr = '0,00 €';
+          let currency = 'eur';
           if (product.variants && product.variants[0] && product.variants[0].prices) {
-            const usdPrice = product.variants[0].prices.find(p => p.currency_code === 'usd');
-            if (usdPrice) {
-              priceStr = `$${usdPrice.amount.toFixed(2)}`;
+            const priceObj = product.variants[0].prices.find(p => p.currency_code === 'eur') ||
+                             product.variants[0].prices.find(p => p.currency_code === 'usd') ||
+                             product.variants[0].prices[0];
+            if (priceObj) {
+              currency = priceObj.currency_code || 'eur';
+              priceStr = formatCurrency(priceObj.amount, currency);
             }
           }
 
+          // If thumbnail image exists, use it. Otherwise, use standard fallback emoji icon
+          const imageHtml = product.thumbnail 
+            ? `<img src="${product.thumbnail}" class="product-img" alt="${product.title}" draggable="false" />`
+            : `<div class="product-img-fallback">${getFallbackIcon(product.title)}</div>`;
+
           return `
-            <div class="product-card">
-              <div class="product-img">${getIcon(product.title)}</div>
-              <div class="product-info">
+            <div class="product-card" onclick="addToCart('${product.id}')">
+              <div class="product-img-container">
+                ${imageHtml}
+                <button class="quick-add-btn">Quick Add</button>
+              </div>
+              <div class="product-details">
                 <div class="product-title">${product.title}</div>
-                <div class="product-desc">${product.description || 'No description provided.'}</div>
-                <div class="product-footer">
-                  <div class="product-price">${priceStr}</div>
-                  <button class="add-to-cart" onclick="addToCart('${product.id}')">Add to Cart</button>
-                </div>
+                <div class="product-price">${priceStr}</div>
               </div>
             </div>
           `;
@@ -514,7 +611,7 @@
 
       } catch (err) {
         console.error(err);
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 3rem;">Error loading products: ${err.message}</div>`;
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #ef4444; padding: 5rem;">Error loading products: ${err.message}</div>`;
       }
     }
 
@@ -525,7 +622,7 @@
       cart.push(product);
       updateCartUI();
 
-      // Show toast notification
+      // Trigger toast notification
       const toast = document.getElementById('toast');
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2000);
@@ -536,36 +633,40 @@
       
       const itemsContainer = document.getElementById('cart-items');
       if (cart.length === 0) {
-        itemsContainer.innerHTML = `<div style="color: var(--text-muted); text-align: center; margin-top: 3rem;">Your cart is empty</div>`;
-        document.getElementById('cart-total-price').innerText = '$0.00';
+        itemsContainer.innerHTML = `<div style="color: var(--muted); text-align: center; margin-top: 3rem; font-size: 0.9rem;">Your cart is empty</div>`;
+        document.getElementById('cart-total-price').innerText = '0,00 €';
         return;
       }
 
       let total = 0;
+      let currency = 'eur';
       itemsContainer.innerHTML = cart.map((item, idx) => {
         let price = 0;
-        let priceStr = '$0.00';
+        let priceStr = '0,00 €';
         if (item.variants && item.variants[0] && item.variants[0].prices) {
-          const usdPrice = item.variants[0].prices.find(p => p.currency_code === 'usd');
-          if (usdPrice) {
-            price = usdPrice.amount;
-            priceStr = `$${price.toFixed(2)}`;
+          const priceObj = item.variants[0].prices.find(p => p.currency_code === 'eur') ||
+                           item.variants[0].prices.find(p => p.currency_code === 'usd') ||
+                           item.variants[0].prices[0];
+          if (priceObj) {
+            currency = priceObj.currency_code || 'eur';
+            price = priceObj.amount;
+            priceStr = formatCurrency(price, currency);
           }
         }
         total += price;
 
         return `
           <div class="cart-item">
-            <div>
+            <div class="cart-item-info">
               <div class="cart-item-title">${item.title}</div>
               <div class="cart-item-price">${priceStr}</div>
             </div>
-            <button onclick="removeFromCart(${idx})" style="background:transparent; border:none; color:#ef4444; cursor:pointer;">Remove</button>
+            <button class="cart-remove-btn" onclick="event.stopPropagation(); removeFromCart(${idx})">Remove</button>
           </div>
         `;
       }).join('');
 
-      document.getElementById('cart-total-price').innerText = `$${total.toFixed(2)}`;
+      document.getElementById('cart-total-price').innerText = formatCurrency(total, currency);
     }
 
     function removeFromCart(index) {
@@ -585,15 +686,7 @@
       }
     }
 
-    function checkout() {
-      if (cart.length === 0) return alert('Your cart is empty');
-      alert('Checkout completed! Telemetry is logged to SIDERIS SOC Dashboard.');
-      cart = [];
-      updateCartUI();
-      toggleCart(false);
-    }
-
-    // Bind WAF test search trigger
+    // Bind minimalist search trigger with debounce
     const searchInput = document.getElementById('product-search');
     let debounceTimer;
     searchInput.addEventListener('input', (e) => {
@@ -603,7 +696,7 @@
       }, 500);
     });
 
-    // Initialize
+    // Initialize products load
     loadProducts();
   </script>
 </body>

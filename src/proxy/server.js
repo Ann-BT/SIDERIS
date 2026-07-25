@@ -113,6 +113,21 @@ guardRedis.on('error', err => console.error('[proxy] Guard Redis error:', err.me
 // Parse cookies before any middleware uses them
 app.use(cookieParser());
 
+// Helper to check for authentication failures in JSON responses from endpoints
+function checkAuthFailure(responseBuffer, proxyRes, req) {
+  const contentType = proxyRes.headers['content-type'] || '';
+  if (req.method === 'POST' && analyzer.AUTH_ENDPOINT_PAT.test(req.path) && contentType.includes('application/json')) {
+    try {
+      const json = JSON.parse(responseBuffer.toString('utf8'));
+      if (json && (json.error || json.errors || json.failed || json.success === false)) {
+        req._sideris_auth_failed = true;
+      }
+    } catch (e) {
+      // Ignore JSON parsing errors
+    }
+  }
+}
+
 // Disable caching for HTML requests to prevent stale CAPTCHA template rendering
 app.use((req, res, next) => {
   const accept = req.headers['accept'] || '';
@@ -138,7 +153,13 @@ app.use((req, res, next) => {
       try {
         req.body = JSON.parse(rawBody.toString('utf8'));
       } catch {
-        req.body = rawBody.toString('utf8');
+        const contentType = req.headers['content-type'] || '';
+        if (contentType.includes('application/x-www-form-urlencoded')) {
+          const querystring = require('querystring');
+          req.body = querystring.parse(rawBody.toString('utf8'));
+        } else {
+          req.body = rawBody.toString('utf8');
+        }
       }
       next();
     });
@@ -158,6 +179,11 @@ app.get('/sideris/agent.js', (req, res) => {
   res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(AGENT_PATH);
+});
+
+// Route: Serve the Sideris Demo Storefront page directly for testing
+app.get('/storefront.html', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'storefront.html'));
 });
 
 // SERVER-SIDE CAPTCHA GENERATION
@@ -261,10 +287,11 @@ app.get('/sideris/captcha-image', async (req, res) => {
 
 // CAPTCHA OVERLAY — injected into HTML responses for challenged
 // sessions. Full-screen modal; no redirect required.
-function getCaptchaOverlay(sid) {
+function getCaptchaOverlay(sid, cspNonce = '') {
+  const nonceAttr = cspNonce ? ` nonce="${cspNonce}"` : '';
   return `
 <div id="sideris-captcha-container"></div>
-<script>
+<script${nonceAttr}>
 (function() {
   const container = document.getElementById('sideris-captcha-container');
   if (!container) return;
@@ -1242,6 +1269,7 @@ app.use((req, res, next) => {
         duration:  Date.now() - start,
         body:      bodyData,
         query:     Object.keys(req.query || {}).length > 0 ? req.query : null,
+        auth_failed: req._sideris_auth_failed || false,
       };
 
       console.log(
@@ -1283,6 +1311,7 @@ const proxy = createProxyMiddleware({
       }
     },
     proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      checkAuthFailure(responseBuffer, proxyRes, req);
       const contentType = proxyRes.headers['content-type'] || '';
       const accept = req.headers['accept'] || '';
 
@@ -1366,6 +1395,7 @@ const storefrontProxy = createProxyMiddleware({
       }
     },
     proxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+      checkAuthFailure(responseBuffer, proxyRes, req);
       const contentType = proxyRes.headers['content-type'] || '';
       const accept = req.headers['accept'] || '';
 
@@ -1439,7 +1469,7 @@ const storefrontProxy = createProxyMiddleware({
 
       // CAPTCHA overlay injection for storefront
       if (req._sideris_challenge_sid) {
-        const overlay = getCaptchaOverlay(req._sideris_challenge_sid);
+        const overlay = getCaptchaOverlay(req._sideris_challenge_sid, cspNonce);
         if (html.includes('</body>')) {
           html = html.replace('</body>', `${overlay}\n</body>`);
         } else {

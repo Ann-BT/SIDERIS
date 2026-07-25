@@ -287,7 +287,7 @@ function analyze(event) {
     // IF: status IN (401, 403) AND endpoint matches auth pattern
     // OR: status IN (401, 403) on any endpoint
     // category=authentication, impact=3, confidence depends on endpoint match
-    if (status === 401 || status === 403) {
+    if (status === 401 || status === 403 || data.auth_failed === true) {
       const isAuthEndpoint = AUTH_ENDPOINT_PAT.test(path);
       return result('auth_failure', 3, isAuthEndpoint ? 1.2 : 0.8);
     }
@@ -317,4 +317,4 @@ function result(attackType, impact, confidence) {
   };
 }
 
-module.exports = { analyze, IMPACT, CATEGORY_MAP };
+module.exports = { analyze, IMPACT, CATEGORY_MAP, AUTH_ENDPOINT_PAT };

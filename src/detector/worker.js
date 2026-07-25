@@ -351,6 +351,9 @@ async function startCommandSubscriber() {
         if ((cmd.action === 'unblock' || cmd.action === 'clear_cache') && cmd.session_id) {
           tracker.clearCache(cmd.session_id);
           console.log(`[worker] Cleared L1 cache for session: ${cmd.session_id}`);
+        } else if (cmd.action === 'clear_all') {
+          tracker.clearCache('all');
+          console.log('[worker] Cleared entire L1 cache');
         }
       } catch (err) {
         console.error('[worker] Command processing error:', err.message);

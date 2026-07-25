@@ -468,6 +468,14 @@
       this.addEventListener('load', function () {
         if (shouldInstrument(url)) {
           detectLoginResponse(url, self.status);
+          if (self.status === 429 && !document.getElementById('sideris-captcha-container')) {
+            var reloadCooldown = sessionStorage.getItem('sideris_reload_cooldown');
+            var now = Date.now();
+            if (!reloadCooldown || now - parseInt(reloadCooldown, 10) > 5000) {
+              sessionStorage.setItem('sideris_reload_cooldown', String(now));
+              window.location.reload();
+            }
+          }
         }
       });
 
@@ -526,6 +534,14 @@
       if (shouldInstrument(url)) {
         promise.then(function (resp) {
           detectLoginResponse(url, resp.status);
+          if (resp.status === 429 && !document.getElementById('sideris-captcha-container')) {
+            var reloadCooldown = sessionStorage.getItem('sideris_reload_cooldown');
+            var now = Date.now();
+            if (!reloadCooldown || now - parseInt(reloadCooldown, 10) > 5000) {
+              sessionStorage.setItem('sideris_reload_cooldown', String(now));
+              window.location.reload();
+            }
+          }
           return resp;
         }).catch(function () { /* ignore */ });
       }

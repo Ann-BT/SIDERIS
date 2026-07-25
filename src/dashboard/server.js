@@ -410,7 +410,7 @@ app.get('/dashboard-users', async (req, res) => {
   }
 });
 
-// GET /guards — all active guard directives
+// GET /guards — all active and historic guard directives
 app.get('/guards', async (req, res) => {
   try {
     let keys = await scanKeys('sideris:guard:*', null);
@@ -419,52 +419,113 @@ app.get('/guards', async (req, res) => {
       !key.startsWith('sideris:guard:ip:') && 
       !key.startsWith('sideris:guard:cooldown:')
     );
-    if (keys.length === 0) return res.json([]);
 
-    const pipeline = redis.pipeline();
-    keys.forEach(key => pipeline.hgetall(key));
+    // Build a Set of session IDs that have a live guard key
+    const liveGuardSessions = new Set(
+      keys.map(k => k.split(':').slice(2).join(':'))
+    );
 
-    const results = await pipeline.exec();
+    // ── Phase 1: Fetch live guard data ──────────────────────────────────────
+    let liveGuards = [];
+    if (keys.length > 0) {
+      const pipeline = redis.pipeline();
+      keys.forEach(key => pipeline.hgetall(key));
+      const results = await pipeline.exec();
 
-    // Fetch IP addresses for the guard sessions in parallel
-    const sessionPipeline = redis.pipeline();
-    results.forEach((result, i) => {
-      const keyParts = keys[i].split(':');
-      const session_id = keyParts.slice(2).join(':');
-      const data = result[1];
-      if (data && data.action) {
-        sessionPipeline.hget(`sideris:session:${session_id}`, 'ip_address');
-      }
+      // Fetch IP addresses for live guard sessions
+      const sessionPipeline = redis.pipeline();
+      results.forEach((result, i) => {
+        const session_id = keys[i].split(':').slice(2).join(':');
+        const data = result[1];
+        if (data && data.action) {
+          sessionPipeline.hget(`sideris:session:${session_id}`, 'ip_address');
+        }
+      });
+      const sessionIps = await sessionPipeline.exec();
+      let sessionIpIdx = 0;
+
+      liveGuards = results.map((result, i) => {
+        const session_id = keys[i].split(':').slice(2).join(':');
+        const data = result[1];
+        if (!data || !data.action) return null;
+        const ip_address = sessionIps[sessionIpIdx] ? sessionIps[sessionIpIdx][1] : null;
+        sessionIpIdx++;
+        return {
+          session_id,
+          action:       data.action,
+          block_type:   data.block_type || null,
+          risk_score:   parseInt(data.risk_score || '0', 10),
+          reason:       data.reason || null,
+          updated_at:   parseInt(data.updated_at || '0', 10),
+          ip_address:   ip_address || '—',
+          is_historic:  false,
+        };
+      }).filter(g => g !== null);
+    }
+
+    // ── Phase 2: Fetch historic peak verdicts from all session hashes ────────
+    // Sessions where last_mitigation was block/challenge/rate_limit but the
+    // live guard key no longer exists (decayed/expired) are shown as historic.
+    const PEAK_ACTIONS = new Set(['block', 'challenge', 'rate_limit']);
+    const sessionKeys = await scanKeys('sideris:session:*', null);
+    const filteredSessionKeys = sessionKeys.filter(k =>
+      !k.includes(':risk_reasons')
+    );
+
+    let historicGuards = [];
+    if (filteredSessionKeys.length > 0) {
+      const sessPipeline = redis.pipeline();
+      filteredSessionKeys.forEach(key => {
+        sessPipeline.hmget(key,
+          'session_id', 'ip_address', 'last_mitigation',
+          'highest_score', 'highest_block_type', 'mitigation_reason',
+          'highest_score_at'
+        );
+      });
+      const sessResults = await sessPipeline.exec();
+
+      historicGuards = sessResults.map(r => {
+        const fields = r[1];
+        if (!fields) return null;
+        const [session_id, ip_address, last_mitigation,
+               highest_score, highest_block_type, mitigation_reason,
+               highest_score_at] = fields;
+
+        if (!session_id) return null;
+        // Only include sessions that ever triggered a meaningful mitigation
+        if (!PEAK_ACTIONS.has(last_mitigation)) return null;
+        // Skip if there's already a live guard for this session
+        if (liveGuardSessions.has(session_id)) return null;
+
+        return {
+          session_id,
+          action:      last_mitigation,
+          block_type:  highest_block_type || 'soft',
+          risk_score:  parseFloat(highest_score || '0'),
+          reason:      mitigation_reason || null,
+          updated_at:  parseInt(highest_score_at || '0', 10),
+          ip_address:  ip_address || '—',
+          is_historic: true,
+        };
+      }).filter(g => g !== null);
+    }
+
+    // ── Phase 3: Merge and sort ──────────────────────────────────────────────
+    const allGuards = [...liveGuards, ...historicGuards];
+
+    // Live first, then by action weight, then by score descending
+    const weight = { 'block': 3, 'rate_limit': 2, 'challenge': 1 };
+    allGuards.sort((a, b) => {
+      // Live guards always appear above historic
+      if (!a.is_historic && b.is_historic) return -1;
+      if (a.is_historic && !b.is_historic) return 1;
+      // Within same group: sort by action severity, then score
+      const wDiff = (weight[b.action] || 0) - (weight[a.action] || 0);
+      if (wDiff !== 0) return wDiff;
+      return b.risk_score - a.risk_score;
     });
 
-    const sessionIps = await sessionPipeline.exec();
-    let sessionIpIdx = 0;
-
-    const guards = results.map((result, i) => {
-      const keyParts = keys[i].split(':');
-      const session_id = keyParts.slice(2).join(':'); // handle colons in ID
-      const data = result[1];
-      if (!data || !data.action) return null;
-
-      const ip_address = sessionIps[sessionIpIdx] ? sessionIps[sessionIpIdx][1] : null;
-      sessionIpIdx++;
-
-      return {
-        session_id,
-        action: data.action,
-        block_type: data.block_type || null,
-        risk_score: parseInt(data.risk_score || '0', 10),
-        reason: data.reason || null,
-        updated_at: parseInt(data.updated_at || '0', 10),
-        ip_address: ip_address || '—'
-      };
-    }).filter(g => g !== null);
-
-    // Sort heavily penalized actions first (block > challenge)
-    const weight = { 'block': 3, 'rate_limit': 2, 'challenge': 1 };
-    guards.sort((a, b) => (weight[b.action] || 0) - (weight[a.action] || 0));
-
-    res.json(guards);
+    res.json(allGuards);
   } catch (err) {
     console.error('[dashboard] /guards error:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });

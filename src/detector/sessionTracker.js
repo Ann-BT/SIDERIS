@@ -414,7 +414,7 @@ async function update(sessionId, scoringResult, event) {
     state.failed_login_count++;
 
     // Extract username from POST body for spray detection
-    const username = data.body?.email || data.body?.username || data.body?.user || data.query?.email || data.query?.username || null;
+    const username = data.body?.login || data.body?.email || data.body?.username || data.body?.user || data.query?.email || data.query?.username || null;
     if (username && typeof username === 'string' && !state.unique_usernames.includes(username)) {
       state.unique_usernames.push(username);
     }
@@ -604,7 +604,11 @@ function startDecayTimer() {
 }
 
 function clearCache(sessionId) {
-  cache.delete(sessionId);
+  if (sessionId === 'all') {
+    cache.clear();
+  } else {
+    cache.delete(sessionId);
+  }
 }
 
 module.exports = { getSession, update, startDecayTimer, clearCache };

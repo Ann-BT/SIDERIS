@@ -225,6 +225,7 @@ app.post('/api/events', async (req, res) => {
       ip:        event.ip,
       body:      event.body  || null,   // POST body (for injection detection)
       query:     event.query || null,   // URL query params
+      auth_failed: event.auth_failed || false,
     },
     ingest_ip:   req.socket.remoteAddress || 'unknown',
     ingest_time: Date.now()

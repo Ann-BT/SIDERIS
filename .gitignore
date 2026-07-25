@@ -14,7 +14,7 @@ logs/
 waf-rules.json
 
 # Local testing and cookie storage
-cookies.txt
+cookies*.txt
 all_dump.sql
 
 # OS

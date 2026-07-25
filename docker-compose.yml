@@ -60,9 +60,83 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── Medusa E-Commerce Backend & Admin ──────────────────
+  medusa:
+    build:
+      context: ../medusa-test
+      dockerfile: Dockerfile
+    container_name: sideris-medusa
+    ports:
+      - "9001:9000"
+    environment:
+      - DATABASE_URL=postgresql://sideris:sideris@postgres:5432/medusa
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=supersecretjwtsecretfordemopurposes12345
+      - COOKIE_SECRET=supersecretcookiesecretfordemopurposes12345
+      - __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS=sideris-medusa,localhost,sideris-app,localhost:4000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Discourse — Modern Forum Application ───────────────
+  discourse:
+    image: bitnamilegacy/discourse:latest
+    container_name: sideris-discourse
+    entrypoint: ["/bin/bash", "/discourse-wrapper.sh"]
+    ports:
+      - "3000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - DISCOURSE_HOST=localhost
+      - DISCOURSE_PORT_NUMBER=4000
+      - DISCOURSE_DATABASE_HOST=postgres
+      - DISCOURSE_DATABASE_PORT_NUMBER=5432
+      - DISCOURSE_DATABASE_USER=sideris
+      - DISCOURSE_DATABASE_PASSWORD=sideris
+      - DISCOURSE_DATABASE_NAME=sideris_discourse
+      - DISCOURSE_REDIS_HOST=redis
+      - DISCOURSE_REDIS_PORT_NUMBER=6379
+      - DISCOURSE_REDIS_USE_SSL=false
+      - pnpm_config_engine_strict=false
+    volumes:
+      - discourse_data:/bitnami/discourse
+      - ./scripts/discourse-wrapper.sh:/discourse-wrapper.sh
+    restart: unless-stopped
+
+  # ── OWASP Juice Shop — Vulnerable web app for testing ─────
+  juiceshop:
+    image: bkimminich/juice-shop:latest
+    container_name: sideris-juiceshop
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+
+  # ── Medusa B2B Next.js Storefront ─────────────────────
+  storefront:
+    image: node:20-alpine
+    container_name: sideris-storefront
+    working_dir: /app
+    volumes:
+      - ./../b2b-starter-medusa/storefront:/app
+    network_mode: host
+    environment:
+      - PORT=8000
+    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    restart: unless-stopped
+
 volumes:
   redis_data:
     driver: local
   postgres_data:
+    driver: local
+  discourse_data:
     driver: local
 
