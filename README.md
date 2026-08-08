@@ -222,6 +222,85 @@ Scores decay over time. A visitor who triggered rate limiting and then behaved n
 
 <br>
 
+### Detection Capabilities & Prevention Strategies
+
+SIDERIS employs a category-aware detection and analysis engine across **6 threat categories** containing **18+ security rules**. It correlates request fingerprints, backend HTTP anomalies, and client-side behavioral telemetry to dynamically score and mitigate threats.
+
+#### 1. Threat Categories & Detection Logic
+
+* **Payload Injection (`injection`)**
+  * **SQL Injection (SQLi):** Scans parameters, URL query strings, and request bodies for database keywords and structures (`UNION SELECT`, `OR 1=1`, `SLEEP()`, `BENCHMARK()`).
+  * **Cross-Site Scripting (XSS):** Scans for malicious script tags, inline event handlers, script schemes, and javascript execution functions (`<script>`, `onerror=`, `eval()`, `alert()`).
+  * **Command Injection (CMDi):** Identifies shell metacharacters (`;&|`) followed by dangerous system executables (`ls`, `cat`, `curl`, `whoami`, `bash`).
+  * **Server-Side Template Injection (SSTI):** Matches template syntax tags from common template engines (`{{...}}`, `${...}`, `<%=...%>`).
+  * **XML External Entity (XXE):** Detects `<!DOCTYPE` structures containing external system entities (`SYSTEM 'file://'`).
+  * **Server-Side Request Forgery (SSRF):** Scans parameters for internal subnets (`127.0.0.1`, `10.x.x.x`, `192.168.x.x`) and unsafe protocols (`file://`, `gopher://`).
+  * **Malicious File Uploads:** Blocks POST requests with uploads containing execution-prone file extensions (`.php`, `.jsp`, `.sh`, `.py`, `.cgi`).
+
+* **Authentication Exploits (`authentication`)**
+  * **Auth Failures:** Intercepts failed login attempts (`401` or `403` status codes) targeting authentication endpoints (`/login`, `/signin`, `/auth`).
+  * **Credential Stuffing:** Tracks high-frequency authentication attempts originating from a single IP targeting varied usernames.
+  * **Password Spraying:** Detects matching password payloads across multiple distinct usernames within the same tracking window.
+
+* **Fuzzing & Scanner Reconnaissance (`fuzzing`)**
+  * **Attack Tool User-Agents:** Matches browser user-agents of known vulnerability scanners and automated tools (`sqlmap`, `nikto`, `burpsuite`, `nmap`, `ffuf`, `nuclei`).
+  * **Sensitive File Exposure:** Blocks probes targeting backup files, source control configurations, and environments (`.env`, `.git/config`, `wp-config.php`, `.bak`, `.sql`).
+  * **CMS/Admin Portal Scans:** Detects crawlers scanning for generic administration entrypoints (`/wp-admin`, `/phpmyadmin`, `/cpanel`, `/adminer.php`).
+  * **Directory Traversal:** Checks for directory hopping patterns (`../`, `..\`, `%2e%2e%2f`).
+  * **HTTP Method Abuse:** Blocks dangerous or non-standard HTTP verbs (`TRACE`, `CONNECT`, `PROPFIND`, `PROPPATCH`).
+  * **Recon 404 Storms:** Tracks repeated requests to non-existent assets.
+
+* **Client-Side Bot Automation (`bot`)**
+  * **Headless Browser Detection:** Flags client-side automated browsers (e.g. Puppeteer, Selenium) when `navigator.webdriver` is true.
+  * **Rapid Navigation:** Flags users requesting `10+` page navigations within a 5-second window.
+  * **Instant Form Submission:** Identifies automated form-fills submitting forms in under `800ms` from focus.
+  * **Inhuman Key/Mouse Dynamics:** Flags keystroke burst events (`>10` keystrokes in 500ms), superhuman typing speeds, and rapid clicks.
+  * **No Mouse Interaction:** Detects form submissions done with zero mouse coordinates or motion tracking signals.
+
+* **Volumetric Abuse (`dos`)**
+  * **Request Floods:** Minimizes site degradation by flagging clients generating `>50` requests per minute.
+  * **Endpoint Hammering:** Blocks clients focusing aggressive traffic targeting a single endpoint (`>20` times in 60s).
+
+* **Privilege & Session Manipulation (`session_abuse`)**
+  * **Session IP Drift:** Immediately flags active sessions that suddenly change geographical/network context to a different IP address.
+  * **Abnormal Privileged Navigation:** Blocks direct jumps to privileged endpoints bypassing standard authentication checkpoints.
+
+---
+
+#### 2. Prevention & Mitigation Matrix
+
+When threat thresholds are breached, the **Guard Service** executes real-time mitigation using Redis-backed Lua scripts for atomic operation:
+
+```
+                  ┌──────────────────────────────────────────────┐
+                  │          Attacking Client Request            │
+                  └──────────────────────┬───────────────────────┘
+                                         │
+                                         ▼
+                         Heuristic Engine Recalculates:
+                 Score = Impact × Confidence × Persistence
+                                         │
+                 ┌───────────────────────┼───────────────────────┐
+                 │                       │                       │
+                 ▼ (Score >= 10)         ▼ (Score >= 20)         ▼ (Score >= 30)
+         ┌───────────────┐       ┌───────────────┐       ┌───────────────┐
+         │  Rate Limit   │       │   CAPTCHA     │       │  Soft Block   │
+         │  (300s decay) │       │ (600s challenge)│     │ (1800s soft)  │
+         └───────────────┘       └───────┬───────┘       └───────────────┘
+                                         │                       │
+                                         ▼                       ▼
+                                  CAPTCHA Solved?         Offenses Accumulated?
+                                   ├── Yes ──► Allow       └── Multiplies TTL
+                                   └── No  ──► Escalate        (Hard Block)
+```
+
+* **Rate Limiting (Score $\ge 10$):** Temporarily limits the request volume of suspicious clients.
+* **CAPTCHA Challenge (Score $\ge 20$):** Intercepts client navigation with an interactive challenge. SIDERIS enforces a **5-minute grace period** allowing real human users to pass before elevating to a block.
+* **Soft Block (Score $\ge 30$):** Temporarily blocks access for 1,800 seconds. Penalties scale dynamically—the second offense doubles the block interval (`baseTtl * offenseCount`).
+* **Hard Block (Score $\ge 50$):** Immediately terminates the connection at the proxy layer for the session and blocks the originating IP address globally.
+
+---
+
 ### Scalability & Resilience
 
 > **Horizontal scaling** — State lives in Redis, allowing multiple WAF Proxy instances behind a load balancer (Nginx, HAProxy, Cloudflare). The Detector Worker uses a Redis Consumer Group (`sideris_group`) to distribute telemetry scoring across multiple worker processes.
